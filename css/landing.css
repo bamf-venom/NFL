@@ -1,0 +1,175 @@
+/* ==================== Landing Page ==================== */
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated background gradient */
+.landing-page::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(227, 24, 55, 0.08) 0%,
+    transparent 50%
+  );
+  animation: gradientMove 15s ease-in-out infinite;
+}
+
+.landing-page::after {
+  content: '';
+  position: absolute;
+  bottom: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(227, 24, 55, 0.05) 0%,
+    transparent 40%
+  );
+  animation: gradientMove 20s ease-in-out infinite reverse;
+}
+
+/* ==================== Hero Section ==================== */
+.hero-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-content {
+  text-align: center;
+  max-width: 700px;
+}
+
+.hero-title {
+  font-size: 100px;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  margin-bottom: 16px;
+  line-height: 1;
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    #e0e0e0 50%,
+    #ffffff 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+             shimmer 3s ease-in-out infinite;
+  text-shadow: 0 0 80px rgba(255, 255, 255, 0.15);
+}
+
+.hero-subtitle {
+  font-size: 20px;
+  color: var(--muted-light);
+  margin-bottom: 56px;
+  opacity: 0;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+}
+
+.hero-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  opacity: 0;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+}
+
+.hero-buttons .btn {
+  min-width: 200px;
+}
+
+/* ==================== Landing Footer ==================== */
+.landing-footer {
+  padding: 28px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
+}
+
+.footer-text {
+  font-size: 12px;
+  color: rgba(115, 115, 115, 0.5);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ==================== Auth Modal Styles ==================== */
+.auth-switch {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.text-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0;
+  margin-left: 6px;
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+}
+
+.text-link:hover {
+  opacity: 0.8;
+}
+
+/* ==================== Responsive ==================== */
+@media (min-width: 640px) {
+  .hero-title {
+    font-size: 140px;
+  }
+  
+  .hero-buttons {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 60px;
+    letter-spacing: -0.04em;
+  }
+  
+  .hero-subtitle {
+    font-size: 16px;
+    margin-bottom: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 48px;
+  }
+  
+  .hero-buttons .btn {
+    width: 100%;
+    max-width: 280px;
+  }
+}

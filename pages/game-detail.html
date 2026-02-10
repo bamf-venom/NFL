@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spiel Details - NFL BETT</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/animations.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/games.css">
+  <link rel="stylesheet" href="../css/leaderboard-groups.css">
+  <link rel="stylesheet" href="../css/profile-admin.css">
+  <link rel="stylesheet" href="../css/utilities.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div id="navbar-container"></div>
+  <main class="main-content">
+    <div class="container container-sm">
+      <!-- Back Link -->
+      <a href="games.html" class="back-link" data-testid="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Zurück zu den Spielen
+      </a>
+      <div id="game-detail-container">
+        <div class="loading-container">
+          <div class="spinner spinner-lg"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <!-- Edit Bet Modal -->
+  <div id="edit-bet-modal" class="modal">
+    <div class="modal-backdrop" onclick="closeEditBetModal()"></div>
+    <div class="modal-content animate-scale-in">
+      <h2 class="modal-title">Wette bearbeiten</h2>
+      <p style="text-align: center; margin-bottom: 16px; color: var(--muted);" id="edit-bet-teams"></p>
+      <form onsubmit="handleEditBet(event)">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" id="edit-bet-home-label">Heim Punkte</label>
+            <input type="number" id="edit-bet-home-score" class="form-input" min="0" max="100" required data-testid="edit-home-score-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="edit-bet-away-label">Gast Punkte</label>
+            <input type="number" id="edit-bet-away-score" class="form-input" min="0" max="100" required data-testid="edit-away-score-input">
+          </div>
+        </div>
+        <div id="edit-bet-error" class="error-message hidden"></div>
+        <div id="edit-bet-success" class="success-message hidden">Wette erfolgreich aktualisiert!</div>
+        <p style="font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 16px;">
+          Du kannst deine Wette bis 24 Stunden vor Spielbeginn bearbeiten
+        </p>
+        <button type="submit" class="btn btn-primary btn-full" data-testid="save-edit-bet-button">
+          Änderungen speichern
+        </button>
+      </form>
+    </div>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/game-detail.js"></script>
+</body>
+</html>
