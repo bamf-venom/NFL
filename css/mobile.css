@@ -1,0 +1,1111 @@
+/* ==================== Mobile Responsive Styles ==================== */
+/* NFL POINTS - Header mit Hamburger Menü */
+
+/* ==================== Hide/Show Elements for Mobile/Desktop ==================== */
+.mobile-profile-link,
+.hamburger-btn,
+.mobile-menu-overlay,
+.mobile-slide-menu {
+  display: none;
+}
+
+.desktop-nav,
+.desktop-user {
+  display: flex;
+}
+
+/* ==================== Mobile Styles (max-width: 768px) ==================== */
+@media (max-width: 768px) {
+  /* Hide desktop elements */
+  .desktop-nav,
+  .desktop-user,
+  .mobile-menu-btn {
+    display: none !important;
+  }
+  
+  /* Show mobile elements */
+  .mobile-profile-link,
+  .hamburger-btn {
+    display: flex;
+  }
+  
+  /* ==================== Mobile Header Layout ==================== */
+  .navbar-content {
+    height: 56px;
+    padding: 0 12px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+  }
+  
+  /* Logo links */
+  .navbar-logo {
+    font-size: 16px;
+    justify-self: start;
+  }
+  
+  /* Username in der Mitte (zum Profil) */
+  .mobile-profile-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--white);
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(var(--white-rgb), 0.05);
+    transition: all 0.3s ease;
+    justify-self: center;
+  }
+  
+  .mobile-profile-link:active {
+    background: rgba(var(--white-rgb), 0.1);
+    transform: scale(0.98);
+  }
+  
+  .mobile-profile-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    overflow: hidden;
+  }
+  
+  .mobile-profile-name {
+    font-size: 14px;
+    font-weight: 600;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Hamburger Button rechts */
+  .hamburger-btn {
+    justify-self: end;
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Animated Hamburger Icon */
+  .hamburger-icon {
+    width: 22px;
+    height: 16px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .hamburger-icon span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: var(--white);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    transform-origin: center;
+  }
+  
+  /* Hamburger to X animation */
+  .hamburger-icon.active span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  
+  .hamburger-icon.active span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  
+  .hamburger-icon.active span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+  
+  /* ==================== Mobile Menu Overlay ==================== */
+  .mobile-menu-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 90;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .mobile-menu-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+  
+  /* ==================== Mobile Slide-in Menu ==================== */
+  .mobile-slide-menu {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    right: -280px;
+    width: 280px;
+    height: 100vh;
+    background: var(--card);
+    border-left: 1px solid var(--border);
+    z-index: 100;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .mobile-slide-menu.active {
+    right: 0;
+  }
+  
+  /* Menu Header */
+  .mobile-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .mobile-menu-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white);
+  }
+  
+  .mobile-menu-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: rgba(var(--white-rgb), 0.1);
+    border-radius: 50%;
+    color: var(--white);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+  
+  .mobile-menu-close:active {
+    background: rgba(var(--white-rgb), 0.2);
+    transform: scale(0.95);
+  }
+  
+  /* Menu Navigation Links */
+  .mobile-menu-nav {
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+  }
+  
+  .mobile-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-bottom: 4px;
+    border: none;
+    background: transparent;
+    width: 100%;
+    cursor: pointer;
+    text-align: left;
+  }
+  
+  .mobile-nav-link i {
+    width: 24px;
+    font-size: 18px;
+    text-align: center;
+  }
+  
+  .mobile-nav-link:active {
+    background: rgba(var(--white-rgb), 0.1);
+    transform: scale(0.98);
+  }
+  
+  .mobile-nav-link.active {
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--white);
+  }
+  
+  .mobile-nav-link.active i {
+    color: var(--accent);
+  }
+  
+  /* Menu Footer */
+  .mobile-menu-footer {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  
+  .mobile-nav-link.logout-link {
+    color: var(--error);
+  }
+  
+  .mobile-nav-link.logout-link:active {
+    background: rgba(var(--error-rgb), 0.15);
+  }
+  
+  /* ==================== Main Content (kein Bottom-Padding mehr) ==================== */
+  .main-content {
+    min-height: calc(100vh - 56px);
+    padding-bottom: 20px;
+  }
+  
+  /* ==================== Container & Layout ==================== */
+  .container {
+    padding: 20px 14px;
+  }
+  
+  .page-header {
+    margin-bottom: 20px;
+  }
+  
+  .page-header-row {
+    flex-direction: column;
+    gap: 14px;
+    align-items: flex-start !important;
+  }
+  
+  .page-title {
+    font-size: 22px;
+  }
+  
+  .page-subtitle {
+    font-size: 13px;
+  }
+  
+  /* ==================== Cards ==================== */
+  .card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+  
+  /* ==================== Game Cards - Mobile Layout ==================== */
+  /* Status + Pfeil oben, dann alles in einer Reihe - skaliert automatisch */
+  .games-list {
+    gap: 10px;
+  }
+  
+  .game-card,
+  .game-card-header {
+    padding: 12px 10px;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .game-card-expanded .game-card-header {
+    padding: 12px 10px;
+    flex-direction: column;
+  }
+  
+  /* Top Row: Badge + Arrow zusammen oben (nur auf Mobile sichtbar) */
+  .game-card-top-row {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 4px;
+  }
+  
+  .game-card-top-row .badge {
+    font-size: clamp(9px, 2.5vw, 11px);
+    padding: 4px 10px;
+    min-width: auto;
+  }
+  
+  .game-card-top-row .game-arrow {
+    display: flex !important;
+    font-size: clamp(10px, 2.5vw, 14px);
+    color: var(--muted);
+    transition: transform 0.3s ease;
+  }
+  
+  .card:hover .game-card-top-row .game-arrow {
+    transform: translateX(3px);
+  }
+  
+  /* Hide standalone badge on mobile (use the one in top-row) */
+  .game-card-header > .badge {
+    display: none !important;
+  }
+  
+  .game-card-header > .game-arrow:last-child {
+    display: none !important;
+  }
+  
+  /* Teams & Score - Alles in EINER Reihe (wie PC) */
+  .game-teams {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: nowrap;
+  }
+  
+  /* Team Layout: Abkürzung + Logo nebeneinander */
+  .game-team {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: clamp(2px, 0.8vw, 6px);
+    min-width: auto;
+    flex-shrink: 1;
+  }
+  
+  /* Home Team: Abkürzung links, Logo rechts (neben Score) */
+  .game-team.home {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  
+  /* Away Team: Logo links (neben Score), Abkürzung rechts */
+  .game-team.away {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+  }
+  
+  .team-info {
+    min-width: auto;
+  }
+  
+  .team-abbr {
+    font-size: clamp(11px, 3vw, 16px);
+    font-weight: 700;
+  }
+  
+  /* Team-Namen verstecken auf Mobile */
+  .team-name {
+    display: none !important;
+  }
+  
+  .team-info.left {
+    text-align: right;
+  }
+  
+  .team-info.right {
+    text-align: left;
+  }
+  
+  /* ALLE Elemente skalieren proportional zusammen */
+  /* Logos etwas kleiner, damit Punkte größer bleiben können */
+  .team-logo,
+  .team-logo-placeholder,
+  .game-score-with-logos .team-logo,
+  .game-score-with-logos .team-logo-placeholder {
+    width: clamp(20px, 5.5vw, 36px);
+    height: clamp(20px, 5.5vw, 36px);
+    flex-shrink: 0;
+  }
+  
+  /* Score/Zeit in der Mitte - Punkte bleiben gut lesbar */
+  .game-score-with-logos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-shrink: 0;
+  }
+  
+  .game-score {
+    padding: clamp(5px, 1.5vw, 10px) clamp(8px, 2.2vw, 14px);
+    background: rgba(var(--white-rgb), 0.05);
+    border-radius: 8px;
+    margin: 0 clamp(3px, 1vw, 8px);
+  }
+  
+  /* Punkte größer halten für bessere Lesbarkeit */
+  .game-score-num {
+    font-size: clamp(15px, 4.5vw, 24px);
+    min-width: clamp(18px, 4.5vw, 30px);
+    font-weight: 800;
+    text-align: center;
+  }
+  
+  .game-score-sep {
+    font-size: clamp(13px, 3.8vw, 20px);
+    color: var(--muted);
+    margin: 0 1px;
+  }
+  
+  .game-time {
+    padding: clamp(5px, 1.5vw, 10px) clamp(8px, 2.2vw, 14px);
+    margin: 0 clamp(3px, 1vw, 8px);
+    gap: clamp(4px, 1.2vw, 8px);
+  }
+  
+  .game-time i {
+    font-size: clamp(11px, 3vw, 14px);
+  }
+  
+  .game-time span {
+    font-size: clamp(12px, 3.5vw, 15px);
+  }
+  
+  /* Fallback: alte Arrow verstecken */
+  .game-arrow {
+    display: none !important;
+  }
+  
+  /* My bet preview */
+  .my-bet-preview,
+  .no-bet-preview {
+    padding: 6px 10px;
+    gap: 8px;
+    margin: 0;
+    width: auto;
+  }
+  
+  .my-bet-preview-label {
+    font-size: 9px;
+    gap: 4px;
+  }
+  
+  .my-bet-preview-score {
+    font-size: 13px;
+  }
+  
+  .my-bet-preview-points {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  
+  .no-bet-preview {
+    font-size: 10px;
+  }
+  
+  /* Group bets section */
+  .group-bets-section {
+    padding: 10px 14px;
+  }
+  
+  .group-bets-list {
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .group-bet-item {
+    padding: 5px 8px;
+    gap: 6px;
+  }
+  
+  .group-bet-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+  
+  .group-bet-username {
+    max-width: 50px;
+    font-size: 10px;
+  }
+  
+  .group-bet-prediction {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+  
+  /* ==================== Game Detail Page ==================== */
+  .game-detail-header {
+    padding: 20px 14px;
+  }
+
+  .game-detail-teams {
+    gap: 20px;
+  }
+
+  .game-detail-team h3 {
+    font-size: 15px;
+  }
+
+  /* Away Team (unteres Team): Name ÜBER dem Logo */
+  .game-detail-team:last-of-type h3 {
+    order: -1;
+  }
+
+  .team-logo-lg {
+    width: 56px;
+    height: 56px;
+  }
+
+  .game-detail-vs {
+    font-size: 16px;
+  }
+
+  .game-detail-score {
+    padding: 14px 24px;
+  }
+
+  .game-detail-score-num {
+    font-size: 32px;
+  }
+
+  .game-detail-score-sep {
+    font-size: 24px;
+  }
+
+  .game-detail-info {
+    font-size: 12px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  
+  /* Bet inputs */
+  .bet-inputs {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .bet-inputs .form-input {
+    font-size: 22px;
+    padding: 14px;
+  }
+  
+  .bet-form-title {
+    font-size: 16px;
+  }
+  
+  /* My bet */
+  .my-bet-score-num {
+    font-size: 32px;
+  }
+  
+  .my-bet-points-num {
+    font-size: 28px;
+  }
+  
+  /* ==================== Leaderboard - Zentriert ==================== */
+  .leaderboard-header {
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .leaderboard-list {
+    gap: 10px;
+  }
+  
+  .leaderboard-entry {
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  /* Rang oben */
+  .leaderboard-rank {
+    width: auto;
+    margin-bottom: 4px;
+  }
+  
+  .leaderboard-rank-num,
+  .leaderboard-medal {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  .leaderboard-medal {
+    font-size: 16px;
+  }
+  
+  /* User Info zentriert */
+  .leaderboard-user {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .leaderboard-username {
+    font-size: 15px;
+    justify-content: center;
+  }
+  
+  .leaderboard-you {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+  
+  /* Stats wieder anzeigen, zentriert */
+  .leaderboard-stats {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 2px;
+  }
+  
+  .leaderboard-stat {
+    font-size: 11px;
+  }
+  
+  /* Punkte zentriert unten */
+  .leaderboard-points {
+    width: auto;
+    text-align: center;
+    padding-top: 10px;
+    margin-top: 6px;
+    border-top: 1px solid var(--border);
+    min-width: 100px;
+  }
+  
+  .leaderboard-points-num {
+    font-size: 24px;
+  }
+  
+  .leaderboard-points-label {
+    font-size: 10px;
+  }
+  
+  /* Leaderboard Header zentriert */
+  .leaderboard-icon {
+    margin: 0 auto 12px;
+  }
+  
+  /* Page header für Leaderboard */
+  #leaderboard-container .leaderboard-list,
+  .leaderboard-list {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  /* ==================== Groups ==================== */
+  .groups-buttons {
+    width: 100%;
+    flex-direction: row;
+    gap: 8px;
+  }
+  
+  .groups-buttons .btn {
+    flex: 1;
+    font-size: 12px;
+    padding: 10px;
+  }
+  
+  .group-card {
+    padding: 14px;
+  }
+  
+  .group-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+  
+  .group-name {
+    font-size: 14px;
+  }
+  
+  .group-members {
+    font-size: 11px;
+  }
+  
+  /* Group Detail */
+  .group-header-card {
+    padding: 20px 14px;
+  }
+  
+  .group-header-info {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .group-header-avatar {
+    width: 56px;
+    height: 56px;
+    font-size: 22px;
+  }
+  
+  .group-header-name {
+    font-size: 20px;
+  }
+  
+  .invite-code {
+    font-size: 16px;
+    letter-spacing: 2px;
+  }
+  
+  /* Tabs */
+  .tabs {
+    margin-bottom: 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .tab-btn {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+  
+  /* Member items */
+  .member-item {
+    padding: 12px 14px;
+  }
+  
+  .member-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .member-name {
+    font-size: 13px;
+  }
+  
+  .member-joined {
+    font-size: 10px;
+  }
+  
+  /* ==================== Profile ==================== */
+  .profile-header {
+    padding: 24px 16px;
+  }
+  
+  .profile-avatar-container {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .profile-avatar {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .profile-username {
+    font-size: 20px;
+  }
+  
+  .profile-email {
+    font-size: 12px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  
+  .stat-card {
+    padding: 14px 10px;
+  }
+  
+  .stat-value {
+    font-size: 22px;
+  }
+  
+  .stat-label {
+    font-size: 9px;
+  }
+  
+  /* ==================== Forms ==================== */
+  .form-input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  select.form-input {
+    padding: 12px 14px;
+    font-size: 16px;
+  }
+  
+  .filter-container {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .filter-container > i {
+    display: none;
+  }
+  
+  .filter-container select,
+  .filter-container .custom-select {
+    flex: 1;
+    min-width: 100px;
+  }
+  
+  /* ==================== Buttons ==================== */
+  .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  .btn-lg {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  
+  /* ==================== Modal ==================== */
+  .modal {
+    padding: 16px;
+  }
+  
+  .modal-content {
+    padding: 20px 16px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  
+  .modal-title {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  
+  /* Crop modal */
+  .crop-modal-content {
+    max-width: 100%;
+  }
+  
+  .crop-wrapper {
+    width: 200px;
+    height: 200px;
+  }
+  
+  /* ==================== Utilities ==================== */
+  .toast-container {
+    bottom: 20px;
+    right: 12px;
+    left: 12px;
+  }
+  
+  .back-link {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  
+  .empty-state {
+    padding: 32px 16px;
+  }
+  
+  .empty-title {
+    font-size: 16px;
+  }
+}
+
+/* ==================== Very Small Screens ==================== */
+@media (max-width: 360px) {
+  .navbar-logo {
+    font-size: 14px;
+  }
+  
+  .mobile-profile-name {
+    max-width: 70px;
+    font-size: 13px;
+  }
+  
+  .mobile-profile-avatar {
+    width: 24px;
+    height: 24px;
+  }
+  
+  /* Game cards kompakter - alles näher zusammen */
+  .game-card,
+  .game-card-header {
+    padding: 10px 6px;
+    gap: 4px;
+  }
+  
+  /* Top Row kleiner */
+  .game-card-top-row {
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  
+  .game-card-top-row .badge {
+    font-size: 9px;
+    padding: 3px 8px;
+  }
+  
+  .game-card-top-row .game-arrow {
+    font-size: 10px;
+  }
+  
+  /* Teams näher zusammen */
+  .game-team {
+    gap: 2px;
+  }
+  
+  .team-abbr {
+    font-size: clamp(10px, 3vw, 13px);
+  }
+  
+  /* Logos kleiner */
+  .team-logo,
+  .team-logo-placeholder,
+  .game-score-with-logos .team-logo,
+  .game-score-with-logos .team-logo-placeholder {
+    width: clamp(16px, 5vw, 26px);
+    height: clamp(16px, 5vw, 26px);
+  }
+  
+  /* Score kompakter aber gut lesbar */
+  .game-score {
+    padding: 4px 6px;
+    margin: 0 2px;
+    border-radius: 6px;
+  }
+  
+  /* Punkte bleiben größer für gute Lesbarkeit */
+  .game-score-num {
+    font-size: clamp(14px, 4.2vw, 18px);
+    min-width: clamp(16px, 4vw, 22px);
+  }
+  
+  .game-score-sep {
+    font-size: clamp(12px, 3.5vw, 16px);
+  }
+  
+  .game-time {
+    padding: 4px 6px;
+    margin: 0 2px;
+    gap: 3px;
+  }
+  
+  .game-time i {
+    font-size: 10px;
+  }
+  
+  .game-time span {
+    font-size: clamp(11px, 3.2vw, 13px);
+  }
+  
+  /* Leaderboard kompakter */
+  .leaderboard-entry {
+    padding: 12px;
+  }
+  
+  .leaderboard-rank-num,
+  .leaderboard-medal {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  
+  .leaderboard-username {
+    font-size: 14px;
+  }
+  
+  .leaderboard-points-num {
+    font-size: 20px;
+  }
+  
+  .leaderboard-stats {
+    gap: 12px;
+  }
+  
+  .leaderboard-stat {
+    font-size: 10px;
+  }
+  
+  /* Stats Grid */
+  .stats-grid {
+    gap: 6px;
+  }
+  
+  .stat-card {
+    padding: 12px 8px;
+  }
+  
+  .stat-value {
+    font-size: 18px;
+  }
+}
+
+/* ==================== Safe Area for Notched Devices ==================== */
+@supports (padding-top: env(safe-area-inset-top)) {
+  @media (max-width: 768px) {
+    .navbar {
+      padding-top: env(safe-area-inset-top);
+    }
+    
+    .mobile-slide-menu {
+      padding-top: env(safe-area-inset-top);
+    }
+  }
+}
+
+/* ==================== Landscape Mode ==================== */
+@media (max-width: 768px) and (orientation: landscape) {
+  .navbar-content {
+    height: 48px;
+  }
+  
+  .mobile-slide-menu {
+    width: 260px;
+  }
+  
+  .main-content {
+    min-height: calc(100vh - 48px);
+  }
+}
+
+/* ==================== Admin Page Mobile ==================== */
+@media (max-width: 768px) {
+  .admin-header {
+    gap: 10px;
+  }
+  
+  .admin-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+  
+  #games-tab > div:first-child {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+  }
+  
+  #games-tab > div:first-child > div:last-child {
+    margin-left: 0 !important;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .admin-game-card {
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+  
+  .admin-game-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .user-card {
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+  
+  .user-card-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

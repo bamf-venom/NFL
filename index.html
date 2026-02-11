@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFL POINTS - Wette mit Freunden auf NFL Spiele</title>
+  
+  <!-- Preload für kritische Ressourcen -->
+  <link rel="preload" href="css/colors.css" as="style">
+  <link rel="preload" href="css/base.css" as="style">
+  <link rel="preload" href="css/landing.css" as="style">
+  <link rel="preload" href="logos/nfl-logo.svg" as="image">
+  
+  <!-- CSS Files -->
+  <link rel="stylesheet" href="css/colors.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <link rel="stylesheet" href="css/mobile.css">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div id="app" class="landing-page">
+    <!-- Hero Section -->
+    <div class="hero-section">
+      <div class="hero-content">
+        <!-- NFL Logo with Glow -->
+        <div class="hero-logo-container">
+          <div class="hero-logo-glow"></div>
+          <img src="logos/nfl-logo.svg" alt="NFL Logo" class="hero-logo">
+        </div>
+        
+        <h1 class="hero-title">NFL POINTS</h1>
+        <p class="hero-subtitle">Wette mit Freunden auf NFL Spiele</p>
+        
+        <div class="hero-buttons">
+          <button class="btn btn-primary btn-lg hover-lift" data-testid="register-button" onclick="openModal('register')">
+            <i class="fas fa-user-plus"></i>
+            Registrieren
+          </button>
+          <button class="btn btn-secondary btn-lg hover-lift" data-testid="login-button" onclick="openModal('login')">
+            <i class="fas fa-sign-in-alt"></i>
+            Anmelden
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="landing-footer">
+      <p class="footer-text">made by MBP</p>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="modal">
+    <div class="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal-content">
+      <h2 id="modal-title" class="modal-title">Anmelden</h2>
+      
+      <form id="auth-form" onsubmit="handleAuth(event)">
+        <!-- Username Field (only for register) -->
+        <div id="username-field" class="form-group hidden">
+          <label class="form-label">Benutzername</label>
+          <input 
+            type="text" 
+            id="username-input"
+            class="form-input" 
+            placeholder="Dein Benutzername"
+            data-testid="username-input"
+          >
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">E-Mail</label>
+          <input 
+            type="email" 
+            id="email-input"
+            class="form-input" 
+            placeholder="deine@email.de"
+            required
+            data-testid="email-input"
+          >
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Passwort</label>
+          <input 
+            type="password" 
+            id="password-input"
+            class="form-input" 
+            placeholder="••••••••"
+            required
+            minlength="6"
+            data-testid="password-input"
+          >
+        </div>
+        
+        <div id="auth-error" class="error-message hidden" data-testid="auth-error"></div>
+        
+        <button type="submit" class="btn btn-accent btn-full" data-testid="submit-auth">
+          <span id="submit-text">Anmelden</span>
+          <i id="submit-spinner" class="fas fa-spinner fa-spin hidden"></i>
+        </button>
+        
+        <p class="auth-switch">
+          <span id="switch-text">Noch kein Konto?</span>
+          <button type="button" id="switch-btn" class="text-link" onclick="switchAuthMode()" data-testid="switch-to-register">
+            Registrieren
+          </button>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Firebase SDK - Async Loading for Performance -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" async></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
+  
+  <script src="js/config.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/main.js"></script>
+  
+  <!-- Initialize Firebase when SDK is loaded -->
+  <script>
+    function waitForFirebaseSDK() {
+      return new Promise((resolve) => {
+        const check = setInterval(() => {
+          if (typeof firebase !== 'undefined' && firebase.app && firebase.auth && firebase.firestore) {
+            clearInterval(check);
+            resolve();
+          }
+        }, 50);
+        // Timeout after 10 seconds
+        setTimeout(() => { clearInterval(check); resolve(); }, 10000);
+      });
+    }
+    
+    waitForFirebaseSDK().then(() => {
+      if (typeof initializeFirebase === 'function') {
+        initializeFirebase();
+      }
+    });
+  </script>
+</body>
+</html>

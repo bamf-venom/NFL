@@ -1,0 +1,792 @@
+/* ==================== Games Page ==================== */
+.filter-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-container select {
+  width: auto;
+  min-width: 160px;
+}
+
+.games-date-group {
+  margin-bottom: 36px;
+}
+
+.date-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ==================== Game Card ==================== */
+.game-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 28px;
+}
+
+.game-teams {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.game-team {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  /* Feste Breite für gleichmäßige Ausrichtung */
+  min-width: 180px;
+}
+
+.game-team.home {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+.game-team.away {
+  justify-content: flex-start;
+}
+
+.team-info {
+  display: flex;
+  flex-direction: column;
+  /* Feste Breite für konsistente Ausrichtung */
+  min-width: 80px;
+}
+
+.team-info.left {
+  text-align: right;
+}
+
+.team-info.right {
+  text-align: left;
+}
+
+.team-abbr {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.team-name {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ==================== Team Logo ==================== */
+.team-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: rgba(var(--white-rgb), 0.03);
+  padding: 4px;
+  transition: transform 0.3s ease;
+}
+
+.card:hover .team-logo {
+  transform: scale(1.1);
+}
+
+.team-logo-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--card) 0%, var(--card-hover) 100%);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* Large logos for game detail */
+.team-logo-lg {
+  width: 90px;
+  height: 90px;
+  padding: 8px;
+}
+
+.game-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: rgba(var(--white-rgb), 0.05);
+  border-radius: 12px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Neues Layout: Logos neben den Punkten */
+.game-score-with-logos {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+}
+
+.game-score-with-logos .game-score {
+  min-width: auto;
+  width: auto;
+}
+
+.game-score-with-logos .game-time {
+  min-width: auto;
+  width: auto;
+}
+
+.game-score-with-logos .team-logo {
+  width: 52px;
+  height: 52px;
+}
+
+.game-score-with-logos .team-logo-placeholder {
+  width: 52px;
+  height: 52px;
+  font-size: 16px;
+}
+
+.game-score-num {
+  font-size: 28px;
+  font-weight: 800;
+  /* Feste Breite für jede Zahl */
+  min-width: 40px;
+  text-align: center;
+}
+
+.game-score-sep {
+  font-size: 22px;
+  color: var(--muted);
+}
+
+.game-time {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  color: var(--muted);
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.game-time span {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.game-arrow {
+  color: var(--muted);
+  transition: transform 0.3s ease;
+}
+
+.card:hover .game-arrow {
+  transform: translateX(4px);
+}
+
+/* ==================== Game Detail Page ==================== */
+.game-detail-header {
+  text-align: center;
+  padding: 40px 28px;
+}
+
+.game-detail-teams {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 28px;
+}
+
+.game-detail-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.game-detail-team h3 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.game-detail-vs {
+  font-size: 22px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.game-detail-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px 40px;
+  background: rgba(var(--white-rgb), 0.05);
+  border-radius: 16px;
+}
+
+.game-detail-score-num {
+  font-size: 56px;
+  font-weight: 800;
+}
+
+.game-detail-score-sep {
+  font-size: 36px;
+  color: var(--muted);
+}
+
+.game-detail-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* Betting Closed Notice */
+.betting-closed-notice {
+  border-color: rgba(var(--warning-rgb), 0.3);
+  background: rgba(var(--warning-rgb), 0.05);
+}
+
+.betting-closed-content {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: var(--warning);
+}
+
+.betting-closed-text h3 {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.betting-closed-text p {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Bet Form */
+.bet-form-card {
+  margin-top: 28px;
+}
+
+.bet-form-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bet-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.bet-inputs .form-input {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  padding: 20px;
+}
+
+.bet-points-info {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* My Bet Card */
+.my-bet-card {
+  border-color: rgba(var(--success-rgb), 0.3);
+  background: rgba(var(--success-rgb), 0.05);
+}
+
+.my-bet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.my-bet-title {
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--success);
+}
+
+.my-bet-scores {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.my-bet-score {
+  text-align: center;
+}
+
+.my-bet-score-num {
+  font-size: 56px;
+  font-weight: 800;
+}
+
+.my-bet-score-team {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.my-bet-points {
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(var(--white-rgb), 0.1);
+  text-align: center;
+}
+
+.my-bet-points-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.my-bet-points-num {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--success);
+}
+
+/* Bets List */
+.bets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bet-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(var(--white-rgb), 0.03);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.bet-item.own {
+  background: rgba(var(--accent-rgb), 0.08);
+}
+
+.bet-user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.bet-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--card) 0%, var(--card-hover) 100%);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.bet-username {
+  font-weight: 600;
+}
+
+.bet-date {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.bet-prediction {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.bet-prediction-score {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.bet-earned {
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bet-earned.success {
+  background: rgba(var(--success-rgb), 0.15);
+  color: var(--success);
+}
+
+.bet-earned.none {
+  background: rgba(var(--white-rgb), 0.1);
+  color: var(--muted);
+}
+
+/* ==================== Responsive ==================== */
+@media (max-width: 768px) {
+  .game-card {
+    padding: 18px;
+    flex-wrap: wrap;
+  }
+  
+  .game-teams {
+    width: 100%;
+    margin: 10px 0;
+    flex-wrap: wrap;
+  }
+  
+  .game-team {
+    min-width: 100px;
+  }
+  
+  .team-name {
+    display: none;
+  }
+  
+  .team-logo {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .game-score-with-logos .team-logo,
+  .game-score-with-logos .team-logo-placeholder {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .game-score-with-logos {
+    gap: 10px;
+  }
+  
+  .game-score-num {
+    font-size: 22px;
+    min-width: 30px;
+  }
+  
+  .game-detail-teams {
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .team-logo-lg {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .bet-inputs {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  
+  .game-detail-score-num {
+    font-size: 42px;
+  }
+  
+  .my-bet-score-num {
+    font-size: 42px;
+  }
+  
+  .my-bet-preview {
+    width: 100%;
+    margin-top: 12px;
+    justify-content: center;
+  }
+  
+  .no-bet-preview {
+    width: 100%;
+    margin-top: 12px;
+    justify-content: center;
+  }
+}
+
+/* ==================== My Bet Preview (Games List) ==================== */
+.my-bet-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: rgba(var(--success-rgb), 0.1);
+  border: 1px solid rgba(var(--success-rgb), 0.3);
+  border-radius: 10px;
+  margin-left: auto;
+  margin-right: 10px;
+}
+
+.my-bet-preview-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--success);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.my-bet-preview-score {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.my-bet-preview-points {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(var(--white-rgb), 0.1);
+  color: var(--muted);
+}
+
+.my-bet-preview-points.earned {
+  background: rgba(var(--success-rgb), 0.2);
+  color: var(--success);
+}
+
+.no-bet-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(var(--white-rgb), 0.05);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  margin-left: auto;
+  margin-right: 10px;
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.card:hover .no-bet-preview {
+  background: rgba(var(--accent-rgb), 0.1);
+  border-color: var(--primary);
+}
+
+/* ==================== Expanded Game Card with Group Bets ==================== */
+.game-card-expanded {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Überschreibe game-card-header für expanded cards */
+.game-card-expanded .game-card-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 28px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.game-card-expanded .game-card-header:hover {
+  background: rgba(var(--white-rgb), 0.03);
+}
+
+/* Badge mit fester Breite */
+.game-card-expanded .badge {
+  min-width: 100px;
+  text-align: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Teams zentriert mit festen Breiten */
+.game-card-expanded .game-teams {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* Pfeil am Ende */
+.game-card-expanded .game-arrow {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* ==================== Group Bets Section ==================== */
+.group-bets-section {
+  border-top: 1px solid var(--border);
+  padding: 16px 28px;
+  background: rgba(var(--black-rgb), 0.2);
+}
+
+.no-group-bets {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.group-bets-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.group-bet-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(var(--white-rgb), 0.05);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.group-bet-item.own {
+  background: rgba(var(--accent-rgb), 0.1);
+  border-color: rgba(var(--accent-rgb), 0.3);
+}
+
+.group-bet-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-bet-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--card) 0%, var(--card-hover) 100%);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.group-bet-item.own .group-bet-avatar {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  border-color: var(--accent);
+}
+
+.group-bet-username {
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-bet-prediction {
+  font-size: 14px;
+  font-weight: 800;
+  padding: 4px 10px;
+  background: rgba(var(--white-rgb), 0.1);
+  border-radius: 6px;
+}
+
+.group-bet-points {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(var(--white-rgb), 0.1);
+  color: var(--muted);
+}
+
+.group-bet-points.earned {
+  background: rgba(var(--success-rgb), 0.2);
+  color: var(--success);
+}
+
+/* ==================== Perfekte Zentrierung der Spielkarten ==================== */
+.games-list .card {
+  /* Alle Spielkarten gleich behandeln */
+}
+
+.game-card-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 28px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+/* Desktop: Top-Row verstecken, Badge bleibt im normalen Flow */
+.game-card-top-row {
+  display: none;
+}
+
+/* Desktop: Badge und Arrow normal anzeigen */
+.game-card-header > .badge {
+  display: flex;
+  min-width: 100px;
+  text-align: center;
+  justify-content: center;
+}
+
+.game-card-header > .game-arrow {
+  display: flex;
+}
+
+/* Teams Container zentriert */
+.game-card-header .game-teams {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Performance-Optimierung: will-change für Animationen */
+.card.card-hover {
+  will-change: transform;
+}
+
+.team-logo {
+  will-change: transform;
+}
