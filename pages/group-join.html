@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gruppe beitreten - NFL BETT</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <title>Gruppe beitreten - NFL POINTS</title>
+  <link rel="stylesheet" href="../css/colors.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/animations.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/utilities.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -24,20 +29,16 @@
     </div>
   </main>
 
-  <!-- Firebase SDK (uncomment when ready to use Firebase) -->
-  <!-- 
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  -->
-  
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" async></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
   <script src="../js/config.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/main.js"></script>
   <script>
-    // Join group page logic
-    function initJoinPage() {
+    // Join group page logic - Now using Firebase
+    async function initJoinPage() {
       const urlParams = new URLSearchParams(window.location.search);
       const inviteCode = urlParams.get('code');
       
@@ -46,44 +47,16 @@
         return;
       }
       
-      // TODO: Replace with Firebase
-      // firebaseJoinGroup(inviteCode).then(group => { ... }).catch(err => { ... })
-      
-      // Find group by invite code
-      const allGroups = JSON.parse(localStorage.getItem('groups') || '[]');
-      const group = allGroups.find(g => g.invite_code === inviteCode.toUpperCase());
-      
-      if (!group) {
-        showError('Ungültiger Einladungscode');
-        return;
-      }
-      
-      // Check if already member
-      if (group.member_ids?.includes(currentUser.id)) {
+      try {
+        // Use Firebase to join the group
+        const group = await firebaseJoinGroup(inviteCode);
         showSuccess(group.name);
         setTimeout(() => {
           window.location.href = `group-detail.html?id=${group.id}`;
         }, 2000);
-        return;
+      } catch (error) {
+        showError(error.message);
       }
-      
-      // Add member
-      if (!group.member_ids) group.member_ids = [];
-      if (!group.members) group.members = [];
-      
-      group.member_ids.push(currentUser.id);
-      group.members.push({
-        user_id: currentUser.id,
-        username: currentUser.username,
-        joined_at: new Date().toISOString()
-      });
-      
-      localStorage.setItem('groups', JSON.stringify(allGroups));
-      
-      showSuccess(group.name);
-      setTimeout(() => {
-        window.location.href = `group-detail.html?id=${group.id}`;
-      }, 2000);
     }
     
     function showSuccess(groupName) {
@@ -111,8 +84,26 @@
       `;
     }
     
-    document.addEventListener('DOMContentLoaded', function() {
-      if (checkAuth()) {
+    // Wait for Firebase SDK then initialize
+    function waitForFirebaseSDK() {
+      return new Promise((resolve) => {
+        const check = setInterval(() => {
+          if (typeof firebase !== 'undefined' && firebase.app && firebase.auth && firebase.firestore) {
+            clearInterval(check);
+            resolve();
+          }
+        }, 50);
+        setTimeout(() => { clearInterval(check); resolve(); }, 10000);
+      });
+    }
+    
+    waitForFirebaseSDK().then(() => {
+      if (typeof initializeFirebase === 'function') initializeFirebase();
+    });
+    
+    document.addEventListener('DOMContentLoaded', async function() {
+      await waitForAuth();
+      if (currentUser) {
         initJoinPage();
       }
     });

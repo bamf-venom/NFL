@@ -1,5 +1,5 @@
 // ==================== FIREBASE CONFIGURATION ====================
-// Firebase SDK Version 10.7.1 - Compat Mode
+// Firebase SDK Version 10.7.1 - Compat Mode - OPTIMIZED
 // ===============================================================
 
 const firebaseConfig = {
@@ -12,8 +12,66 @@ const firebaseConfig = {
   measurementId: "G-ZXV5PPJR04"
 };
 
+// ==================== PERFORMANCE CACHE ====================
+const dataCache = {
+  games: { data: null, timestamp: 0, ttl: 30000 }, // 30 Sekunden
+  leaderboard: { data: null, timestamp: 0, ttl: 60000 }, // 60 Sekunden
+  userBets: { data: null, timestamp: 0, ttl: 15000 }, // 15 Sekunden
+  groups: { data: null, timestamp: 0, ttl: 30000 } // 30 Sekunden
+};
+
+// Cache helper functions
+function getCachedData(key) {
+  const cache = dataCache[key];
+  if (cache && cache.data && (Date.now() - cache.timestamp) < cache.ttl) {
+    return cache.data;
+  }
+  return null;
+}
+
+function setCachedData(key, data) {
+  if (dataCache[key]) {
+    dataCache[key].data = data;
+    dataCache[key].timestamp = Date.now();
+  }
+}
+
+function invalidateCache(key) {
+  if (key) {
+    if (dataCache[key]) {
+      dataCache[key].data = null;
+      dataCache[key].timestamp = 0;
+    }
+  } else {
+    // Invalidate all
+    Object.keys(dataCache).forEach(k => {
+      dataCache[k].data = null;
+      dataCache[k].timestamp = 0;
+    });
+  }
+}
+
+// ==================== DEBUG MODE ====================
+const DEBUG_MODE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+function debugLog(...args) {
+  if (DEBUG_MODE) {
+    console.log(...args);
+  }
+}
+
 // ==================== FIREBASE INITIALIZATION ====================
 let app, auth, db;
+let firebaseReady = false;
+let firebaseReadyCallbacks = [];
+
+function onFirebaseReady(callback) {
+  if (firebaseReady) {
+    callback();
+  } else {
+    firebaseReadyCallbacks.push(callback);
+  }
+}
 
 function initializeFirebase() {
   if (typeof firebase !== 'undefined') {
@@ -27,20 +85,31 @@ function initializeFirebase() {
       auth = firebase.auth();
       db = firebase.firestore();
       
-      // Enable offline persistence
-      db.enablePersistence().catch((err) => {
+      // Firestore Settings für bessere Performance
+      db.settings({
+        cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+      });
+      
+      // Enable offline persistence (non-blocking)
+      db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
         if (err.code === 'failed-precondition') {
-          console.warn('Firestore persistence failed: Multiple tabs open');
+          debugLog('Firestore persistence: Multiple tabs open');
         } else if (err.code === 'unimplemented') {
-          console.warn('Firestore persistence not available');
+          debugLog('Firestore persistence not available');
         }
       });
       
-      console.log('✅ Firebase initialized successfully');
-      console.log('📦 Project ID:', firebaseConfig.projectId);
+      debugLog('✅ Firebase initialized successfully');
       
-      // Debug: Test Firestore connection
-      testFirestoreConnection();
+      // Mark as ready and run callbacks
+      firebaseReady = true;
+      firebaseReadyCallbacks.forEach(cb => cb());
+      firebaseReadyCallbacks = [];
+      
+      // Debug tests only in development
+      if (DEBUG_MODE) {
+        setTimeout(() => testFirestoreConnection(), 1000);
+      }
       
       return true;
     } catch (error) {
@@ -52,29 +121,16 @@ function initializeFirebase() {
   return false;
 }
 
-// Debug function to test Firestore
+// Debug function - only runs in DEBUG_MODE
 async function testFirestoreConnection() {
+  if (!DEBUG_MODE) return;
+  
   try {
-    console.log('🔍 Testing Firestore connection...');
-    
-    // Test 1: Prüfe Auth Status
+    debugLog('🔍 Testing Firestore connection...');
     const user = auth.currentUser;
-    console.log('👤 Current Auth User:', user ? user.uid : 'NICHT EINGELOGGT');
-    
-    // Test 2: Versuche Games zu laden
-    const gamesSnapshot = await db.collection('games').limit(1).get();
-    console.log('🎮 Games Collection Test:', gamesSnapshot.empty ? 'LEER oder KEINE BERECHTIGUNG' : 'OK - ' + gamesSnapshot.size + ' Dokument(e)');
-    
-    // Test 3: Versuche Users zu laden
-    const usersSnapshot = await db.collection('users').limit(1).get();
-    console.log('👥 Users Collection Test:', usersSnapshot.empty ? 'LEER oder KEINE BERECHTIGUNG' : 'OK - ' + usersSnapshot.size + ' Dokument(e)');
-    
-    // Test 4: Versuche Groups zu laden
-    const groupsSnapshot = await db.collection('groups').limit(1).get();
-    console.log('📁 Groups Collection Test:', groupsSnapshot.empty ? 'LEER oder KEINE BERECHTIGUNG' : 'OK - ' + groupsSnapshot.size + ' Dokument(e)');
-    
+    debugLog('👤 Auth User:', user ? user.uid : 'NOT LOGGED IN');
   } catch (error) {
-    console.error('❌ Firestore Test Error:', error.code, error.message);
+    debugLog('❌ Firestore Test Error:', error.code);
   }
 }
 
@@ -154,10 +210,61 @@ async function firebaseDeleteAccount() {
   await user.delete();
 }
 
+// Update username
+async function firebaseUpdateUsername(newUsername) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Nicht angemeldet');
+  
+  if (!newUsername || newUsername.trim().length < 2) {
+    throw new Error('Benutzername muss mindestens 2 Zeichen haben');
+  }
+  
+  const trimmedUsername = newUsername.trim();
+  
+  // Update user document
+  await collections.users().doc(user.uid).update({
+    username: trimmedUsername
+  });
+  
+  // Update username in all bets
+  const betsSnapshot = await collections.bets().where('user_id', '==', user.uid).get();
+  if (!betsSnapshot.empty) {
+    const batch = db.batch();
+    betsSnapshot.docs.forEach(doc => {
+      batch.update(doc.ref, { username: trimmedUsername });
+    });
+    await batch.commit();
+  }
+  
+  // Update username in group memberships
+  const groupsSnapshot = await collections.groups()
+    .where('member_ids', 'array-contains', user.uid)
+    .get();
+  
+  for (const groupDoc of groupsSnapshot.docs) {
+    const groupData = groupDoc.data();
+    const updatedMembers = groupData.members.map(m => 
+      m.user_id === user.uid ? { ...m, username: trimmedUsername } : m
+    );
+    await groupDoc.ref.update({ members: updatedMembers });
+  }
+  
+  return trimmedUsername;
+}
+
 // ==================== GAMES HELPERS ====================
-async function firebaseGetGames(filters = {}) {
+async function firebaseGetGames(filters = {}, useCache = true) {
   try {
-    // Einfache Abfrage ohne orderBy um Index-Probleme zu vermeiden
+    // Check cache first (only if no specific filters)
+    const cacheKey = 'games';
+    if (useCache && !filters.week && !filters.season) {
+      const cached = getCachedData(cacheKey);
+      if (cached) {
+        debugLog('📦 Games loaded from cache');
+        return cached;
+      }
+    }
+    
     let query = collections.games();
     
     if (filters.week) {
@@ -175,7 +282,15 @@ async function firebaseGetGames(filters = {}) {
     }));
     
     // Sortiere client-seitig nach game_date
-    return games.sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
+    const sortedGames = games.sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
+    
+    // Cache results if no filters
+    if (!filters.week && !filters.season) {
+      setCachedData(cacheKey, sortedGames);
+    }
+    
+    debugLog('🎮 Games loaded from Firestore:', sortedGames.length);
+    return sortedGames;
   } catch (error) {
     console.error('Error in firebaseGetGames:', error);
     throw error;
@@ -207,14 +322,23 @@ async function firebaseCreateGame(gameData) {
   };
   
   await collections.games().doc(gameId).set(game);
+  
+  // Invalidate games cache
+  invalidateCache('games');
+  
   return { ...game, game_date: gameData.game_date, created_at: new Date().toISOString() };
 }
 
 async function firebaseUpdateGame(gameId, updateData) {
   await collections.games().doc(gameId).update(updateData);
   
+  // Invalidate games cache
+  invalidateCache('games');
+  
   if (updateData.status === 'finished' && updateData.home_score != null && updateData.away_score != null) {
     await calculatePointsForGame(gameId, updateData.home_score, updateData.away_score);
+    // Invalidate leaderboard cache after points calculation
+    invalidateCache('leaderboard');
   }
   
   return await firebaseGetGame(gameId);
@@ -222,6 +346,9 @@ async function firebaseUpdateGame(gameId, updateData) {
 
 async function firebaseDeleteGame(gameId) {
   await collections.games().doc(gameId).delete();
+  
+  // Invalidate games cache
+  invalidateCache('games');
   
   const betsSnapshot = await collections.bets().where('game_id', '==', gameId).get();
   const batch = db.batch();
@@ -297,6 +424,10 @@ async function firebasePlaceBet(betData) {
   };
   
   await collections.bets().doc(betId).set(bet);
+  
+  // Invalidate user bets cache
+  invalidateCache('userBets');
+  
   return { ...bet, created_at: new Date().toISOString() };
 }
 
@@ -340,22 +471,40 @@ async function firebaseDeleteBet(betId) {
   }
   
   await collections.bets().doc(betId).delete();
+  
+  // Invalidate user bets cache
+  invalidateCache('userBets');
 }
 
 // Alle Wetten des aktuellen Users laden (für Spielübersicht)
-async function firebaseGetCurrentUserBets() {
+async function firebaseGetCurrentUserBets(useCache = true) {
   const user = auth.currentUser;
   if (!user) return [];
   
   try {
+    // Check cache first
+    if (useCache) {
+      const cached = getCachedData('userBets');
+      if (cached) {
+        debugLog('📦 User bets loaded from cache');
+        return cached;
+      }
+    }
+    
     const snapshot = await collections.bets()
       .where('user_id', '==', user.uid)
       .get();
     
-    return snapshot.docs.map(doc => ({
+    const bets = snapshot.docs.map(doc => ({
       ...doc.data(),
       created_at: doc.data().created_at?.toDate?.()?.toISOString() || doc.data().created_at
     }));
+    
+    // Cache results
+    setCachedData('userBets', bets);
+    
+    debugLog('🎯 User bets loaded from Firestore:', bets.length);
+    return bets;
   } catch (error) {
     console.error('Error in firebaseGetCurrentUserBets:', error);
     return [];
@@ -403,7 +552,16 @@ async function calculatePointsForGame(gameId, homeScore, awayScore) {
 }
 
 // ==================== LEADERBOARD HELPERS ====================
-async function firebaseGetLeaderboard() {
+async function firebaseGetLeaderboard(useCache = true) {
+  // Check cache first
+  if (useCache) {
+    const cached = getCachedData('leaderboard');
+    if (cached) {
+      debugLog('📦 Leaderboard loaded from cache');
+      return cached;
+    }
+  }
+  
   const snapshot = await collections.bets().get();
   
   const userStats = {};
@@ -427,7 +585,13 @@ async function firebaseGetLeaderboard() {
     if (bet.points_earned >= 3) userStats[bet.user_id].correct_scores += 1;
   });
   
-  return Object.values(userStats).sort((a, b) => b.total_points - a.total_points);
+  const leaderboard = Object.values(userStats).sort((a, b) => b.total_points - a.total_points);
+  
+  // Cache results
+  setCachedData('leaderboard', leaderboard);
+  
+  debugLog('🏆 Leaderboard loaded from Firestore:', leaderboard.length);
+  return leaderboard;
 }
 
 // ==================== GROUPS HELPERS ====================
@@ -440,7 +604,7 @@ function generateInviteCode() {
   return code;
 }
 
-async function firebaseGetUserGroups() {
+async function firebaseGetUserGroups(useCache = true) {
   // Warte auf Auth wenn nötig
   let user = auth.currentUser;
   
@@ -448,30 +612,42 @@ async function firebaseGetUserGroups() {
     // Versuche aus localStorage
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      const userData = JSON.parse(storedUser);
       // Warte kurz auf Firebase Auth
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
       user = auth.currentUser;
     }
   }
   
   if (!user) {
-    console.log('firebaseGetUserGroups: Kein User eingeloggt');
+    debugLog('firebaseGetUserGroups: Kein User eingeloggt');
     return [];
   }
   
   try {
-    console.log('firebaseGetUserGroups: Lade Gruppen für User', user.uid);
+    // Check cache first
+    if (useCache) {
+      const cached = getCachedData('groups');
+      if (cached) {
+        debugLog('📦 Groups loaded from cache');
+        return cached;
+      }
+    }
+    
+    debugLog('firebaseGetUserGroups: Lade Gruppen für User', user.uid);
     const snapshot = await collections.groups()
       .where('member_ids', 'array-contains', user.uid)
       .get();
     
-    console.log('firebaseGetUserGroups: Gefunden', snapshot.docs.length, 'Gruppen');
-    
-    return snapshot.docs.map(doc => ({
+    const groups = snapshot.docs.map(doc => ({
       ...doc.data(),
       created_at: doc.data().created_at?.toDate?.()?.toISOString() || doc.data().created_at
     }));
+    
+    // Cache results
+    setCachedData('groups', groups);
+    
+    debugLog('👥 Groups loaded:', groups.length);
+    return groups;
   } catch (error) {
     console.error('Error in firebaseGetUserGroups:', error);
     throw error;
@@ -514,6 +690,10 @@ async function firebaseCreateGroup(name) {
   };
   
   await collections.groups().doc(groupId).set(group);
+  
+  // Invalidate groups cache
+  invalidateCache('groups');
+  
   return { ...group, created_at: new Date().toISOString() };
 }
 
@@ -548,6 +728,9 @@ async function firebaseJoinGroup(inviteCode) {
     })
   });
   
+  // Invalidate groups cache
+  invalidateCache('groups');
+  
   return await firebaseGetGroup(groupDoc.id);
 }
 
@@ -569,6 +752,9 @@ async function firebaseLeaveGroup(groupId) {
     member_ids: updatedMemberIds,
     members: updatedMembers
   });
+  
+  // Invalidate groups cache
+  invalidateCache('groups');
 }
 
 async function firebaseKickMember(groupId, userId) {
@@ -607,6 +793,9 @@ async function firebaseDeleteGroup(groupId) {
   }
   
   await groupDoc.ref.delete();
+  
+  // Invalidate groups cache
+  invalidateCache('groups');
 }
 
 // Gruppenname ändern (nur Admin)

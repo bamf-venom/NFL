@@ -14,13 +14,75 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
-  box-shadow: 0 8px 30px rgba(227, 24, 55, 0.3);
+  box-shadow: 0 8px 30px rgba(var(--accent-rgb), 0.3);
 }
 
 .profile-username {
   font-size: 28px;
   font-weight: 800;
   margin-bottom: 6px;
+}
+
+/* Username Edit Styles */
+.username-display-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.username-display-container .profile-username {
+  margin-bottom: 0;
+}
+
+.btn-edit-username {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.btn-edit-username:hover {
+  background: rgba(var(--white-rgb), 0.1);
+  color: var(--accent);
+}
+
+.username-edit-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.username-edit-container .username-input {
+  width: 280px;
+  max-width: 100%;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  padding: 12px 18px;
+  border-radius: 12px;
+}
+
+.username-edit-container .error-message {
+  font-size: 13px;
+  margin: 0;
+}
+
+.username-edit-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.username-edit-buttons .btn {
+  min-width: 120px;
 }
 
 .profile-email {
@@ -32,7 +94,7 @@
 .profile-badge {
   display: inline-block;
   padding: 5px 14px;
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(var(--warning-rgb), 0.15);
   color: var(--warning);
   border-radius: 8px;
   font-size: 12px;
@@ -82,7 +144,7 @@
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(var(--white-rgb), 0.1) 0%, rgba(var(--white-rgb), 0.05) 100%);
   display: flex;
   align-items: center;
   justify-content: center;

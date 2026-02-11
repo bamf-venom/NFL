@@ -27,7 +27,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.2),
+    rgba(var(--white-rgb), 0.2),
     transparent
   );
   transition: left 0.5s ease;
@@ -47,20 +47,20 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-  color: black;
-  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, var(--btn-primary-start) 0%, var(--btn-primary-end) 100%);
+  color: var(--black);
+  box-shadow: 0 4px 15px rgba(var(--white-rgb), 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+  background: linear-gradient(135deg, var(--btn-primary-start) 0%, var(--btn-primary-hover-end) 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 25px rgba(var(--white-rgb), 0.3);
 }
 
 .btn-secondary {
   background: var(--card);
-  color: white;
+  color: var(--white);
   border: 1px solid var(--border);
 }
 
@@ -72,32 +72,32 @@
 
 .btn-ghost {
   background: transparent;
-  color: white;
+  color: var(--white);
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--white-rgb), 0.1);
 }
 
 .btn-danger {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(var(--error-rgb), 0.15);
   color: var(--error);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(var(--error-rgb), 0.3);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(var(--error-rgb), 0.25);
+  border-color: rgba(var(--error-rgb), 0.5);
 }
 
 .btn-accent {
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
-  color: white;
-  box-shadow: 0 4px 15px rgba(227, 24, 55, 0.3);
+  color: var(--white);
+  box-shadow: 0 4px 15px rgba(var(--accent-rgb), 0.3);
 }
 
 .btn-accent:hover:not(:disabled) {
-  box-shadow: 0 6px 25px rgba(227, 24, 55, 0.5);
+  box-shadow: 0 6px 25px rgba(var(--accent-rgb), 0.5);
   transform: translateY(-2px);
 }
 
@@ -146,7 +146,7 @@ textarea {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
-  color: white;
+  color: var(--white);
   font-family: inherit;
   font-size: 14px;
   transition: all 0.3s ease;
@@ -163,7 +163,7 @@ input:focus,
 textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(227, 24, 55, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
 }
 
 input[type='number']::-webkit-inner-spin-button,
@@ -187,7 +187,7 @@ select {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
-  color: white;
+  color: var(--white);
   font-family: inherit;
   font-size: 14px;
   appearance: none;
@@ -201,12 +201,12 @@ select {
 select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(227, 24, 55, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
 }
 
 select option {
-  background-color: #141414;
-  color: #fafafa;
+  background-color: var(--card);
+  color: var(--foreground);
 }
 
 /* ==================== Cards ==================== */
@@ -225,7 +225,7 @@ select option {
 .card.card-hover:hover {
   transform: translateY(-4px);
   border-color: var(--border-light);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 20px 50px rgba(var(--black-rgb), 0.4);
 }
 
 /* ==================== Badges ==================== */
@@ -241,33 +241,33 @@ select option {
 }
 
 .badge-default {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: rgba(var(--white-rgb), 0.1);
+  color: var(--white);
 }
 
 .badge-success {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(var(--success-rgb), 0.15);
   color: var(--success);
 }
 
 .badge-warning {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(var(--warning-rgb), 0.15);
   color: var(--warning);
 }
 
 .badge-error {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(var(--error-rgb), 0.15);
   color: var(--error);
 }
 
 .badge-live {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(var(--success-rgb), 0.15);
   color: var(--success);
   animation: pulse-subtle 2s ease-in-out infinite;
 }
 
 .badge-accent {
-  background: rgba(227, 24, 55, 0.15);
+  background: rgba(var(--accent-rgb), 0.15);
   color: var(--accent);
 }
 
@@ -289,7 +289,7 @@ select option {
 .modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(var(--black-rgb), 0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -316,7 +316,7 @@ select option {
 
 /* ==================== Spinner ==================== */
 .spinner {
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(var(--white-rgb), 0.1);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -339,8 +339,8 @@ select option {
 
 /* ==================== Error/Success Messages ==================== */
 .error-message {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(var(--error-rgb), 0.1);
+  border: 1px solid rgba(var(--error-rgb), 0.2);
   color: var(--error);
   padding: 14px 18px;
   border-radius: 10px;
@@ -349,8 +349,8 @@ select option {
 }
 
 .success-message {
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: rgba(var(--success-rgb), 0.1);
+  border: 1px solid rgba(var(--success-rgb), 0.2);
   color: var(--success);
   padding: 14px 18px;
   border-radius: 10px;

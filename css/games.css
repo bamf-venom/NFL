@@ -52,15 +52,24 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  /* Feste Breite für gleichmäßige Ausrichtung */
+  min-width: 180px;
 }
 
 .game-team.home {
   flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+.game-team.away {
+  justify-content: flex-start;
 }
 
 .team-info {
   display: flex;
   flex-direction: column;
+  /* Feste Breite für konsistente Ausrichtung */
+  min-width: 80px;
 }
 
 .team-info.left {
@@ -88,7 +97,7 @@
   height: 48px;
   border-radius: 50%;
   object-fit: contain;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--white-rgb), 0.03);
   padding: 4px;
   transition: transform 0.3s ease;
 }
@@ -123,15 +132,21 @@
   align-items: center;
   gap: 10px;
   padding: 10px 20px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--white-rgb), 0.05);
   border-radius: 12px;
-  min-width: 110px;
+  /* Feste Breite für vertikale Ausrichtung der Punkte */
+  width: 130px;
+  min-width: 130px;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .game-score-num {
   font-size: 28px;
   font-weight: 800;
+  /* Feste Breite für jede Zahl */
+  min-width: 40px;
+  text-align: center;
 }
 
 .game-score-sep {
@@ -145,6 +160,11 @@
   gap: 10px;
   padding: 10px 20px;
   color: var(--muted);
+  /* Gleiche Breite wie game-score für konsistente Ausrichtung */
+  width: 130px;
+  min-width: 130px;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .game-time span {
@@ -199,7 +219,7 @@
   justify-content: center;
   gap: 20px;
   padding: 20px 40px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--white-rgb), 0.05);
   border-radius: 16px;
 }
 
@@ -225,8 +245,8 @@
 
 /* Betting Closed Notice */
 .betting-closed-notice {
-  border-color: rgba(245, 158, 11, 0.3);
-  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(var(--warning-rgb), 0.3);
+  background: rgba(var(--warning-rgb), 0.05);
 }
 
 .betting-closed-content {
@@ -282,8 +302,8 @@
 
 /* My Bet Card */
 .my-bet-card {
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.05);
+  border-color: rgba(var(--success-rgb), 0.3);
+  background: rgba(var(--success-rgb), 0.05);
 }
 
 .my-bet-header {
@@ -327,7 +347,7 @@
 .my-bet-points {
   margin-top: 28px;
   padding-top: 28px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(var(--white-rgb), 0.1);
   text-align: center;
 }
 
@@ -355,13 +375,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--white-rgb), 0.03);
   border-radius: 10px;
   transition: background 0.3s ease;
 }
 
 .bet-item.own {
-  background: rgba(227, 24, 55, 0.08);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 
 .bet-user {
@@ -411,12 +431,12 @@
 }
 
 .bet-earned.success {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(var(--success-rgb), 0.15);
   color: var(--success);
 }
 
 .bet-earned.none {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--white-rgb), 0.1);
   color: var(--muted);
 }
 
@@ -430,6 +450,11 @@
   .game-teams {
     width: 100%;
     margin: 10px 0;
+    flex-wrap: wrap;
+  }
+  
+  .game-team {
+    min-width: 120px;
   }
   
   .team-name {
@@ -439,6 +464,17 @@
   .team-logo {
     width: 40px;
     height: 40px;
+  }
+  
+  .game-score,
+  .game-time {
+    width: 100px;
+    min-width: 100px;
+  }
+  
+  .game-score-num {
+    font-size: 22px;
+    min-width: 30px;
   }
   
   .game-detail-teams {
@@ -483,8 +519,8 @@
   align-items: center;
   gap: 12px;
   padding: 8px 14px;
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(var(--success-rgb), 0.1);
+  border: 1px solid rgba(var(--success-rgb), 0.3);
   border-radius: 10px;
   margin-left: auto;
   margin-right: 10px;
@@ -511,12 +547,12 @@
   font-weight: 600;
   padding: 4px 8px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--white-rgb), 0.1);
   color: var(--muted);
 }
 
 .my-bet-preview-points.earned {
-  background: rgba(34, 197, 94, 0.2);
+  background: rgba(var(--success-rgb), 0.2);
   color: var(--success);
 }
 
@@ -525,7 +561,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--white-rgb), 0.05);
   border: 1px dashed var(--border);
   border-radius: 10px;
   margin-left: auto;
@@ -537,7 +573,7 @@
 }
 
 .card:hover .no-bet-preview {
-  background: rgba(227, 24, 55, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   border-color: var(--primary);
 }
 
@@ -549,7 +585,8 @@
   overflow: hidden;
 }
 
-.game-card-header {
+/* Überschreibe game-card-header für expanded cards */
+.game-card-expanded .game-card-header {
   display: flex;
   align-items: center;
   gap: 20px;
@@ -558,15 +595,38 @@
   transition: background 0.3s ease;
 }
 
-.game-card-header:hover {
-  background: rgba(255, 255, 255, 0.03);
+.game-card-expanded .game-card-header:hover {
+  background: rgba(var(--white-rgb), 0.03);
+}
+
+/* Badge mit fester Breite */
+.game-card-expanded .badge {
+  min-width: 100px;
+  text-align: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Teams zentriert mit festen Breiten */
+.game-card-expanded .game-teams {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* Pfeil am Ende */
+.game-card-expanded .game-arrow {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* ==================== Group Bets Section ==================== */
 .group-bets-section {
   border-top: 1px solid var(--border);
   padding: 16px 28px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(var(--black-rgb), 0.2);
 }
 
 .no-group-bets {
@@ -590,15 +650,15 @@
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--white-rgb), 0.05);
   border-radius: 8px;
   border: 1px solid transparent;
   transition: all 0.3s ease;
 }
 
 .group-bet-item.own {
-  background: rgba(227, 24, 55, 0.1);
-  border-color: rgba(227, 24, 55, 0.3);
+  background: rgba(var(--accent-rgb), 0.1);
+  border-color: rgba(var(--accent-rgb), 0.3);
 }
 
 .group-bet-user {
@@ -638,7 +698,7 @@
   font-size: 14px;
   font-weight: 800;
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--white-rgb), 0.1);
   border-radius: 6px;
 }
 
@@ -647,11 +707,49 @@
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--white-rgb), 0.1);
   color: var(--muted);
 }
 
 .group-bet-points.earned {
-  background: rgba(34, 197, 94, 0.2);
+  background: rgba(var(--success-rgb), 0.2);
   color: var(--success);
+}
+
+/* ==================== Perfekte Zentrierung der Spielkarten ==================== */
+.games-list .card {
+  /* Alle Spielkarten gleich behandeln */
+}
+
+.game-card-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 28px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+/* Badge hat feste Breite für Ausrichtung */
+.game-card-header > .badge {
+  min-width: 100px;
+  text-align: center;
+  justify-content: center;
+}
+
+/* Teams Container zentriert */
+.game-card-header .game-teams {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Performance-Optimierung: will-change für Animationen */
+.card.card-hover {
+  will-change: transform;
+}
+
+.team-logo {
+  will-change: transform;
 }

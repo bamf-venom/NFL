@@ -3,7 +3,7 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -14,7 +14,7 @@
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(40px);
+    transform: translateY(25px);
   }
   to {
     opacity: 1;
@@ -25,7 +25,7 @@
 @keyframes fadeInDown {
   from {
     opacity: 0;
-    transform: translateY(-30px);
+    transform: translateY(-20px);
   }
   to {
     opacity: 1;
@@ -36,7 +36,7 @@
 @keyframes fadeInLeft {
   from {
     opacity: 0;
-    transform: translateX(-30px);
+    transform: translateX(-20px);
   }
   to {
     opacity: 1;
@@ -47,7 +47,7 @@
 @keyframes fadeInRight {
   from {
     opacity: 0;
-    transform: translateX(30px);
+    transform: translateX(20px);
   }
   to {
     opacity: 1;
@@ -58,7 +58,7 @@
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
@@ -69,10 +69,10 @@
 @keyframes scaleInBounce {
   0% {
     opacity: 0;
-    transform: scale(0.8);
+    transform: scale(0.9);
   }
-  60% {
-    transform: scale(1.05);
+  50% {
+    transform: scale(1.02);
   }
   100% {
     opacity: 1;
@@ -146,10 +146,10 @@
 
 @keyframes glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(227, 24, 55, 0.3);
+    box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.3);
   }
   50% {
-    box-shadow: 0 0 40px rgba(227, 24, 55, 0.5);
+    box-shadow: 0 0 40px rgba(var(--accent-rgb), 0.5);
   }
 }
 
@@ -214,36 +214,36 @@
 
 /* ==================== Animation Classes ==================== */
 .animate-fade-in {
-  animation: fadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-in-down {
-  animation: fadeInDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeInDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-in-left {
-  animation: fadeInLeft 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeInLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-in-right {
-  animation: fadeInRight 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-in-delayed {
-  animation: fadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
   opacity: 0;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-scale-in-bounce {
-  animation: scaleInBounce 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scaleInBounce 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slide-down {
@@ -298,38 +298,77 @@
 
 /* Hover Animations */
 .hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 35px rgba(var(--black-rgb), 0.35);
+}
+
+.hover-lift:active {
+  transform: translateY(-1px);
+  transition-duration: 0.1s;
 }
 
 .hover-scale {
-  transition: transform 0.3s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .hover-scale:hover {
   transform: scale(1.02);
 }
 
+.hover-scale:active {
+  transform: scale(0.98);
+}
+
 .hover-glow {
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .hover-glow:hover {
-  box-shadow: 0 0 30px rgba(227, 24, 55, 0.3);
+  box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.3);
 }
 
 /* Loading shimmer effect */
 .shimmer {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0) 100%
+    rgba(var(--white-rgb), 0) 0%,
+    rgba(var(--white-rgb), 0.1) 50%,
+    rgba(var(--white-rgb), 0) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+/* Card hover effect - flüssig */
+.card-hover {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(var(--black-rgb), 0.3);
+}
+
+/* Button press effect */
+.btn-press {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -10,10 +10,18 @@ async function initLeaderboardPage() {
   await loadLeaderboard();
   
   // Group filter change
-  document.getElementById('group-filter').addEventListener('change', function(e) {
+  document.getElementById('group-filter').addEventListener('change', async function(e) {
     selectedGroup = e.target.value;
     updateGroupInfo();
-    loadLeaderboard();
+    
+    // Zeige Loading-Spinner während Daten geladen werden
+    document.getElementById('leaderboard-container').innerHTML = `
+      <div class="loading-container">
+        <div class="spinner spinner-lg"></div>
+      </div>
+    `;
+    
+    await loadLeaderboard();
   });
 }
 
@@ -56,8 +64,13 @@ function updateGroupInfo() {
 // Load leaderboard data from Firebase
 async function loadLeaderboard() {
   try {
+    // Invalidiere den Cache beim Wechseln der Gruppe, um frische Daten zu bekommen
+    if (typeof invalidateCache === 'function') {
+      invalidateCache('leaderboard');
+    }
+    
     if (selectedGroup === 'global') {
-      leaderboardData = await firebaseGetLeaderboard();
+      leaderboardData = await firebaseGetLeaderboard(false); // false = kein Cache
     } else {
       leaderboardData = await firebaseGetGroupLeaderboard(selectedGroup);
     }

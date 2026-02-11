@@ -4,6 +4,8 @@ let adminGames = [];
 let adminUsers = [];
 let currentTab = 'games';
 let editingGame = null;
+let adminSelectedSeason = null;
+let adminSelectedWeek = null;
 
 // Initialize admin page
 async function initAdminPage() {
@@ -16,6 +18,163 @@ async function initAdminPage() {
   // Populate team selects first (before loading data)
   populateTeamSelects();
   await loadAdminData();
+  
+  // Setup filter listeners
+  setupAdminFilters();
+}
+
+// Setup filter event listeners
+function setupAdminFilters() {
+  const seasonFilter = document.getElementById('admin-season-filter');
+  const weekFilter = document.getElementById('admin-week-filter');
+  
+  if (seasonFilter) {
+    seasonFilter.addEventListener('change', function(e) {
+      // Always require a season - if somehow empty, use first available
+      adminSelectedSeason = e.target.value || null;
+      adminSelectedWeek = null; // Reset week when season changes
+      populateAdminWeekFilter();
+      renderAdminGames();
+    });
+  }
+  
+  if (weekFilter) {
+    weekFilter.addEventListener('change', function(e) {
+      adminSelectedWeek = e.target.value ? parseInt(e.target.value) : null;
+      renderAdminGames();
+    });
+  }
+}
+
+// Determine current NFL season based on date
+function getCurrentNFLSeason() {
+  const now = new Date();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+  
+  if (month <= 1) {
+    return (year - 1).toString();
+  }
+  if (month >= 2 && month <= 7) {
+    return (year - 1).toString();
+  }
+  return year.toString();
+}
+
+// Determine current week based on games in the selected season
+function getCurrentWeekForSeasonAdmin(season, games) {
+  const now = new Date();
+  const seasonGames = games.filter(g => g.season === season);
+  if (seasonGames.length === 0) return null;
+  
+  const weeks = [...new Set(seasonGames.map(g => g.week))].sort((a, b) => a - b);
+  if (weeks.length === 0) return null;
+  
+  let currentWeek = null;
+  
+  for (const week of weeks) {
+    const weekGames = seasonGames.filter(g => g.week === week);
+    const firstGameDate = new Date(Math.min(...weekGames.map(g => new Date(g.game_date).getTime())));
+    const lastGameDate = new Date(Math.max(...weekGames.map(g => new Date(g.game_date).getTime())));
+    
+    if (firstGameDate > now) {
+      break;
+    }
+    
+    currentWeek = week;
+    
+    const weekEndBuffer = new Date(lastGameDate.getTime() + 24 * 60 * 60 * 1000);
+    if (now <= weekEndBuffer) {
+      break;
+    }
+  }
+  
+  if (currentWeek === null) {
+    currentWeek = weeks[0];
+  }
+  
+  const allGamesFinished = seasonGames.every(g => g.status === 'finished');
+  const lastWeek = weeks[weeks.length - 1];
+  
+  if (allGamesFinished) {
+    return lastWeek;
+  }
+  
+  return currentWeek;
+}
+
+// Populate admin season filter - always requires a season selection (no "Alle Saisons")
+function populateAdminSeasonFilter() {
+  const seasons = [...new Set(adminGames.map(g => g.season))].sort((a, b) => b - a);
+  const filter = document.getElementById('admin-season-filter');
+  
+  if (!filter) return;
+  
+  // NO "Alle Saisons" option - always require a season
+  filter.innerHTML = '';
+  
+  seasons.forEach(season => {
+    const option = document.createElement('option');
+    option.value = season;
+    option.textContent = getSeasonDisplayName(season);
+    filter.appendChild(option);
+  });
+  
+  // Auto-select current NFL season or latest available
+  if (!adminSelectedSeason && seasons.length > 0) {
+    const currentNFLSeason = getCurrentNFLSeason();
+    
+    if (seasons.includes(currentNFLSeason)) {
+      adminSelectedSeason = currentNFLSeason;
+    } else {
+      adminSelectedSeason = seasons[0];
+    }
+    filter.value = adminSelectedSeason;
+  } else if (adminSelectedSeason) {
+    filter.value = adminSelectedSeason;
+  }
+}
+
+// Populate admin week filter
+function populateAdminWeekFilter() {
+  // Always require a season filter now
+  let filteredGames = adminGames;
+  if (adminSelectedSeason) {
+    filteredGames = adminGames.filter(g => g.season === adminSelectedSeason);
+  }
+  
+  const weeks = [...new Set(filteredGames.map(g => g.week))].sort((a, b) => a - b);
+  const filter = document.getElementById('admin-week-filter');
+  
+  if (!filter) return;
+  
+  filter.innerHTML = '<option value="">Alle Wochen</option>';
+  
+  weeks.forEach(week => {
+    const option = document.createElement('option');
+    option.value = week;
+    option.textContent = getWeekDisplayName(week);
+    filter.appendChild(option);
+  });
+  
+  // Auto-select current week if no week selected yet
+  if (adminSelectedWeek === null && adminSelectedSeason) {
+    const currentWeek = getCurrentWeekForSeasonAdmin(adminSelectedSeason, adminGames);
+    if (currentWeek !== null && weeks.includes(currentWeek)) {
+      adminSelectedWeek = currentWeek;
+      filter.value = adminSelectedWeek;
+    }
+  }
+  
+  // Reset week selection if not in filtered list
+  if (adminSelectedWeek && !weeks.includes(adminSelectedWeek)) {
+    adminSelectedWeek = null;
+  }
+  
+  // Restore selection if exists
+  if (adminSelectedWeek) {
+    filter.value = adminSelectedWeek;
+  }
 }
 
 // Load admin data from Firebase
@@ -32,6 +191,10 @@ async function loadAdminData() {
     // Update counts
     document.getElementById('games-count').textContent = adminGames.length;
     document.getElementById('users-count').textContent = adminUsers.length;
+    
+    // Populate filters
+    populateAdminSeasonFilter();
+    populateAdminWeekFilter();
     
     renderAdminGames();
     renderAdminUsers();
@@ -99,14 +262,44 @@ function switchTab(tab) {
   document.getElementById('users-tab').classList.toggle('hidden', tab !== 'users');
 }
 
+// Get display name for week (including playoffs)
+function getWeekDisplayName(week) {
+  switch (week) {
+    case 19: return 'Wild Card';
+    case 20: return 'Divisional';
+    case 21: return 'Conf. Championship';
+    case 22: return 'Super Bowl';
+    default: return `Woche ${week}`;
+  }
+}
+
+// Format season display name (e.g., "2025" -> "2025/2026")
+function getSeasonDisplayName(season) {
+  const startYear = parseInt(season);
+  const endYear = startYear + 1;
+  return `${startYear}/${endYear}`;
+}
+
 // Render admin games
 function renderAdminGames() {
   const container = document.getElementById('admin-games-container');
   
-  if (adminGames.length === 0) {
+  // Apply filters - season is always required
+  let filteredGames = adminGames;
+  
+  // Always filter by season (required)
+  if (adminSelectedSeason) {
+    filteredGames = filteredGames.filter(g => g.season === adminSelectedSeason);
+  }
+  
+  if (adminSelectedWeek) {
+    filteredGames = filteredGames.filter(g => g.week === adminSelectedWeek);
+  }
+  
+  if (filteredGames.length === 0) {
     container.innerHTML = `
       <div class="card empty-state">
-        <p style="color: var(--muted);">Noch keine Spiele vorhanden</p>
+        <p style="color: var(--muted);">Keine Spiele in dieser Saison/Woche gefunden</p>
       </div>
     `;
     return;
@@ -114,7 +307,7 @@ function renderAdminGames() {
   
   let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
   
-  adminGames.forEach((game, index) => {
+  filteredGames.forEach((game, index) => {
     const status = game.status === 'finished' ? 'Beendet' : game.status === 'live' ? 'Live' : 'Geplant';
     const statusClass = game.status === 'finished' ? 'badge-success' : game.status === 'live' ? 'badge-warning' : 'badge-default';
     
@@ -131,7 +324,7 @@ function renderAdminGames() {
           </div>
           <div>
             <div class="admin-game-details">${game.home_team_abbr} vs ${game.away_team_abbr}</div>
-            <div class="admin-game-meta">Woche ${game.week} • ${new Date(game.game_date).toLocaleDateString('de-DE')}</div>
+            <div class="admin-game-meta">${getWeekDisplayName(game.week)} • ${getSeasonDisplayName(game.season)} • ${new Date(game.game_date).toLocaleDateString('de-DE')}</div>
           </div>
         </div>
         

@@ -14,16 +14,16 @@
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 20px 50px rgba(var(--black-rgb), 0.4);
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .toast.success {
-  border-color: rgba(34, 197, 94, 0.3);
+  border-color: rgba(var(--success-rgb), 0.3);
 }
 
 .toast.error {
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: rgba(var(--error-rgb), 0.3);
 }
 
 /* ==================== Skeleton Loading ==================== */
@@ -171,7 +171,7 @@
   height: 48px;
   border-radius: 50%;
   background: var(--accent);
-  color: white;
+  color: var(--white);
   border: none;
   cursor: pointer;
   display: flex;
@@ -193,5 +193,5 @@
 
 .scroll-top-btn:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(227, 24, 55, 0.4);
+  box-shadow: 0 8px 25px rgba(var(--accent-rgb), 0.4);
 }

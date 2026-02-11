@@ -4,29 +4,73 @@ let gamesData = [];
 let userBetsMap = {}; // Map von game_id zu eigener Wette
 let userGroups = []; // Gruppen des Users
 let selectedWeek = null;
+let selectedSeason = null; // Season Filter
 let selectedGroupId = null; // Gewählte Gruppe für Filter
 let groupBetsMap = {}; // Map von game_id zu Array von Gruppen-Wetten
 
+// Save filter state to localStorage
+function saveFilterState() {
+  const filterState = {
+    season: selectedSeason,
+    week: selectedWeek,
+    groupId: selectedGroupId,
+    scrollY: window.scrollY
+  };
+  localStorage.setItem('nflpoints_games_filter', JSON.stringify(filterState));
+}
+
+// Load filter state from localStorage
+function loadFilterState() {
+  try {
+    const saved = localStorage.getItem('nflpoints_games_filter');
+    if (saved) {
+      const state = JSON.parse(saved);
+      selectedSeason = state.season || null;
+      selectedWeek = state.week || null;
+      selectedGroupId = state.groupId || null;
+      
+      // Restore scroll position after a small delay (after render)
+      if (state.scrollY) {
+        setTimeout(() => {
+          window.scrollTo(0, state.scrollY);
+        }, 100);
+      }
+    }
+  } catch (e) {
+    console.log('No saved filter state');
+  }
+}
+
 // Initialize games page
 async function initGamesPage() {
+  // Load saved filter state FIRST
+  loadFilterState();
+  
   await loadGames();
+  populateSeasonFilter(); // Season first - will auto-select current season if none saved
   populateWeekFilter();
+  
+  // Render games with filters applied
+  renderGames();
   
   // Week filter change
   document.getElementById('week-filter').addEventListener('change', function(e) {
     selectedWeek = e.target.value ? parseInt(e.target.value) : null;
+    saveFilterState();
     renderGames();
   });
   
-  // Group filter change
-  const groupFilter = document.getElementById('group-filter');
-  if (groupFilter) {
-    groupFilter.addEventListener('change', async function(e) {
-      selectedGroupId = e.target.value || null;
-      await loadGroupBets();
-      renderGames();
-    });
-  }
+  // Season filter change
+  document.getElementById('season-filter').addEventListener('change', function(e) {
+    selectedSeason = e.target.value; // Always required now
+    selectedWeek = null; // Reset week when season changes to auto-select new current week
+    // Update week filter based on selected season
+    populateWeekFilter();
+    saveFilterState();
+    renderGames();
+  });
+  
+  // Group filter change - note: event listener is already added in populateGroupFilter
 }
 
 // Load games from Firebase
@@ -48,21 +92,15 @@ async function loadGames() {
       userBetsMap[bet.game_id] = bet;
     });
     
-    // Populate group filter
+    // Populate group filter (will restore saved group selection)
     populateGroupFilter();
     
-    // Wenn User in Gruppen ist, lade Gruppen-Wetten
-    if (userGroups.length > 0) {
-      // Wähle erste Gruppe als Standard
-      if (!selectedGroupId) {
-        selectedGroupId = userGroups[0].id;
-        const groupFilter = document.getElementById('group-filter');
-        if (groupFilter) groupFilter.value = selectedGroupId;
-      }
+    // Load group bets if a group was previously selected and still valid
+    if (selectedGroupId && userGroups.find(g => g.id === selectedGroupId)) {
       await loadGroupBets();
     }
     
-    renderGames();
+    // Don't render here - let populateSeasonFilter and populateWeekFilter handle it
   } catch (error) {
     console.error('Error loading games:', error);
     document.getElementById('games-container').innerHTML = `
@@ -89,36 +127,67 @@ function populateGroupFilter() {
   
   const groupFilterHTML = `
     <select id="group-filter" class="form-input" style="width: auto; min-width: 150px;" data-testid="group-filter">
+      <option value="none">Keine Gruppe</option>
       ${userGroups.map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
     </select>
   `;
   
   filterContainer.insertAdjacentHTML('beforeend', groupFilterHTML);
   
+  // Restore saved group selection if valid
+  const groupFilter = document.getElementById('group-filter');
+  if (selectedGroupId) {
+    const validGroup = userGroups.find(g => g.id === selectedGroupId);
+    if (validGroup) {
+      groupFilter.value = selectedGroupId;
+    } else {
+      selectedGroupId = null;
+      saveFilterState();
+    }
+  }
+  
   // Event listener hinzufügen
-  document.getElementById('group-filter').addEventListener('change', async function(e) {
-    selectedGroupId = e.target.value || null;
-    await loadGroupBets();
-    renderGames();
+  groupFilter.addEventListener('change', async function(e) {
+    const value = e.target.value;
+    selectedGroupId = (value === 'none' || value === '') ? null : value;
+    saveFilterState();
+    
+    // Leere groupBetsMap sofort wenn keine Gruppe ausgewählt
+    if (!selectedGroupId) {
+      groupBetsMap = {};
+      renderGames();
+    } else {
+      // Zeige Loading-Status während Daten geladen werden
+      await loadGroupBets();
+      renderGames();
+    }
   });
 }
 
 // Load bets from selected group
 async function loadGroupBets() {
-  if (!selectedGroupId) {
+  // Sofort leeren wenn keine Gruppe ausgewählt
+  if (!selectedGroupId || selectedGroupId === 'none') {
     groupBetsMap = {};
     return;
   }
   
   try {
-    // Lade alle Wetten für jedes Spiel von der Gruppe
-    groupBetsMap = {};
+    // Temporär leeren um alte Daten nicht anzuzeigen
+    const tempGroupBetsMap = {};
     
+    // Lade alle Wetten für jedes Spiel von der Gruppe
     for (const game of gamesData) {
       const bets = await firebaseGetGroupBets(selectedGroupId, game.id);
       if (bets.length > 0) {
-        groupBetsMap[game.id] = bets;
+        tempGroupBetsMap[game.id] = bets;
       }
+    }
+    
+    // Nur zuweisen wenn immer noch die gleiche Gruppe ausgewählt ist
+    // (verhindert Race Condition bei schnellem Wechseln)
+    if (selectedGroupId && selectedGroupId !== 'none') {
+      groupBetsMap = tempGroupBetsMap;
     }
   } catch (error) {
     console.error('Error loading group bets:', error);
@@ -126,20 +195,177 @@ async function loadGroupBets() {
   }
 }
 
+// Format season display name (e.g., "2025" -> "2025/2026")
+function getSeasonDisplayName(season) {
+  const startYear = parseInt(season);
+  const endYear = startYear + 1;
+  return `${startYear}/${endYear}`;
+}
+
+// Determine current NFL season based on date
+// NFL season starts in September and ends in February
+function getCurrentNFLSeason() {
+  const now = new Date();
+  const month = now.getMonth(); // 0-11
+  const year = now.getFullYear();
+  
+  // NFL Season: September (month 8) to February (month 1)
+  // If January or February, we're in the previous year's season
+  if (month <= 1) { // January or February
+    return (year - 1).toString();
+  }
+  // If March to August, no active season - return previous season
+  if (month >= 2 && month <= 7) {
+    return (year - 1).toString();
+  }
+  // September onwards - current year's season
+  return year.toString();
+}
+
+// Determine current week based on games in the selected season
+function getCurrentWeekForSeason(season) {
+  const now = new Date();
+  
+  // Get games for this season
+  const seasonGames = gamesData.filter(g => g.season === season);
+  if (seasonGames.length === 0) return null;
+  
+  // Get all weeks in this season sorted
+  const weeks = [...new Set(seasonGames.map(g => g.week))].sort((a, b) => a - b);
+  if (weeks.length === 0) return null;
+  
+  // Find the latest week that has started or is currently active
+  let currentWeek = null;
+  
+  for (const week of weeks) {
+    const weekGames = seasonGames.filter(g => g.week === week);
+    const firstGameDate = new Date(Math.min(...weekGames.map(g => new Date(g.game_date).getTime())));
+    const lastGameDate = new Date(Math.max(...weekGames.map(g => new Date(g.game_date).getTime())));
+    
+    // If the first game of this week hasn't started yet, use the previous week
+    if (firstGameDate > now) {
+      break;
+    }
+    
+    currentWeek = week;
+    
+    // If we're currently within this week's games (between first and last game + 1 day buffer)
+    const weekEndBuffer = new Date(lastGameDate.getTime() + 24 * 60 * 60 * 1000);
+    if (now <= weekEndBuffer) {
+      break;
+    }
+  }
+  
+  // If no current week found (season hasn't started), return first week
+  if (currentWeek === null) {
+    currentWeek = weeks[0];
+  }
+  
+  // Check if season is over (all games finished)
+  const allGamesFinished = seasonGames.every(g => g.status === 'finished');
+  const lastWeek = weeks[weeks.length - 1];
+  
+  // If season is over, show the last week (Super Bowl is week 22)
+  if (allGamesFinished) {
+    return lastWeek;
+  }
+  
+  return currentWeek;
+}
+
+// Populate season filter - always requires a season selection
+function populateSeasonFilter() {
+  const seasons = [...new Set(gamesData.map(g => g.season))].sort((a, b) => b - a); // Newest first
+  const filter = document.getElementById('season-filter');
+  
+  if (!filter) return;
+  
+  // Clear existing options - NO "Alle Saisons" option
+  filter.innerHTML = '';
+  
+  // Add seasons with proper display name
+  seasons.forEach((season, index) => {
+    const option = document.createElement('option');
+    option.value = season;
+    option.textContent = getSeasonDisplayName(season);
+    filter.appendChild(option);
+  });
+  
+  // Check if saved season is still valid
+  if (selectedSeason && seasons.includes(selectedSeason)) {
+    // Use saved season
+    filter.value = selectedSeason;
+  } else if (seasons.length > 0) {
+    // Auto-select current NFL season or latest available
+    const currentNFLSeason = getCurrentNFLSeason();
+    
+    // Try to find the current NFL season in available seasons
+    if (seasons.includes(currentNFLSeason)) {
+      selectedSeason = currentNFLSeason;
+    } else {
+      // Fallback to newest available season
+      selectedSeason = seasons[0];
+    }
+    filter.value = selectedSeason;
+  }
+  
+  // Save the initial state
+  saveFilterState();
+}
+
+// Get display name for week (including playoffs)
+function getWeekDisplayName(week) {
+  switch (week) {
+    case 19: return 'Wild Card Weekend';
+    case 20: return 'Divisional Playoffs';
+    case 21: return 'Conference Championships';
+    case 22: return 'Super Bowl';
+    default: return `Woche ${week}`;
+  }
+}
+
 // Populate week filter
 function populateWeekFilter() {
-  const weeks = [...new Set(gamesData.map(g => g.week))].sort((a, b) => a - b);
+  // Filter weeks based on selected season (always required now)
+  let filteredGames = gamesData;
+  if (selectedSeason) {
+    filteredGames = gamesData.filter(g => g.season === selectedSeason);
+  }
+  
+  const weeks = [...new Set(filteredGames.map(g => g.week))].sort((a, b) => a - b);
   const filter = document.getElementById('week-filter');
   
-  // Clear existing options except first
+  // Clear existing options
   filter.innerHTML = '<option value="">Alle Wochen</option>';
   
   weeks.forEach(week => {
     const option = document.createElement('option');
     option.value = week;
-    option.textContent = `Woche ${week}`;
+    option.textContent = getWeekDisplayName(week);
     filter.appendChild(option);
   });
+  
+  // Check if saved week is still valid for this season
+  if (selectedWeek && weeks.includes(selectedWeek)) {
+    // Use saved week
+    filter.value = selectedWeek;
+  } else if (selectedSeason) {
+    // Auto-select current week if no valid saved week
+    const currentWeek = getCurrentWeekForSeason(selectedSeason);
+    if (currentWeek !== null && weeks.includes(currentWeek)) {
+      selectedWeek = currentWeek;
+      filter.value = selectedWeek;
+    } else {
+      selectedWeek = null;
+      filter.value = '';
+    }
+  } else {
+    selectedWeek = null;
+    filter.value = '';
+  }
+  
+  // Save state after week is set
+  saveFilterState();
 }
 
 // Render games list
@@ -148,8 +374,15 @@ function renderGames() {
   const user = currentUser;
   
   let filteredGames = gamesData;
+  
+  // Apply season filter
+  if (selectedSeason) {
+    filteredGames = filteredGames.filter(g => g.season === selectedSeason);
+  }
+  
+  // Apply week filter
   if (selectedWeek) {
-    filteredGames = gamesData.filter(g => g.week === selectedWeek);
+    filteredGames = filteredGames.filter(g => g.week === selectedWeek);
   }
   
   if (filteredGames.length === 0) {
@@ -179,6 +412,7 @@ function renderGames() {
   }, {});
   
   let html = '';
+  let gameIndex = 0; // Global index for staggered animation
   
   Object.entries(groupedGames).forEach(([date, dateGames]) => {
     html += `
@@ -207,6 +441,7 @@ function renderGames() {
       
       html += `
         <div class="card card-hover game-card-expanded ${isBettingClosed ? 'opacity-70' : ''}" 
+             style="animation: fadeIn 0.4s ease-out ${gameIndex * 0.05}s both;"
              data-testid="game-card-${game.id}">
           
           <!-- Game Header - klickbar -->
@@ -247,8 +482,8 @@ function renderGames() {
             <i class="fas fa-chevron-right game-arrow"></i>
           </div>
           
-          <!-- Gruppen-Wetten Bereich - nur wenn User in einer Gruppe ist -->
-          ${userGroups.length > 0 ? `
+          <!-- Gruppen-Wetten Bereich - nur wenn eine Gruppe ausgewählt ist -->
+          ${userGroups.length > 0 && selectedGroupId && selectedGroupId !== 'none' ? `
             <div class="group-bets-section">
               ${groupBets.length === 0 ? `
                 <div class="no-group-bets">
@@ -279,6 +514,7 @@ function renderGames() {
           ` : ''}
         </div>
       `;
+      gameIndex++; // Increment for next animation delay
     });
     
     html += '</div></div>';
@@ -298,4 +534,15 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (isAuthed) {
     initGamesPage();
   }
+  
+  // Save scroll position before leaving the page
+  window.addEventListener('beforeunload', saveFilterState);
+  
+  // Also save when clicking on game cards (navigation)
+  document.addEventListener('click', function(e) {
+    const gameCard = e.target.closest('.game-card-expanded');
+    if (gameCard) {
+      saveFilterState();
+    }
+  });
 });

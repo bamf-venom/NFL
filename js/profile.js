@@ -2,6 +2,7 @@
 
 let myBets = [];
 let gamesData = [];
+let isEditingUsername = false;
 
 // Initialize profile page
 async function initProfilePage() {
@@ -31,6 +32,63 @@ async function loadMyBets() {
   }
 }
 
+// Toggle username edit mode
+function toggleUsernameEdit() {
+  isEditingUsername = !isEditingUsername;
+  renderProfile();
+  
+  if (isEditingUsername) {
+    const input = document.getElementById('username-edit-input');
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }
+}
+
+// Save new username
+async function saveUsername() {
+  const input = document.getElementById('username-edit-input');
+  const newUsername = input.value.trim();
+  const errorEl = document.getElementById('username-error');
+  const saveBtn = document.getElementById('save-username-btn');
+  
+  // Validate
+  if (!newUsername || newUsername.length < 2) {
+    errorEl.textContent = 'Benutzername muss mindestens 2 Zeichen haben';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  
+  if (newUsername === currentUser.username) {
+    isEditingUsername = false;
+    renderProfile();
+    return;
+  }
+  
+  // Show loading
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  errorEl.classList.add('hidden');
+  
+  try {
+    await firebaseUpdateUsername(newUsername);
+    
+    // Update local user data
+    currentUser.username = newUsername;
+    localStorage.setItem('user', JSON.stringify(currentUser));
+    
+    isEditingUsername = false;
+    renderProfile();
+  } catch (error) {
+    console.error('Error updating username:', error);
+    errorEl.textContent = error.message || 'Fehler beim Speichern';
+    errorEl.classList.remove('hidden');
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+  }
+}
+
 // Render profile
 function renderProfile() {
   const container = document.getElementById('profile-container');
@@ -53,7 +111,39 @@ function renderProfile() {
       <div class="profile-avatar">
         <i class="fas fa-user fa-2x"></i>
       </div>
-      <h1 class="profile-username" data-testid="profile-username">${user.username}</h1>
+      
+      ${isEditingUsername ? `
+        <!-- Username Edit Mode -->
+        <div class="username-edit-container" data-testid="username-edit-container">
+          <input 
+            type="text" 
+            id="username-edit-input"
+            class="form-input username-input"
+            value="${user.username}"
+            maxlength="30"
+            data-testid="username-edit-input"
+            onkeydown="if(event.key === 'Enter') saveUsername(); if(event.key === 'Escape') toggleUsernameEdit();"
+          >
+          <div id="username-error" class="error-message hidden"></div>
+          <div class="username-edit-buttons">
+            <button class="btn btn-secondary btn-sm" onclick="toggleUsernameEdit()" data-testid="cancel-username-btn">
+              <i class="fas fa-times"></i> Abbrechen
+            </button>
+            <button id="save-username-btn" class="btn btn-primary btn-sm" onclick="saveUsername()" data-testid="save-username-btn">
+              <i class="fas fa-check"></i> Speichern
+            </button>
+          </div>
+        </div>
+      ` : `
+        <!-- Username Display Mode -->
+        <div class="username-display-container" data-testid="username-display-container">
+          <h1 class="profile-username" data-testid="profile-username">${user.username}</h1>
+          <button class="btn-edit-username" onclick="toggleUsernameEdit()" data-testid="edit-username-btn" title="Benutzernamen ändern">
+            <i class="fas fa-pencil"></i>
+          </button>
+        </div>
+      `}
+      
       <p class="profile-email">${user.email}</p>
       ${user.is_admin ? '<span class="profile-badge">Admin</span>' : ''}
     </div>

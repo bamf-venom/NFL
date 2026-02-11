@@ -1,12 +1,5 @@
 // Main application logic
 
-// Initialize Firebase when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-  if (typeof initializeFirebase === 'function') {
-    initializeFirebase();
-  }
-});
-
 // Format date for German locale
 function formatDate(dateString) {
   const date = new Date(dateString);
@@ -112,7 +105,7 @@ function renderNavbar() {
       <div class="navbar-container">
         <div class="navbar-content">
           <a href="games.html" class="navbar-logo" data-testid="logo-link">
-            NFL<span>BETT</span>
+            NFL<span>POINTS</span>
           </a>
           
           <div class="navbar-nav">

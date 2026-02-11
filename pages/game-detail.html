@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spiel Details - NFL BETT</title>
+  <title>Spiel Details - NFL POINTS</title>
+  
+  <!-- Preload für schnelleres Laden -->
+  <link rel="preload" href="../css/colors.css" as="style">
+  <link rel="preload" href="../css/base.css" as="style">
+  <link rel="preload" href="../css/games.css" as="style">
+  
+  <link rel="stylesheet" href="../css/colors.css">
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/animations.css">
   <link rel="stylesheet" href="../css/components.css">
@@ -61,13 +68,29 @@
       </form>
     </div>
   </div>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" async></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
   <script src="../js/config.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/main.js"></script>
   <script src="../js/game-detail.js"></script>
+  <script>
+    function waitForFirebaseSDK() {
+      return new Promise((resolve) => {
+        const check = setInterval(() => {
+          if (typeof firebase !== 'undefined' && firebase.app && firebase.auth && firebase.firestore) {
+            clearInterval(check);
+            resolve();
+          }
+        }, 50);
+        setTimeout(() => { clearInterval(check); resolve(); }, 10000);
+      });
+    }
+    waitForFirebaseSDK().then(() => {
+      if (typeof initializeFirebase === 'function') initializeFirebase();
+    });
+  </script>
 </body>
 </html>
