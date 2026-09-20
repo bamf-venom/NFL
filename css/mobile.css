@@ -1248,6 +1248,12 @@
     margin-left: 0 !important;
     flex-direction: column;
     gap: 8px;
+    width: 100%;
+  }
+
+  #games-tab > div:first-child > div:last-child select,
+  #games-tab > div:first-child > div:last-child .custom-select {
+    width: 100%;
   }
   
   /* Admin Filter Dropdowns kürzer machen */

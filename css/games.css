@@ -3,6 +3,16 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 10px 16px;
+  background: rgba(var(--white-rgb), 0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.filter-container > i {
+  color: var(--muted);
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .filter-container select {
