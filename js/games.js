@@ -492,10 +492,16 @@ function renderGames() {
 
       const myBet = userBetsMap[game.id];
       const groupBets = groupBetsMap[game.id] || [];
-      
-      // Zeige immer den tatsächlichen Status aus der Datenbank
+
+      // Badge zeigt den tatsächlichen Status - aber wenn die Sperrfrist erreicht ist
+      // und die DB das (noch) nicht mitbekommen hat ("scheduled"), zeigen wir trotzdem
+      // "GESPERRT" in rot, statt fälschlich "GEPLANT" in grün
       let badgeClass = status.class;
       let badgeText = status.text;
+      if (isBettingClosed) {
+        badgeClass = 'badge-error';
+        badgeText = 'GESPERRT';
+      }
       
       // Wenn Gruppe aktiv: eigene Wette in groupBets einfügen falls nicht schon drin
       let displayGroupBets = groupBets;

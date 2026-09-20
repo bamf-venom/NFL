@@ -73,18 +73,31 @@ function renderGameDetail() {
   // Wetten erlaubt wenn: Status ist "scheduled" UND keine Wette vorhanden UND Sperrfrist noch nicht erreicht
   const canBet = game.status === 'scheduled' && !myBetData && !isGameStarted;
 
+  // Wetten sind geschlossen wenn wir innerhalb der Sperrfrist vor Anpfiff sind,
+  // das Spiel aber noch nicht als "live"/"finished" markiert wurde
+  const isBettingClosed = game.status === 'scheduled' && isGameStarted;
+
   // Schloss-Icon: rot/geschlossen wenn Spiel vorbei/gestartet, grün/offen wenn noch tippbar
   const isLocked = isGameStarted || game.status === 'finished' || game.status === 'live';
   const lockIconHTML = isLocked
     ? `<i class="fas fa-lock lock-icon locked" title="Tipp gesperrt - Spiel läuft/ist beendet"></i>`
     : `<i class="fas fa-lock-open lock-icon open" title="Tipp noch möglich"></i>`;
 
+  // Badge zeigt den tatsächlichen Status - aber wenn die Sperrfrist erreicht ist und die
+  // DB das (noch) nicht mitbekommen hat ("scheduled"), zeigen wir "GESPERRT" in rot
+  let badgeClass = status.class;
+  let badgeText = status.text;
+  if (isBettingClosed) {
+    badgeClass = 'badge-error';
+    badgeText = 'GESPERRT';
+  }
+
   let html = `
     <!-- Game Header -->
     <div class="card game-detail-header animate-fade-in" style="--home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};">
       <div class="badge-lock-group" style="justify-content: center; margin-bottom: 16px;">
-        <span class="badge ${status.class}">
-          ${status.text}
+        <span class="badge ${badgeClass}">
+          ${badgeText}
         </span>
         ${lockIconHTML}
       </div>
