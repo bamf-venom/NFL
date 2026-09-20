@@ -28,9 +28,9 @@ let cropperState = {
 // Initialize profile page
 async function initProfilePage() {
   profileRendered = false;
-  await loadProfile();
-  // Lade beides parallel, dann render
-  const [bets, groups] = await Promise.all([
+  // Alle drei sind unabhängig voneinander - parallel statt nacheinander laden
+  await Promise.all([
+    loadProfile(),
     loadMyBets(),
     loadUserGroups()
   ]);

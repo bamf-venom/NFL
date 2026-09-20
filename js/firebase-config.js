@@ -441,21 +441,26 @@ async function firebaseDeleteGame(gameId) {
 }
 
 // ==================== BETS HELPERS ====================
-async function firebaseGetGameBets(gameId) {
+// Lädt nur die eigene Wette für ein Spiel, statt wie firebaseGetGameBets()
+// ALLE Wetten aller Nutzer im ganzen System zu laden, nur um die eigene
+// darin zu suchen
+async function firebaseGetUserBetForGame(userId, gameId) {
   try {
     const snapshot = await collections.bets()
+      .where('user_id', '==', userId)
       .where('game_id', '==', gameId)
+      .limit(1)
       .get();
-    
-    const bets = snapshot.docs.map(doc => ({
+
+    if (snapshot.empty) return null;
+
+    const doc = snapshot.docs[0];
+    return {
       ...doc.data(),
       created_at: doc.data().created_at?.toDate?.()?.toISOString() || doc.data().created_at
-    }));
-    
-    // Sortiere client-seitig
-    return bets.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    };
   } catch (error) {
-    console.error('Error in firebaseGetGameBets:', error);
+    console.error('Error in firebaseGetUserBetForGame:', error);
     throw error;
   }
 }

@@ -1,33 +1,37 @@
 // Game detail page logic
 
 let currentGameData = null;
-let gameBetsData = [];
+let groupBetsData = []; // Wetten der Mitglieder der ausgewählten Gruppe (nicht mehr "alle Wetten global")
 let myBetData = null;
+let userGroups = [];
+let selectedGroupId = null;
 
 // Initialize game detail page
 async function initGameDetailPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const gameId = urlParams.get('id');
-  
+
   if (!gameId) {
     window.location.href = 'games.html';
     return;
   }
-  
+
   await loadGameDetail(gameId);
 }
 
 // Load game detail from Firebase
 async function loadGameDetail(gameId) {
   try {
-    // Load game and bets in parallel
-    const [game, bets] = await Promise.all([
+    // Spiel, eigene Wette (nur die eine, nicht alle Wetten im System) und die
+    // eigenen Gruppen unabhängig voneinander parallel laden
+    const [game, myBet, groups] = await Promise.all([
       firebaseGetGame(gameId),
-      firebaseGetGameBets(gameId)
+      firebaseGetUserBetForGame(currentUser.id, gameId),
+      firebaseGetUserGroups()
     ]);
-    
+
     currentGameData = game;
-    
+
     if (!currentGameData) {
       document.getElementById('game-detail-container').innerHTML = `
         <div class="card empty-state">
@@ -37,10 +41,29 @@ async function loadGameDetail(gameId) {
       `;
       return;
     }
-    
-    gameBetsData = bets;
-    myBetData = gameBetsData.find(b => b.user_id === currentUser.id);
-    
+
+    myBetData = myBet;
+    userGroups = groups;
+
+    // Gruppe auswählen: zuletzt auf der Spiele-Seite gewählte Gruppe falls noch
+    // gültig, sonst die erste eigene Gruppe. Ohne Gruppen gibt es nichts zu wählen.
+    if (userGroups.length > 0) {
+      let preferredGroupId = null;
+      try {
+        const savedFilter = JSON.parse(localStorage.getItem('nflpoints_games_filter') || '{}');
+        preferredGroupId = savedFilter.groupId || null;
+      } catch (e) { /* ignore */ }
+
+      selectedGroupId = userGroups.find(g => g.id === preferredGroupId)
+        ? preferredGroupId
+        : userGroups[0].id;
+
+      await loadGroupBetsForCurrentGame();
+    } else {
+      selectedGroupId = null;
+      groupBetsData = [];
+    }
+
     renderGameDetail();
   } catch (error) {
     console.error('Error loading game:', error);
@@ -53,6 +76,33 @@ async function loadGameDetail(gameId) {
       </div>
     `;
   }
+}
+
+// Lädt die Wetten der Mitglieder der aktuell gewählten Gruppe für dieses Spiel
+async function loadGroupBetsForCurrentGame() {
+  if (!selectedGroupId || !currentGameData) {
+    groupBetsData = [];
+    return;
+  }
+  try {
+    groupBetsData = await firebaseGetGroupBets(selectedGroupId, currentGameData.id);
+  } catch (error) {
+    console.error('Error loading group bets:', error);
+    groupBetsData = [];
+  }
+}
+
+// Wird aufgerufen wenn der Nutzer im Dropdown eine andere Gruppe auswählt
+async function switchGameDetailGroup(groupId) {
+  selectedGroupId = groupId;
+
+  const section = document.getElementById('group-bets-section-content');
+  if (section) {
+    section.innerHTML = `<div class="loading-container"><div class="spinner"></div></div>`;
+  }
+
+  await loadGroupBetsForCurrentGame();
+  renderGameDetail();
 }
 
 // Render game detail
@@ -236,47 +286,62 @@ function renderGameDetail() {
     `;
   }
   
-  // All Bets
-  html += `
-    <div class="card animate-fade-in" style="margin-top: 24px; animation-delay: 0.2s;">
-      <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-        <i class="fas fa-users"></i>
-        Alle Wetten (${gameBetsData.length})
-      </h3>
-      
-      ${gameBetsData.length === 0 ? `
-        <p style="text-align: center; color: var(--muted); padding: 32px 0;">
-          Noch keine Wetten für dieses Spiel
-        </p>
-      ` : `
-        <div class="bets-list">
-          ${gameBetsData.map((bet, i) => `
-            <div class="bet-item ${bet.user_id === currentUser?.id ? 'own' : ''}" 
-                 style="animation: fadeIn 0.3s ease-out ${i * 0.05}s both;"
-                 data-testid="bet-${bet.id}">
-              <div class="bet-user">
-                <div class="bet-avatar">${bet.username.charAt(0).toUpperCase()}</div>
-                <div>
-                  <div class="bet-username">${bet.username}</div>
-                  <div class="bet-date">${new Date(bet.created_at).toLocaleDateString('de-DE')}</div>
-                </div>
-              </div>
-              
-              <div class="bet-prediction">
-                <span class="bet-prediction-score">${bet.home_score_prediction} : ${bet.away_score_prediction}</span>
-                ${game.status === 'finished' ? `
-                  <span class="bet-earned ${bet.points_earned > 0 ? 'success' : 'none'}">
-                    ${bet.points_earned || 0} Pkt
-                  </span>
-                ` : ''}
-              </div>
-            </div>
-          `).join('')}
+  // Gruppen-Wetten - nur wenn der Nutzer in mindestens einer Gruppe ist.
+  // Zeigt keine globalen Wetten aller Nutzer mehr, sondern nur die der
+  // gewählten Gruppe (mit Auswahl, falls man in mehreren Gruppen ist).
+  if (userGroups.length > 0) {
+    const groupSelectorHTML = userGroups.length > 1 ? `
+      <select class="form-input" style="width: auto; min-width: 160px;" data-testid="game-detail-group-select" onchange="switchGameDetailGroup(this.value)">
+        ${userGroups.map(g => `<option value="${g.id}" ${g.id === selectedGroupId ? 'selected' : ''}>${g.name}</option>`).join('')}
+      </select>
+    ` : `<span style="color: var(--muted); font-size: 14px;">${userGroups[0].name}</span>`;
+
+    html += `
+      <div class="card animate-fade-in" style="margin-top: 24px; animation-delay: 0.2s;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <h3 style="font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0;">
+            <i class="fas fa-users"></i>
+            Wetten in der Gruppe (${groupBetsData.length})
+          </h3>
+          ${groupSelectorHTML}
         </div>
-      `}
-    </div>
-  `;
-  
+
+        <div id="group-bets-section-content">
+          ${groupBetsData.length === 0 ? `
+            <p style="text-align: center; color: var(--muted); padding: 32px 0;">
+              Noch keine Wetten in dieser Gruppe für dieses Spiel
+            </p>
+          ` : `
+            <div class="bets-list">
+              ${groupBetsData.map((bet, i) => `
+                <div class="bet-item ${bet.user_id === currentUser?.id ? 'own' : ''}"
+                     style="animation: fadeIn 0.3s ease-out ${i * 0.05}s both;"
+                     data-testid="bet-${bet.id}">
+                  <div class="bet-user">
+                    <div class="bet-avatar">${bet.username.charAt(0).toUpperCase()}</div>
+                    <div>
+                      <div class="bet-username">${bet.username}</div>
+                      <div class="bet-date">${new Date(bet.created_at).toLocaleDateString('de-DE')}</div>
+                    </div>
+                  </div>
+
+                  <div class="bet-prediction">
+                    <span class="bet-prediction-score">${bet.home_score_prediction} : ${bet.away_score_prediction}</span>
+                    ${game.status === 'finished' ? `
+                      <span class="bet-earned ${bet.points_earned > 0 ? 'success' : 'none'}">
+                        ${bet.points_earned || 0} Pkt
+                      </span>
+                    ` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
   container.innerHTML = html;
 }
 
@@ -304,10 +369,10 @@ async function handlePlaceBet(event) {
     });
     
     myBetData = bet;
-    gameBetsData.push(bet);
-    
+    await loadGroupBetsForCurrentGame();
+
     successEl.classList.remove('hidden');
-    
+
     setTimeout(() => {
       renderGameDetail();
     }, 1500);
@@ -363,13 +428,13 @@ async function handleEditBet(event) {
     });
     
     myBetData = updatedBet;
-    
-    // Update in gameBetsData
-    const gameBetIndex = gameBetsData.findIndex(b => b.id === myBetData.id);
-    if (gameBetIndex !== -1) {
-      gameBetsData[gameBetIndex] = myBetData;
+
+    // Update in groupBetsData (eigener Eintrag in der Gruppen-Wetten-Liste)
+    const groupBetIndex = groupBetsData.findIndex(b => b.id === myBetData.id);
+    if (groupBetIndex !== -1) {
+      groupBetsData[groupBetIndex] = { ...groupBetsData[groupBetIndex], ...myBetData };
     }
-    
+
     successEl.classList.remove('hidden');
     
     setTimeout(() => {
@@ -392,9 +457,9 @@ async function handleDeleteBet() {
   
   try {
     await firebaseDeleteBet(myBetData.id);
-    
-    // Entferne aus gameBetsData
-    gameBetsData = gameBetsData.filter(b => b.id !== myBetData.id);
+
+    // Entferne aus groupBetsData
+    groupBetsData = groupBetsData.filter(b => b.id !== myBetData.id);
     myBetData = null;
     
     // Lade Seite neu

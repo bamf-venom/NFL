@@ -6,8 +6,9 @@ let selectedGroup = 'global';
 
 // Initialize leaderboard page
 async function initLeaderboardPage() {
-  await loadGroups();
-  await loadLeaderboard();
+  // Gruppen-Liste und globale Rangliste hängen nicht voneinander ab (Rangliste
+  // startet immer mit "global") - parallel statt nacheinander laden
+  await Promise.all([loadGroups(), loadLeaderboard()]);
   
   // Group filter change
   document.getElementById('group-filter').addEventListener('change', async function(e) {
@@ -21,7 +22,7 @@ async function initLeaderboardPage() {
       </div>
     `;
     
-    await loadLeaderboard();
+    await loadLeaderboard(true);
   });
 }
 
@@ -62,15 +63,17 @@ function updateGroupInfo() {
 }
 
 // Load leaderboard data from Firebase
-async function loadLeaderboard() {
+// forceRefresh: true wenn der Nutzer aktiv den Filter wechselt (dann frische Daten
+// statt Cache) - beim normalen Seitenaufruf reicht der 60s-Cache und spart die
+// teure Abfrage über ALLE Bets in der Datenbank
+async function loadLeaderboard(forceRefresh = false) {
   try {
-    // Invalidiere den Cache beim Wechseln der Gruppe, um frische Daten zu bekommen
-    if (typeof invalidateCache === 'function') {
+    if (forceRefresh && typeof invalidateCache === 'function') {
       invalidateCache('leaderboard');
     }
-    
+
     if (selectedGroup === 'global') {
-      leaderboardData = await firebaseGetLeaderboard(false); // false = kein Cache
+      leaderboardData = await firebaseGetLeaderboard(!forceRefresh);
     } else {
       leaderboardData = await firebaseGetGroupLeaderboard(selectedGroup);
     }
