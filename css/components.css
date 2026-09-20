@@ -409,8 +409,8 @@ select.form-input option {
 }
 
 .badge-live {
-  background: rgba(var(--success-rgb), 0.15);
-  color: var(--success);
+  background: rgba(var(--error-light-rgb), 0.15);
+  color: var(--error-light);
   animation: pulse-subtle 2s ease-in-out infinite;
 }
 
