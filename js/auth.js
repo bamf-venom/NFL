@@ -52,20 +52,19 @@ async function checkAuth() {
   
   // Wait for Firebase auth
   await waitForAuth();
-  
+
+  const currentPath = window.location.pathname;
+  const isLandingPage = currentPath === '/' || currentPath.endsWith('index.html');
+
   if (currentUser) {
     // If on landing page, redirect to games
-    if (window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) {
+    if (isLandingPage) {
       window.location.href = 'pages/games.html';
     }
     return true;
   } else {
     // If on protected page, redirect to landing
-    const publicPages = ['/', '/index.html', ''];
-    const currentPath = window.location.pathname;
-    const isPublic = publicPages.some(p => currentPath.endsWith(p) || currentPath === p);
-    
-    if (!isPublic && !currentPath.includes('index.html')) {
+    if (!isLandingPage) {
       window.location.href = '../index.html';
       return false;
     }
