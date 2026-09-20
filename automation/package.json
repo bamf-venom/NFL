@@ -1,0 +1,13 @@
+{
+  "name": "nfl-points-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automatischer Ergebnis-Check für NFL POINTS (via GitHub Actions)",
+  "main": "check-scores.js",
+  "scripts": {
+    "check-scores": "node check-scores.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}

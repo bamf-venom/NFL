@@ -1,0 +1,7 @@
+node_modules/
+*.log
+
+# Firebase Service-Account-Keys dürfen NIE ins Repo - die gehören nur als
+# GitHub Actions Secret hinterlegt (siehe automation/README.md)
+serviceAccountKey.json
+*serviceAccount*.json

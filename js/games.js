@@ -477,17 +477,31 @@ function renderGames() {
       const status = getStatusBadge(game.status);
       const gameDate = new Date(game.game_date);
       const now = new Date();
-      const isGameStarted = gameDate < now;
-      
-      // Wetten sind geschlossen wenn das Spiel gestartet ist, aber nicht "live" oder "finished" ist
-      // UND das Spiel-Datum wirklich in der Vergangenheit liegt
+      const bettingLockTime = new Date(gameDate.getTime() - BETTING_LOCK_MINUTES_BEFORE_KICKOFF * 60000);
+      const isGameStarted = now >= bettingLockTime;
+
+      // Wetten sind geschlossen wenn wir innerhalb der Sperrfrist vor Anpfiff sind,
+      // das Spiel aber noch nicht als "live"/"finished" markiert wurde
       const isBettingClosed = game.status === 'scheduled' && isGameStarted;
+
+      // Schloss-Icon: rot/geschlossen ab Sperrfrist bzw. wenn Spiel läuft/beendet ist, grün/offen wenn noch tippbar
+      const isLocked = isGameStarted || game.status === 'finished' || game.status === 'live';
+      const lockIconHTML = isLocked
+        ? `<i class="fas fa-lock lock-icon locked" title="Tipp gesperrt - Spiel läuft/ist beendet"></i>`
+        : `<i class="fas fa-lock-open lock-icon open" title="Tipp noch möglich"></i>`;
+
       const myBet = userBetsMap[game.id];
       const groupBets = groupBetsMap[game.id] || [];
-      
-      // Zeige immer den tatsächlichen Status aus der Datenbank
+
+      // Badge zeigt den tatsächlichen Status - aber wenn die Sperrfrist erreicht ist
+      // und die DB das (noch) nicht mitbekommen hat ("scheduled"), zeigen wir trotzdem
+      // "GESPERRT" in rot, statt fälschlich "GEPLANT" in grün
       let badgeClass = status.class;
       let badgeText = status.text;
+      if (isBettingClosed) {
+        badgeClass = 'badge-error';
+        badgeText = 'GESPERRT';
+      }
       
       // Wenn Gruppe aktiv: eigene Wette in groupBets einfügen falls nicht schon drin
       let displayGroupBets = groupBets;
@@ -515,26 +529,34 @@ function renderGames() {
       }
       
       html += `
-        <div class="card card-hover game-card-expanded ${isBettingClosed ? 'opacity-70' : ''}" 
-             style="animation: fadeIn 0.4s ease-out ${gameIndex * 0.05}s both;"
+        <div class="card card-hover game-card-expanded ${isBettingClosed ? 'opacity-70' : ''}"
+             style="animation: fadeIn 0.4s ease-out ${gameIndex * 0.05}s both; --home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};"
              data-testid="game-card-${game.id}">
           
           <!-- Game Header - klickbar -->
           <div class="game-card-header" onclick="window.location.href='game-detail.html?id=${game.id}'">
             <!-- Top Row: Badge + eigene Wette (für Mobile) -->
             <div class="game-card-top-row">
-              <span class="badge ${badgeClass}">${badgeText}</span>
-              ${myBet ? `
-                <div class="my-bet-inline-mobile" data-testid="my-bet-mobile-${game.id}">
-                  <span class="my-bet-inline-score">${myBet.home_score_prediction}:${myBet.away_score_prediction}</span>
-                  ${game.status === 'finished' ? `<span class="my-bet-inline-pts ${myBet.points_earned > 0 ? 'earned' : ''}">${myBet.points_earned || 0}P</span>` : ''}
+              <div class="top-row-status">
+                <div class="badge-lock-group">
+                  <span class="badge ${badgeClass}">${badgeText}</span>
+                  ${lockIconHTML}
                 </div>
-              ` : ''}
+                ${myBet ? `
+                  <div class="my-bet-inline-mobile" data-testid="my-bet-mobile-${game.id}">
+                    <span class="my-bet-inline-score">${myBet.home_score_prediction}:${myBet.away_score_prediction}</span>
+                    ${game.status === 'finished' ? `<span class="my-bet-inline-pts ${myBet.points_earned > 0 ? 'earned' : ''}">${myBet.points_earned || 0}P</span>` : ''}
+                  </div>
+                ` : ''}
+              </div>
               <i class="fas fa-chevron-right game-arrow"></i>
             </div>
             
             <!-- Desktop Badge (wird auf Mobile versteckt) -->
-            <span class="badge ${badgeClass} desktop-only">${badgeText}</span>
+            <div class="desktop-only badge-lock-group">
+              <span class="badge ${badgeClass}">${badgeText}</span>
+              ${lockIconHTML}
+            </div>
             
             <div class="game-teams">
               <div class="game-team home">

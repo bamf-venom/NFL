@@ -537,13 +537,14 @@ async function firebaseDeleteBet(betId) {
     throw new Error('Du kannst nur deine eigenen Wetten löschen');
   }
   
-  // Prüfe ob das Spiel noch nicht gestartet ist
+  // Prüfe ob die Sperrfrist vor Anpfiff noch nicht erreicht ist
   const gameDoc = await collections.games().doc(betData.game_id).get();
   if (gameDoc.exists) {
     const gameData = gameDoc.data();
     const gameDate = gameData.game_date?.toDate?.() || new Date(gameData.game_date);
-    if (new Date() >= gameDate) {
-      throw new Error('Das Spiel hat bereits begonnen. Wette kann nicht mehr gelöscht werden.');
+    const bettingLockTime = new Date(gameDate.getTime() - BETTING_LOCK_MINUTES_BEFORE_KICKOFF * 60000);
+    if (new Date() >= bettingLockTime) {
+      throw new Error('Die Tipp-Sperrfrist ist erreicht. Wette kann nicht mehr gelöscht werden.');
     }
   }
   
@@ -936,12 +937,12 @@ async function firebaseGetGroupLeaderboard(groupId) {
   }
   
   const userStats = {};
-  
-  for (const chunk of chunks) {
-    const snapshot = await collections.bets()
-      .where('user_id', 'in', chunk)
-      .get();
-    
+
+  const snapshots = await Promise.all(
+    chunks.map(chunk => collections.bets().where('user_id', 'in', chunk).get())
+  );
+
+  snapshots.forEach(snapshot => {
     snapshot.docs.forEach(doc => {
       const bet = doc.data();
       if (!userStats[bet.user_id]) {
@@ -954,14 +955,14 @@ async function firebaseGetGroupLeaderboard(groupId) {
           correct_scores: 0
         };
       }
-      
+
       userStats[bet.user_id].total_points += bet.points_earned || 0;
       userStats[bet.user_id].total_bets += 1;
       if (bet.points_earned > 0) userStats[bet.user_id].correct_winners += 1;
       if (bet.points_earned >= 3) userStats[bet.user_id].correct_scores += 1;
     });
-  }
-  
+  });
+
   return Object.values(userStats).sort((a, b) => b.total_points - a.total_points);
 }
 
@@ -1001,12 +1002,16 @@ async function firebaseGetGroupBets(groupId, gameId) {
     chunks.push(memberIds.slice(i, i + 10));
   }
   
-  for (const chunk of chunks) {
-    const snapshot = await collections.bets()
-      .where('user_id', 'in', chunk)
-      .where('game_id', '==', gameId)
-      .get();
-    
+  const snapshots = await Promise.all(
+    chunks.map(chunk =>
+      collections.bets()
+        .where('user_id', 'in', chunk)
+        .where('game_id', '==', gameId)
+        .get()
+    )
+  );
+
+  snapshots.forEach(snapshot => {
     snapshot.docs.forEach(doc => {
       const betData = doc.data();
       const profilePic = memberPictures[betData.user_id] || null;
@@ -1016,8 +1021,8 @@ async function firebaseGetGroupBets(groupId, gameId) {
         created_at: betData.created_at?.toDate?.()?.toISOString() || betData.created_at
       });
     });
-  }
-  
+  });
+
   return allBets;
 }
 

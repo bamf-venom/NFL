@@ -37,9 +37,9 @@ function getStatusBadge(status) {
     case 'live':
       return { text: 'LIVE', class: 'badge-live' };
     case 'finished':
-      return { text: 'BEENDET', class: 'badge-default' };
+      return { text: 'BEENDET', class: 'badge-error' };
     default:
-      return { text: 'GEPLANT', class: 'badge-default' };
+      return { text: 'GEPLANT', class: 'badge-success' };
   }
 }
 
@@ -121,6 +121,16 @@ function renderNavbar() {
   // Mobile menu links with larger touch targets
   const mobileLinksHTML = navItems.map(item => `
     <a href="${item.href}" class="mobile-nav-link ${currentPage === item.id ? 'active' : ''}" onclick="closeMobileMenu()">
+      <i class="fas ${item.icon}"></i>
+      <span>${item.label}</span>
+    </a>
+  `).join('');
+
+  // Bottom tab bar items (mobile app style) - primary nav + Profil
+  const bottomNavItems = [...navItems, { href: 'profile.html', id: 'profile', label: 'Profil', icon: 'fa-user' }];
+
+  const bottomNavHTML = bottomNavItems.map(item => `
+    <a href="${item.href}" class="bottom-nav-link ${currentPage === item.id ? 'active' : ''}" data-testid="bottom-nav-${item.label.toLowerCase()}">
       <i class="fas ${item.icon}"></i>
       <span>${item.label}</span>
     </a>
@@ -214,6 +224,11 @@ function renderNavbar() {
         </button>
       </div>
     </div>
+
+    <!-- Mobile Bottom Tab Bar (App-Style) -->
+    <nav class="bottom-nav" data-testid="bottom-nav">
+      ${bottomNavHTML}
+    </nav>
   `;
 }
 

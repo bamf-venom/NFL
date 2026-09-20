@@ -528,6 +528,10 @@
     flex-direction: column;
     gap: 24px;
   }
+
+  .game-detail-header::before {
+    border-radius: 12px 12px 0 0;
+  }
   
   .team-logo-lg {
     width: 70px;
@@ -630,6 +634,33 @@
   flex-direction: column;
   padding: 0;
   overflow: hidden;
+  position: relative;
+}
+
+/* Team-color matchup bar (NFL-app style) */
+.game-card-expanded::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--home-color, var(--accent)) 0%, var(--home-color, var(--accent)) 50%, var(--away-color, var(--accent)) 50%, var(--away-color, var(--accent)) 100%);
+}
+
+.game-detail-header {
+  position: relative;
+}
+
+.game-detail-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(90deg, var(--home-color, var(--accent)) 0%, var(--home-color, var(--accent)) 50%, var(--away-color, var(--accent)) 50%, var(--away-color, var(--accent)) 100%);
 }
 
 /* Überschreibe game-card-header für expanded cards */
@@ -802,6 +833,36 @@
   text-align: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* Desktop: Badge + Schloss-Icon gruppiert (nimmt die erste Grid-Spalte ein) */
+.game-card-header > .badge-lock-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+/* ==================== Schloss-Icon (Tipp-Status) ==================== */
+.badge-lock-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lock-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.lock-icon.locked {
+  color: var(--error);
+}
+
+.lock-icon.open {
+  color: var(--success);
 }
 
 /* Teams Container zentriert - WICHTIG für Desktop-Zentrierung */

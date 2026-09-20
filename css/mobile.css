@@ -5,7 +5,8 @@
 .mobile-profile-link,
 .hamburger-btn,
 .mobile-menu-overlay,
-.mobile-slide-menu {
+.mobile-slide-menu,
+.bottom-nav {
   display: none;
 }
 
@@ -263,10 +264,60 @@
     background: rgba(var(--error-rgb), 0.15);
   }
   
-  /* ==================== Main Content (kein Bottom-Padding mehr) ==================== */
+  /* ==================== Main Content (Platz für Bottom Tab Bar) ==================== */
   .main-content {
     min-height: calc(100vh - 56px);
-    padding-bottom: 20px;
+    padding-bottom: calc(20px + 64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ==================== Bottom Tab Bar (App-Style Navigation) ==================== */
+  .bottom-nav {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-around;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(var(--background-rgb), 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    z-index: 80;
+  }
+
+  .bottom-nav-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex: 1;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 600;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.2s ease;
+  }
+
+  .bottom-nav-link i {
+    font-size: 20px;
+    transition: transform 0.2s ease;
+  }
+
+  .bottom-nav-link:active i {
+    transform: scale(0.9);
+  }
+
+  .bottom-nav-link.active {
+    color: var(--accent);
+  }
+
+  .bottom-nav-link.active i {
+    transform: translateY(-1px);
   }
   
   /* ==================== Container & Layout ==================== */
@@ -323,7 +374,6 @@
   .game-card-top-row {
     display: flex !important;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
     width: 100%;
     margin-bottom: 10px;
@@ -331,25 +381,40 @@
     position: relative;
     border-bottom: 1px solid var(--border);
   }
-  
+
+  /* Badge + Schloss + eigener Tipp zentriert als eine Gruppe */
+  .top-row-status {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
   .game-card-top-row .badge {
     font-size: clamp(9px, 2.5vw, 11px);
     padding: 4px 10px;
     min-width: auto;
   }
-  
+
+  .game-card-top-row .lock-icon {
+    font-size: clamp(11px, 3vw, 14px);
+  }
+
   .game-card-top-row .game-arrow {
     display: flex !important;
     font-size: clamp(10px, 2.5vw, 14px);
     color: var(--muted);
     transition: transform 0.3s ease;
+    flex-shrink: 0;
   }
-  
+
   .card:hover .game-card-top-row .game-arrow {
     transform: translateX(3px);
   }
-  
-  /* My Bet inline Mobile - in der Top Row zentriert */
+
+  /* My Bet inline Mobile - Teil der zentrierten Top-Row-Gruppe */
   .my-bet-inline-mobile {
     display: flex !important;
     align-items: center;
@@ -357,10 +422,6 @@
     padding: 4px 10px;
     background: rgba(var(--success-rgb), 0.15);
     border-radius: 6px;
-    /* Zentriert in der Mitte */
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
   }
   
   .my-bet-inline-score {
