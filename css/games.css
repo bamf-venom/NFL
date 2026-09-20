@@ -20,6 +20,22 @@
   min-width: 160px;
 }
 
+/* Feste Breite für Filter-Dropdowns, damit lange Optionen (z.B. Playoff-Wochen
+   wie "Conference Championships") nicht die ganze Filterleiste aufblähen */
+.filter-container .custom-select-trigger {
+  max-width: 200px;
+}
+
+/* Die aufgeklappte Liste darf breiter sein als der Trigger selbst, damit lange
+   Optionsnamen dort nicht umbrechen oder abgeschnitten werden */
+.filter-container .custom-select-options {
+  left: auto;
+  right: 0;
+  width: max-content;
+  min-width: 100%;
+  max-width: 280px;
+}
+
 .games-date-group {
   margin-bottom: 36px;
 }
