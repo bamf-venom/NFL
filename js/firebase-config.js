@@ -74,6 +74,13 @@ function onFirebaseReady(callback) {
 }
 
 function initializeFirebase() {
+  // Wird von mehreren Stellen aufgerufen (Inline-Script in der HTML + jede
+  // page.js selbst) - beim zweiten Aufruf würde db.settings() werfen, da
+  // Firestore schon gestartet ist. Einfach überspringen, wenn schon bereit.
+  if (firebaseReady) {
+    return true;
+  }
+
   if (typeof firebase !== 'undefined') {
     try {
       // Prüfen ob schon initialisiert
@@ -990,7 +997,10 @@ function getGroupMembersForBets(groupId) {
   const promise = (async () => {
     const groupDoc = await collections.groups().doc(groupId).get();
     const groupData = groupDoc.data();
-    const memberIds = groupData?.member_ids || [];
+    // Defensiv filtern: leere/ungültige Einträge in member_ids würden
+    // Query.where('user_id', 'in', chunk) mit "Unsupported field value:
+    // undefined" abstürzen lassen
+    const memberIds = (groupData?.member_ids || []).filter(id => typeof id === 'string' && id.length > 0);
 
     const memberPictures = {};
     await Promise.all(memberIds.map(async (userId) => {
@@ -1012,6 +1022,14 @@ function getGroupMembersForBets(groupId) {
 }
 
 async function firebaseGetGroupBets(groupId, gameId) {
+  // Ohne gültige gameId würde Query.where('game_id', '==', gameId) mit
+  // "Unsupported field value: undefined" abstürzen und damit die komplette
+  // Gruppen-Abfrage für ALLE Spiele in diesem Promise.all-Batch mitreißen
+  if (!groupId || !gameId) {
+    console.warn('firebaseGetGroupBets: ungültige groupId/gameId', groupId, gameId);
+    return [];
+  }
+
   const { memberIds, memberPictures } = await getGroupMembersForBets(groupId);
   if (memberIds.length === 0) return [];
 

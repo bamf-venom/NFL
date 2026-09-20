@@ -76,7 +76,7 @@ async function loadGroupBets() {
   groupBetsData = {};
 
   // Load bets for first 10 games - parallel statt nacheinander für schnelleres Laden
-  const gamesToLoad = gamesData.slice(0, 10);
+  const gamesToLoad = gamesData.filter(game => game && game.id).slice(0, 10);
 
   const results = await Promise.all(gamesToLoad.map(async (game) => {
     try {

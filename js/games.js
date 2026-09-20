@@ -208,10 +208,10 @@ async function loadGroupBets() {
     const tempGroupBetsMap = {};
     
     // Lade alle Wetten für jedes Spiel von der Gruppe parallel für bessere Performance
-    const promises = gamesData.map(async (game) => {
+    const promises = gamesData.filter(game => game && game.id).map(async (game) => {
       // Prüfe ob Gruppe noch die gleiche ist (früher Abbruch)
       if (selectedGroupId !== loadingGroupId) return null;
-      
+
       const bets = await firebaseGetGroupBets(loadingGroupId, game.id);
       if (bets.length > 0) {
         return { gameId: game.id, bets };
