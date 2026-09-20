@@ -41,12 +41,12 @@ async function loadGroupDetail(groupId) {
       return;
     }
     
-    // Load group leaderboard
-    await loadGroupLeaderboard();
-    
-    // Load bets for games
-    await loadGroupBets();
-    
+    // Rangliste und Wetten hängen nicht voneinander ab - parallel laden
+    await Promise.all([
+      loadGroupLeaderboard(),
+      loadGroupBets()
+    ]);
+
     renderGroupDetail();
   } catch (error) {
     console.error('Error loading group:', error);
@@ -74,18 +74,22 @@ async function loadGroupLeaderboard() {
 // Load group bets for games from Firebase
 async function loadGroupBets() {
   groupBetsData = {};
-  
-  // Load bets for first 10 games
+
+  // Load bets for first 10 games - parallel statt nacheinander für schnelleres Laden
   const gamesToLoad = gamesData.slice(0, 10);
-  
-  for (const game of gamesToLoad) {
+
+  const results = await Promise.all(gamesToLoad.map(async (game) => {
     try {
-      groupBetsData[game.id] = await firebaseGetGroupBets(currentGroupData.id, game.id);
+      return { gameId: game.id, bets: await firebaseGetGroupBets(currentGroupData.id, game.id) };
     } catch (error) {
       console.error(`Error loading bets for game ${game.id}:`, error);
-      groupBetsData[game.id] = [];
+      return { gameId: game.id, bets: [] };
     }
-  }
+  }));
+
+  results.forEach(({ gameId, bets }) => {
+    groupBetsData[gameId] = bets;
+  });
 }
 
 // Switch tab
@@ -130,8 +134,7 @@ async function kickMember(userId, username) {
     
     // Reload group data
     currentGroupData = await firebaseGetGroup(currentGroupData.id);
-    await loadGroupLeaderboard();
-    await loadGroupBets();
+    await Promise.all([loadGroupLeaderboard(), loadGroupBets()]);
     renderGroupDetail();
   } catch (error) {
     console.error('Error kicking member:', error);

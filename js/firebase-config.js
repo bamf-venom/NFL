@@ -829,7 +829,8 @@ async function firebaseJoinGroup(inviteCode) {
   
   // Invalidate groups cache
   invalidateCache('groups');
-  
+  delete groupMembersCache[groupDoc.id];
+
   return await firebaseGetGroup(groupDoc.id);
 }
 
@@ -854,6 +855,7 @@ async function firebaseLeaveGroup(groupId) {
   
   // Invalidate groups cache
   invalidateCache('groups');
+  delete groupMembersCache[groupId];
 }
 
 async function firebaseKickMember(groupId, userId) {
@@ -878,6 +880,8 @@ async function firebaseKickMember(groupId, userId) {
     member_ids: updatedMemberIds,
     members: updatedMembers
   });
+
+  delete groupMembersCache[groupId];
 }
 
 async function firebaseDeleteGroup(groupId) {
@@ -966,42 +970,58 @@ async function firebaseGetGroupLeaderboard(groupId) {
   return Object.values(userStats).sort((a, b) => b.total_points - a.total_points);
 }
 
-async function firebaseGetGroupBets(groupId, gameId) {
-  const groupDoc = await collections.groups().doc(groupId).get();
-  const groupData = groupDoc.data();
-  
-  const memberIds = groupData.member_ids || [];
-  if (memberIds.length === 0) return [];
-  
-  // Lade Profilbilder für alle Members direkt über memberIds
-  const memberPictures = {};
-  const picturePromises = memberIds.map(async (userId) => {
-    try {
-      const userDoc = await collections.users().doc(userId).get();
-      if (userDoc.exists) {
-        const userData = userDoc.data();
-        return { userId: userId, picture: userData.profile_picture || null };
+// Cache für Gruppen-Mitglieder + Profilbilder, damit firebaseGetGroupBets()
+// bei mehreren Spielen derselben Gruppe nicht jedes Mal Gruppe + alle
+// Profilbilder erneut aus Firestore lädt (war die Hauptbremse beim Laden
+// einer Gruppe mit vielen Spielen)
+const groupMembersCache = {};
+const GROUP_MEMBERS_CACHE_TTL = 30000; // 30 Sekunden
+
+// Gibt ein Promise zurück (nicht async) und legt es SOFORT synchron in den Cache,
+// damit mehrere gleichzeitige Aufrufe für dieselbe Gruppe (z.B. Promise.all über
+// mehrere Spiele) sich das eine In-Flight-Promise teilen statt parallel dieselben
+// Daten mehrfach zu laden
+function getGroupMembersForBets(groupId) {
+  const cached = groupMembersCache[groupId];
+  if (cached && (Date.now() - cached.timestamp) < GROUP_MEMBERS_CACHE_TTL) {
+    return cached.promise;
+  }
+
+  const promise = (async () => {
+    const groupDoc = await collections.groups().doc(groupId).get();
+    const groupData = groupDoc.data();
+    const memberIds = groupData?.member_ids || [];
+
+    const memberPictures = {};
+    await Promise.all(memberIds.map(async (userId) => {
+      try {
+        const userDoc = await collections.users().doc(userId).get();
+        if (userDoc.exists) {
+          memberPictures[userId] = userDoc.data().profile_picture || null;
+        }
+      } catch (e) {
+        console.error('Error loading user profile picture:', e);
       }
-    } catch (e) {
-      console.error('Error loading user profile picture:', e);
-    }
-    return { userId: userId, picture: null };
-  });
-  
-  const pictureResults = await Promise.all(picturePromises);
-  pictureResults.forEach(result => {
-    if (result) {
-      memberPictures[result.userId] = result.picture;
-    }
-  });
-  
+    }));
+
+    return { memberIds, memberPictures };
+  })();
+
+  groupMembersCache[groupId] = { promise, timestamp: Date.now() };
+  return promise;
+}
+
+async function firebaseGetGroupBets(groupId, gameId) {
+  const { memberIds, memberPictures } = await getGroupMembersForBets(groupId);
+  if (memberIds.length === 0) return [];
+
   const allBets = [];
-  
+
   const chunks = [];
   for (let i = 0; i < memberIds.length; i += 10) {
     chunks.push(memberIds.slice(i, i + 10));
   }
-  
+
   const snapshots = await Promise.all(
     chunks.map(chunk =>
       collections.bets()
