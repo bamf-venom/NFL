@@ -1,0 +1,29 @@
+name: NFL Ergebnisse automatisch eintragen
+
+on:
+  schedule:
+    # Alle 15 Minuten, rund um die Uhr. GitHub Actions cron läuft in UTC.
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {} # erlaubt manuelles Auslösen über den "Actions" Tab
+
+jobs:
+  check-scores:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Abhängigkeiten installieren
+        working-directory: automation
+        run: npm install
+
+      - name: Ergebnisse prüfen und eintragen
+        working-directory: automation
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node check-scores.js

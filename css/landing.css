@@ -1,0 +1,231 @@
+/* ==================== Landing Page ==================== */
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated background gradient */
+.landing-page::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(var(--accent-rgb), 0.08) 0%,
+    transparent 50%
+  );
+  animation: gradientMove 15s ease-in-out infinite;
+}
+
+.landing-page::after {
+  content: '';
+  position: absolute;
+  bottom: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(var(--accent-rgb), 0.05) 0%,
+    transparent 40%
+  );
+  animation: gradientMove 20s ease-in-out infinite reverse;
+}
+
+/* ==================== Hero Section ==================== */
+.hero-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-content {
+  text-align: center;
+  max-width: 100%;
+  width: 100%;
+  padding: 0 20px;
+}
+
+/* Hero Logo with Glow */
+.hero-logo-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hero-logo {
+  width: 140px;
+  height: auto;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 0 20px rgba(var(--accent-rgb), 0.4));
+}
+
+.hero-logo-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(
+    circle,
+    rgba(var(--accent-rgb), 0.5) 0%,
+    rgba(var(--accent-rgb), 0.2) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  z-index: 1;
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 0.7;
+  }
+}
+
+.hero-title {
+  font-size: clamp(36px, 12vw, 120px);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  margin-bottom: 16px;
+  line-height: 1;
+  white-space: nowrap;
+  background: linear-gradient(
+    135deg,
+    var(--white) 0%,
+    var(--btn-primary-end) 50%,
+    var(--white) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+             shimmer 4s ease-in-out 0.6s infinite;
+  text-shadow: 0 0 80px rgba(var(--white-rgb), 0.15);
+}
+
+.hero-subtitle {
+  font-size: 20px;
+  color: var(--muted-light);
+  margin-bottom: 56px;
+  opacity: 0;
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+}
+
+.hero-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  opacity: 0;
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+}
+
+.hero-buttons .btn {
+  min-width: 200px;
+}
+
+/* ==================== Landing Footer ==================== */
+.landing-footer {
+  padding: 28px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+}
+
+.footer-text {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.5;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ==================== Auth Modal Styles ==================== */
+.auth-switch {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.text-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0;
+  margin-left: 6px;
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+}
+
+.text-link:hover {
+  opacity: 0.8;
+}
+
+/* ==================== Responsive ==================== */
+@media (min-width: 640px) {
+  .hero-buttons {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-logo {
+    width: 100px;
+  }
+  
+  .hero-logo-glow {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .hero-subtitle {
+    font-size: 16px;
+    margin-bottom: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-logo {
+    width: 80px;
+  }
+  
+  .hero-logo-glow {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .hero-buttons .btn {
+    width: 100%;
+    max-width: 280px;
+  }
+}

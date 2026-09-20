@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Season 2026 Spiele hinzufügen</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+    }
+    .log {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      max-height: 500px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    .log-entry { margin: 3px 0; }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+    .info { color: #60a5fa; }
+    .skip { color: #fbbf24; }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover { background: #2563eb; }
+    button:disabled { background: #6b7280; cursor: not-allowed; }
+    h1 { color: #60a5fa; }
+    .status {
+      padding: 10px 20px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-weight: bold;
+    }
+    .status.pending { background: #fbbf24; color: #1a1a2e; }
+    .status.success { background: #4ade80; color: #1a1a2e; }
+    .status.error { background: #f87171; color: #1a1a2e; }
+  </style>
+</head>
+<body>
+  <h1>🏈 NFL Season 2026 Spielplan hinzufügen</h1>
+  <p>Fügt den kompletten Regular-Season-Spielplan 2026 (Woche 1–18, 272 Spiele) hinzu. Woche 1 und das Thursday-Night-Spiel von Woche 2 werden direkt mit den echten Endergebnissen eingetragen, alle anderen Spiele als "geplant". Bereits vorhandene Spiele (gleiche Woche + gleiche Teams + Saison 2026) werden übersprungen, das Skript kann also gefahrlos mehrfach ausgeführt werden.</p>
+
+  <div id="auth-status" class="status pending">Bitte einloggen...</div>
+
+  <div id="login-form">
+    <input type="email" id="email" placeholder="Email" value="info@mbpvfx.com" style="padding: 10px; margin: 5px; border-radius: 4px; border: none;">
+    <input type="password" id="password" placeholder="Passwort" style="padding: 10px; margin: 5px; border-radius: 4px; border: none;">
+    <button onclick="login()">Einloggen</button>
+  </div>
+
+  <div id="actions" style="display: none;">
+    <button onclick="addSeasonGames()" id="add-btn">Season 2026 Spiele hinzufügen</button>
+    <button onclick="window.location.href='pages/games.html'">Zur Spielübersicht</button>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBhhPFVV_cyH5kPMVFM55gpeMvCms8-l9U",
+      authDomain: "projekt1-95e74.firebaseapp.com",
+      projectId: "projekt1-95e74",
+      storageBucket: "projekt1-95e74.firebasestorage.app",
+      messagingSenderId: "204324789350",
+      appId: "1:204324789350:web:c54182f94b57a8e5a521a7"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const collections = {
+      games: () => db.collection('games'),
+      users: () => db.collection('users')
+    };
+
+    function log(message, type = 'info') {
+      const logEl = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(message);
+    }
+
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        log('Versuche Login...', 'info');
+        await auth.signInWithEmailAndPassword(email, password);
+
+        const user = auth.currentUser;
+        const userDoc = await collections.users().doc(user.uid).get();
+
+        if (userDoc.exists && userDoc.data().is_admin) {
+          document.getElementById('auth-status').textContent = '✅ Eingeloggt als Admin';
+          document.getElementById('auth-status').className = 'status success';
+          document.getElementById('login-form').style.display = 'none';
+          document.getElementById('actions').style.display = 'block';
+          log('Erfolgreich als Admin eingeloggt!', 'success');
+        } else {
+          log('Kein Admin-Zugang!', 'error');
+          document.getElementById('auth-status').textContent = '❌ Kein Admin-Zugang';
+          document.getElementById('auth-status').className = 'status error';
+        }
+      } catch (error) {
+        log(`Login fehlgeschlagen: ${error.message}`, 'error');
+        document.getElementById('auth-status').textContent = '❌ Login fehlgeschlagen';
+        document.getElementById('auth-status').className = 'status error';
+      }
+    }
+
+const SEASON_2026_GAMES = [
+  // ---- Week 1 ----
+  { home_team: 'Seattle Seahawks', away_team: 'New England Patriots', home_team_abbr: 'SEA', away_team_abbr: 'NE', game_date: '2026-09-10T00:20Z', week: 1, season: '2026', home_score: 13, away_score: 10, status: 'finished' },
+  { home_team: 'Los Angeles Rams', away_team: 'San Francisco 49ers', home_team_abbr: 'LAR', away_team_abbr: 'SF', game_date: '2026-09-11T00:35Z', week: 1, season: '2026', home_score: 7, away_score: 27, status: 'finished' },
+  { home_team: 'Cincinnati Bengals', away_team: 'Tampa Bay Buccaneers', home_team_abbr: 'CIN', away_team_abbr: 'TB', game_date: '2026-09-13T17:00Z', week: 1, season: '2026', home_score: 33, away_score: 27, status: 'finished' },
+  { home_team: 'Detroit Lions', away_team: 'New Orleans Saints', home_team_abbr: 'DET', away_team_abbr: 'NO', game_date: '2026-09-13T17:00Z', week: 1, season: '2026', home_score: 31, away_score: 30, status: 'finished' },
+  { home_team: 'Tennessee Titans', away_team: 'New York Jets', home_team_abbr: 'TEN', away_team_abbr: 'NYJ', game_date: '2026-09-13T17:00Z', week: 1, season: '2026', home_score: 10, away_score: 23, status: 'finished' },
+  { home_team: 'Indianapolis Colts', away_team: 'Baltimore Ravens', home_team_abbr: 'IND', away_team_abbr: 'BAL', game_date: '2026-09-13T17:00Z', week: 1, season: '2026', home_score: 23, away_score: 41, status: 'finished' },
+  { home_team: 'Pittsburgh Steelers', away_team: 'Atlanta Falcons', home_team_abbr: 'PIT', away_team_abbr: 'ATL', game_date: '2026-09-13T17:00Z', week: 1, season: '2026', home_score: 20, away_score: 13, status: 'finished' },
+  { home_team: 'Carolina Panthers', away_team: 'Chicago Bears', home_team_abbr: 'CAR', away_team_abbr: 'CHI', game_date: '2026-09-13T17:00Z', week: 1, season: '2026', home_score: 37, away_score: 59, status: 'finished' },
+  { home_team: 'Jacksonville Jaguars', away_team: 'Cleveland Browns', home_team_abbr: 'JAX', away_team_abbr: 'CLE', game_date: '2026-09-13T17:00Z', week: 1, season: '2026', home_score: 34, away_score: 10, status: 'finished' },
+  { home_team: 'Houston Texans', away_team: 'Buffalo Bills', home_team_abbr: 'HOU', away_team_abbr: 'BUF', game_date: '2026-09-13T17:00Z', week: 1, season: '2026', home_score: 31, away_score: 36, status: 'finished' },
+  { home_team: 'Las Vegas Raiders', away_team: 'Miami Dolphins', home_team_abbr: 'LV', away_team_abbr: 'MIA', game_date: '2026-09-13T20:25Z', week: 1, season: '2026', home_score: 27, away_score: 13, status: 'finished' },
+  { home_team: 'Minnesota Vikings', away_team: 'Green Bay Packers', home_team_abbr: 'MIN', away_team_abbr: 'GB', game_date: '2026-09-13T20:25Z', week: 1, season: '2026', home_score: 39, away_score: 22, status: 'finished' },
+  { home_team: 'Philadelphia Eagles', away_team: 'Washington Commanders', home_team_abbr: 'PHI', away_team_abbr: 'WAS', game_date: '2026-09-13T20:25Z', week: 1, season: '2026', home_score: 24, away_score: 22, status: 'finished' },
+  { home_team: 'Los Angeles Chargers', away_team: 'Arizona Cardinals', home_team_abbr: 'LAC', away_team_abbr: 'ARI', game_date: '2026-09-13T20:25Z', week: 1, season: '2026', home_score: 14, away_score: 26, status: 'finished' },
+  { home_team: 'New York Giants', away_team: 'Dallas Cowboys', home_team_abbr: 'NYG', away_team_abbr: 'DAL', game_date: '2026-09-14T00:20Z', week: 1, season: '2026', home_score: 28, away_score: 20, status: 'finished' },
+  { home_team: 'Kansas City Chiefs', away_team: 'Denver Broncos', home_team_abbr: 'KC', away_team_abbr: 'DEN', game_date: '2026-09-15T00:15Z', week: 1, season: '2026', home_score: 31, away_score: 10, status: 'finished' },
+  // ---- Week 2 ----
+  { home_team: 'Atlanta Falcons', away_team: 'Carolina Panthers', home_team_abbr: 'ATL', away_team_abbr: 'CAR', game_date: '2026-09-20T17:00Z', week: 2, season: '2026' },
+  { home_team: 'Chicago Bears', away_team: 'Minnesota Vikings', home_team_abbr: 'CHI', away_team_abbr: 'MIN', game_date: '2026-09-20T17:00Z', week: 2, season: '2026' },
+  { home_team: 'Tennessee Titans', away_team: 'Philadelphia Eagles', home_team_abbr: 'TEN', away_team_abbr: 'PHI', game_date: '2026-09-20T17:00Z', week: 2, season: '2026' },
+  { home_team: 'New England Patriots', away_team: 'Pittsburgh Steelers', home_team_abbr: 'NE', away_team_abbr: 'PIT', game_date: '2026-09-20T17:00Z', week: 2, season: '2026' },
+  { home_team: 'New York Jets', away_team: 'Green Bay Packers', home_team_abbr: 'NYJ', away_team_abbr: 'GB', game_date: '2026-09-20T17:00Z', week: 2, season: '2026' },
+  { home_team: 'Tampa Bay Buccaneers', away_team: 'Cleveland Browns', home_team_abbr: 'TB', away_team_abbr: 'CLE', game_date: '2026-09-20T17:00Z', week: 2, season: '2026' },
+  { home_team: 'Baltimore Ravens', away_team: 'New Orleans Saints', home_team_abbr: 'BAL', away_team_abbr: 'NO', game_date: '2026-09-20T17:00Z', week: 2, season: '2026' },
+  { home_team: 'Houston Texans', away_team: 'Cincinnati Bengals', home_team_abbr: 'HOU', away_team_abbr: 'CIN', game_date: '2026-09-20T17:00Z', week: 2, season: '2026' },
+  { home_team: 'Denver Broncos', away_team: 'Jacksonville Jaguars', home_team_abbr: 'DEN', away_team_abbr: 'JAX', game_date: '2026-09-20T20:05Z', week: 2, season: '2026' },
+  { home_team: 'Los Angeles Chargers', away_team: 'Las Vegas Raiders', home_team_abbr: 'LAC', away_team_abbr: 'LV', game_date: '2026-09-20T20:05Z', week: 2, season: '2026' },
+  { home_team: 'Dallas Cowboys', away_team: 'Washington Commanders', home_team_abbr: 'DAL', away_team_abbr: 'WAS', game_date: '2026-09-20T20:25Z', week: 2, season: '2026' },
+  { home_team: 'Arizona Cardinals', away_team: 'Seattle Seahawks', home_team_abbr: 'ARI', away_team_abbr: 'SEA', game_date: '2026-09-20T20:25Z', week: 2, season: '2026' },
+  { home_team: 'San Francisco 49ers', away_team: 'Miami Dolphins', home_team_abbr: 'SF', away_team_abbr: 'MIA', game_date: '2026-09-20T20:25Z', week: 2, season: '2026' },
+  { home_team: 'Kansas City Chiefs', away_team: 'Indianapolis Colts', home_team_abbr: 'KC', away_team_abbr: 'IND', game_date: '2026-09-21T00:20Z', week: 2, season: '2026' },
+  { home_team: 'Buffalo Bills', away_team: 'Detroit Lions', home_team_abbr: 'BUF', away_team_abbr: 'DET', game_date: '2026-09-18T00:15Z', week: 2, season: '2026', home_score: 41, away_score: 31, status: 'finished' },
+  { home_team: 'Los Angeles Rams', away_team: 'New York Giants', home_team_abbr: 'LAR', away_team_abbr: 'NYG', game_date: '2026-09-22T00:15Z', week: 2, season: '2026' },
+  // ---- Week 3 ----
+  { home_team: 'Green Bay Packers', away_team: 'Atlanta Falcons', home_team_abbr: 'GB', away_team_abbr: 'ATL', game_date: '2026-09-25T00:15Z', week: 3, season: '2026' },
+  { home_team: 'Buffalo Bills', away_team: 'Los Angeles Chargers', home_team_abbr: 'BUF', away_team_abbr: 'LAC', game_date: '2026-09-27T17:00Z', week: 3, season: '2026' },
+  { home_team: 'Cleveland Browns', away_team: 'Carolina Panthers', home_team_abbr: 'CLE', away_team_abbr: 'CAR', game_date: '2026-09-27T17:00Z', week: 3, season: '2026' },
+  { home_team: 'Detroit Lions', away_team: 'New York Jets', home_team_abbr: 'DET', away_team_abbr: 'NYJ', game_date: '2026-09-27T17:00Z', week: 3, season: '2026' },
+  { home_team: 'Indianapolis Colts', away_team: 'Houston Texans', home_team_abbr: 'IND', away_team_abbr: 'HOU', game_date: '2026-09-27T17:00Z', week: 3, season: '2026' },
+  { home_team: 'Miami Dolphins', away_team: 'Kansas City Chiefs', home_team_abbr: 'MIA', away_team_abbr: 'KC', game_date: '2026-09-27T17:00Z', week: 3, season: '2026' },
+  { home_team: 'New York Giants', away_team: 'Tennessee Titans', home_team_abbr: 'NYG', away_team_abbr: 'TEN', game_date: '2026-09-27T17:00Z', week: 3, season: '2026' },
+  { home_team: 'Pittsburgh Steelers', away_team: 'Cincinnati Bengals', home_team_abbr: 'PIT', away_team_abbr: 'CIN', game_date: '2026-09-27T17:00Z', week: 3, season: '2026' },
+  { home_team: 'Washington Commanders', away_team: 'Seattle Seahawks', home_team_abbr: 'WAS', away_team_abbr: 'SEA', game_date: '2026-09-27T17:00Z', week: 3, season: '2026' },
+  { home_team: 'Jacksonville Jaguars', away_team: 'New England Patriots', home_team_abbr: 'JAX', away_team_abbr: 'NE', game_date: '2026-09-27T17:00Z', week: 3, season: '2026' },
+  { home_team: 'San Francisco 49ers', away_team: 'Arizona Cardinals', home_team_abbr: 'SF', away_team_abbr: 'ARI', game_date: '2026-09-27T20:05Z', week: 3, season: '2026' },
+  { home_team: 'Tampa Bay Buccaneers', away_team: 'Minnesota Vikings', home_team_abbr: 'TB', away_team_abbr: 'MIN', game_date: '2026-09-27T20:05Z', week: 3, season: '2026' },
+  { home_team: 'Dallas Cowboys', away_team: 'Baltimore Ravens', home_team_abbr: 'DAL', away_team_abbr: 'BAL', game_date: '2026-09-27T20:25Z', week: 3, season: '2026' },
+  { home_team: 'New Orleans Saints', away_team: 'Las Vegas Raiders', home_team_abbr: 'NO', away_team_abbr: 'LV', game_date: '2026-09-27T20:25Z', week: 3, season: '2026' },
+  { home_team: 'Denver Broncos', away_team: 'Los Angeles Rams', home_team_abbr: 'DEN', away_team_abbr: 'LAR', game_date: '2026-09-28T00:20Z', week: 3, season: '2026' },
+  { home_team: 'Chicago Bears', away_team: 'Philadelphia Eagles', home_team_abbr: 'CHI', away_team_abbr: 'PHI', game_date: '2026-09-29T00:15Z', week: 3, season: '2026' },
+  // ---- Week 4 ----
+  { home_team: 'Cleveland Browns', away_team: 'Pittsburgh Steelers', home_team_abbr: 'CLE', away_team_abbr: 'PIT', game_date: '2026-10-02T00:15Z', week: 4, season: '2026' },
+  { home_team: 'Washington Commanders', away_team: 'Indianapolis Colts', home_team_abbr: 'WAS', away_team_abbr: 'IND', game_date: '2026-10-04T13:30Z', week: 4, season: '2026' },
+  { home_team: 'Buffalo Bills', away_team: 'New England Patriots', home_team_abbr: 'BUF', away_team_abbr: 'NE', game_date: '2026-10-04T17:00Z', week: 4, season: '2026' },
+  { home_team: 'Chicago Bears', away_team: 'New York Jets', home_team_abbr: 'CHI', away_team_abbr: 'NYJ', game_date: '2026-10-04T17:00Z', week: 4, season: '2026' },
+  { home_team: 'Cincinnati Bengals', away_team: 'Jacksonville Jaguars', home_team_abbr: 'CIN', away_team_abbr: 'JAX', game_date: '2026-10-04T17:00Z', week: 4, season: '2026' },
+  { home_team: 'New York Giants', away_team: 'Arizona Cardinals', home_team_abbr: 'NYG', away_team_abbr: 'ARI', game_date: '2026-10-04T17:00Z', week: 4, season: '2026' },
+  { home_team: 'Philadelphia Eagles', away_team: 'Los Angeles Rams', home_team_abbr: 'PHI', away_team_abbr: 'LAR', game_date: '2026-10-04T17:00Z', week: 4, season: '2026' },
+  { home_team: 'Tampa Bay Buccaneers', away_team: 'Green Bay Packers', home_team_abbr: 'TB', away_team_abbr: 'GB', game_date: '2026-10-04T17:00Z', week: 4, season: '2026' },
+  { home_team: 'Baltimore Ravens', away_team: 'Tennessee Titans', home_team_abbr: 'BAL', away_team_abbr: 'TEN', game_date: '2026-10-04T17:00Z', week: 4, season: '2026' },
+  { home_team: 'Houston Texans', away_team: 'Dallas Cowboys', home_team_abbr: 'HOU', away_team_abbr: 'DAL', game_date: '2026-10-04T17:00Z', week: 4, season: '2026' },
+  { home_team: 'Minnesota Vikings', away_team: 'Miami Dolphins', home_team_abbr: 'MIN', away_team_abbr: 'MIA', game_date: '2026-10-04T20:05Z', week: 4, season: '2026' },
+  { home_team: 'Las Vegas Raiders', away_team: 'Kansas City Chiefs', home_team_abbr: 'LV', away_team_abbr: 'KC', game_date: '2026-10-04T20:25Z', week: 4, season: '2026' },
+  { home_team: 'San Francisco 49ers', away_team: 'Denver Broncos', home_team_abbr: 'SF', away_team_abbr: 'DEN', game_date: '2026-10-04T20:25Z', week: 4, season: '2026' },
+  { home_team: 'Seattle Seahawks', away_team: 'Los Angeles Chargers', home_team_abbr: 'SEA', away_team_abbr: 'LAC', game_date: '2026-10-04T20:25Z', week: 4, season: '2026' },
+  { home_team: 'Carolina Panthers', away_team: 'Detroit Lions', home_team_abbr: 'CAR', away_team_abbr: 'DET', game_date: '2026-10-05T00:20Z', week: 4, season: '2026' },
+  { home_team: 'New Orleans Saints', away_team: 'Atlanta Falcons', home_team_abbr: 'NO', away_team_abbr: 'ATL', game_date: '2026-10-06T00:15Z', week: 4, season: '2026' },
+  // ---- Week 5 ----
+  { home_team: 'Dallas Cowboys', away_team: 'Tampa Bay Buccaneers', home_team_abbr: 'DAL', away_team_abbr: 'TB', game_date: '2026-10-09T00:15Z', week: 5, season: '2026' },
+  { home_team: 'Jacksonville Jaguars', away_team: 'Philadelphia Eagles', home_team_abbr: 'JAX', away_team_abbr: 'PHI', game_date: '2026-10-11T13:30Z', week: 5, season: '2026' },
+  { home_team: 'Tennessee Titans', away_team: 'Houston Texans', home_team_abbr: 'TEN', away_team_abbr: 'HOU', game_date: '2026-10-11T17:00Z', week: 5, season: '2026' },
+  { home_team: 'Miami Dolphins', away_team: 'Cincinnati Bengals', home_team_abbr: 'MIA', away_team_abbr: 'CIN', game_date: '2026-10-11T17:00Z', week: 5, season: '2026' },
+  { home_team: 'New England Patriots', away_team: 'Las Vegas Raiders', home_team_abbr: 'NE', away_team_abbr: 'LV', game_date: '2026-10-11T17:00Z', week: 5, season: '2026' },
+  { home_team: 'New Orleans Saints', away_team: 'Minnesota Vikings', home_team_abbr: 'NO', away_team_abbr: 'MIN', game_date: '2026-10-11T17:00Z', week: 5, season: '2026' },
+  { home_team: 'New York Jets', away_team: 'Cleveland Browns', home_team_abbr: 'NYJ', away_team_abbr: 'CLE', game_date: '2026-10-11T17:00Z', week: 5, season: '2026' },
+  { home_team: 'Pittsburgh Steelers', away_team: 'Indianapolis Colts', home_team_abbr: 'PIT', away_team_abbr: 'IND', game_date: '2026-10-11T17:00Z', week: 5, season: '2026' },
+  { home_team: 'Washington Commanders', away_team: 'New York Giants', home_team_abbr: 'WAS', away_team_abbr: 'NYG', game_date: '2026-10-11T17:00Z', week: 5, season: '2026' },
+  { home_team: 'Los Angeles Chargers', away_team: 'Denver Broncos', home_team_abbr: 'LAC', away_team_abbr: 'DEN', game_date: '2026-10-11T20:05Z', week: 5, season: '2026' },
+  { home_team: 'Green Bay Packers', away_team: 'Chicago Bears', home_team_abbr: 'GB', away_team_abbr: 'CHI', game_date: '2026-10-11T20:25Z', week: 5, season: '2026' },
+  { home_team: 'Arizona Cardinals', away_team: 'Detroit Lions', home_team_abbr: 'ARI', away_team_abbr: 'DET', game_date: '2026-10-11T20:25Z', week: 5, season: '2026' },
+  { home_team: 'Seattle Seahawks', away_team: 'San Francisco 49ers', home_team_abbr: 'SEA', away_team_abbr: 'SF', game_date: '2026-10-11T20:25Z', week: 5, season: '2026' },
+  { home_team: 'Atlanta Falcons', away_team: 'Baltimore Ravens', home_team_abbr: 'ATL', away_team_abbr: 'BAL', game_date: '2026-10-12T00:20Z', week: 5, season: '2026' },
+  { home_team: 'Los Angeles Rams', away_team: 'Buffalo Bills', home_team_abbr: 'LAR', away_team_abbr: 'BUF', game_date: '2026-10-13T00:15Z', week: 5, season: '2026' },
+  // ---- Week 6 ----
+  { home_team: 'Denver Broncos', away_team: 'Seattle Seahawks', home_team_abbr: 'DEN', away_team_abbr: 'SEA', game_date: '2026-10-16T00:15Z', week: 6, season: '2026' },
+  { home_team: 'Jacksonville Jaguars', away_team: 'Houston Texans', home_team_abbr: 'JAX', away_team_abbr: 'HOU', game_date: '2026-10-18T13:30Z', week: 6, season: '2026' },
+  { home_team: 'Atlanta Falcons', away_team: 'Chicago Bears', home_team_abbr: 'ATL', away_team_abbr: 'CHI', game_date: '2026-10-18T17:00Z', week: 6, season: '2026' },
+  { home_team: 'Cleveland Browns', away_team: 'Baltimore Ravens', home_team_abbr: 'CLE', away_team_abbr: 'BAL', game_date: '2026-10-18T17:00Z', week: 6, season: '2026' },
+  { home_team: 'Indianapolis Colts', away_team: 'Tennessee Titans', home_team_abbr: 'IND', away_team_abbr: 'TEN', game_date: '2026-10-18T17:00Z', week: 6, season: '2026' },
+  { home_team: 'New England Patriots', away_team: 'New York Jets', home_team_abbr: 'NE', away_team_abbr: 'NYJ', game_date: '2026-10-18T17:00Z', week: 6, season: '2026' },
+  { home_team: 'New York Giants', away_team: 'New Orleans Saints', home_team_abbr: 'NYG', away_team_abbr: 'NO', game_date: '2026-10-18T17:00Z', week: 6, season: '2026' },
+  { home_team: 'Philadelphia Eagles', away_team: 'Carolina Panthers', home_team_abbr: 'PHI', away_team_abbr: 'CAR', game_date: '2026-10-18T17:00Z', week: 6, season: '2026' },
+  { home_team: 'Tampa Bay Buccaneers', away_team: 'Pittsburgh Steelers', home_team_abbr: 'TB', away_team_abbr: 'PIT', game_date: '2026-10-18T17:00Z', week: 6, season: '2026' },
+  { home_team: 'Los Angeles Rams', away_team: 'Arizona Cardinals', home_team_abbr: 'LAR', away_team_abbr: 'ARI', game_date: '2026-10-18T20:05Z', week: 6, season: '2026' },
+  { home_team: 'Kansas City Chiefs', away_team: 'Los Angeles Chargers', home_team_abbr: 'KC', away_team_abbr: 'LAC', game_date: '2026-10-18T20:25Z', week: 6, season: '2026' },
+  { home_team: 'Las Vegas Raiders', away_team: 'Buffalo Bills', home_team_abbr: 'LV', away_team_abbr: 'BUF', game_date: '2026-10-18T20:25Z', week: 6, season: '2026' },
+  { home_team: 'Green Bay Packers', away_team: 'Dallas Cowboys', home_team_abbr: 'GB', away_team_abbr: 'DAL', game_date: '2026-10-19T00:20Z', week: 6, season: '2026' },
+  { home_team: 'San Francisco 49ers', away_team: 'Washington Commanders', home_team_abbr: 'SF', away_team_abbr: 'WAS', game_date: '2026-10-20T00:15Z', week: 6, season: '2026' },
+  // ---- Week 7 ----
+  { home_team: 'Chicago Bears', away_team: 'New England Patriots', home_team_abbr: 'CHI', away_team_abbr: 'NE', game_date: '2026-10-23T00:15Z', week: 7, season: '2026' },
+  { home_team: 'New Orleans Saints', away_team: 'Pittsburgh Steelers', home_team_abbr: 'NO', away_team_abbr: 'PIT', game_date: '2026-10-25T13:30Z', week: 7, season: '2026' },
+  { home_team: 'Atlanta Falcons', away_team: 'San Francisco 49ers', home_team_abbr: 'ATL', away_team_abbr: 'SF', game_date: '2026-10-25T17:00Z', week: 7, season: '2026' },
+  { home_team: 'Tennessee Titans', away_team: 'Cleveland Browns', home_team_abbr: 'TEN', away_team_abbr: 'CLE', game_date: '2026-10-25T17:00Z', week: 7, season: '2026' },
+  { home_team: 'Minnesota Vikings', away_team: 'Indianapolis Colts', home_team_abbr: 'MIN', away_team_abbr: 'IND', game_date: '2026-10-25T17:00Z', week: 7, season: '2026' },
+  { home_team: 'New York Jets', away_team: 'Miami Dolphins', home_team_abbr: 'NYJ', away_team_abbr: 'MIA', game_date: '2026-10-25T17:00Z', week: 7, season: '2026' },
+  { home_team: 'Carolina Panthers', away_team: 'Tampa Bay Buccaneers', home_team_abbr: 'CAR', away_team_abbr: 'TB', game_date: '2026-10-25T17:00Z', week: 7, season: '2026' },
+  { home_team: 'Baltimore Ravens', away_team: 'Cincinnati Bengals', home_team_abbr: 'BAL', away_team_abbr: 'CIN', game_date: '2026-10-25T17:00Z', week: 7, season: '2026' },
+  { home_team: 'Houston Texans', away_team: 'New York Giants', home_team_abbr: 'HOU', away_team_abbr: 'NYG', game_date: '2026-10-25T17:00Z', week: 7, season: '2026' },
+  { home_team: 'Arizona Cardinals', away_team: 'Denver Broncos', home_team_abbr: 'ARI', away_team_abbr: 'DEN', game_date: '2026-10-25T20:05Z', week: 7, season: '2026' },
+  { home_team: 'Detroit Lions', away_team: 'Green Bay Packers', home_team_abbr: 'DET', away_team_abbr: 'GB', game_date: '2026-10-25T20:25Z', week: 7, season: '2026' },
+  { home_team: 'Las Vegas Raiders', away_team: 'Los Angeles Rams', home_team_abbr: 'LV', away_team_abbr: 'LAR', game_date: '2026-10-25T20:25Z', week: 7, season: '2026' },
+  { home_team: 'Seattle Seahawks', away_team: 'Kansas City Chiefs', home_team_abbr: 'SEA', away_team_abbr: 'KC', game_date: '2026-10-26T00:20Z', week: 7, season: '2026' },
+  { home_team: 'Philadelphia Eagles', away_team: 'Dallas Cowboys', home_team_abbr: 'PHI', away_team_abbr: 'DAL', game_date: '2026-10-27T00:15Z', week: 7, season: '2026' },
+  // ---- Week 8 ----
+  { home_team: 'Green Bay Packers', away_team: 'Carolina Panthers', home_team_abbr: 'GB', away_team_abbr: 'CAR', game_date: '2026-10-30T00:15Z', week: 8, season: '2026' },
+  { home_team: 'Buffalo Bills', away_team: 'Baltimore Ravens', home_team_abbr: 'BUF', away_team_abbr: 'BAL', game_date: '2026-11-01T18:00Z', week: 8, season: '2026' },
+  { home_team: 'Cincinnati Bengals', away_team: 'Tennessee Titans', home_team_abbr: 'CIN', away_team_abbr: 'TEN', game_date: '2026-11-01T18:00Z', week: 8, season: '2026' },
+  { home_team: 'Dallas Cowboys', away_team: 'Arizona Cardinals', home_team_abbr: 'DAL', away_team_abbr: 'ARI', game_date: '2026-11-01T18:00Z', week: 8, season: '2026' },
+  { home_team: 'Detroit Lions', away_team: 'Minnesota Vikings', home_team_abbr: 'DET', away_team_abbr: 'MIN', game_date: '2026-11-01T18:00Z', week: 8, season: '2026' },
+  { home_team: 'New York Jets', away_team: 'Las Vegas Raiders', home_team_abbr: 'NYJ', away_team_abbr: 'LV', game_date: '2026-11-01T18:00Z', week: 8, season: '2026' },
+  { home_team: 'Pittsburgh Steelers', away_team: 'Cleveland Browns', home_team_abbr: 'PIT', away_team_abbr: 'CLE', game_date: '2026-11-01T18:00Z', week: 8, season: '2026' },
+  { home_team: 'Tampa Bay Buccaneers', away_team: 'Atlanta Falcons', home_team_abbr: 'TB', away_team_abbr: 'ATL', game_date: '2026-11-01T18:00Z', week: 8, season: '2026' },
+  { home_team: 'Jacksonville Jaguars', away_team: 'Indianapolis Colts', home_team_abbr: 'JAX', away_team_abbr: 'IND', game_date: '2026-11-01T18:00Z', week: 8, season: '2026' },
+  { home_team: 'Los Angeles Rams', away_team: 'Los Angeles Chargers', home_team_abbr: 'LAR', away_team_abbr: 'LAC', game_date: '2026-11-01T21:05Z', week: 8, season: '2026' },
+  { home_team: 'Denver Broncos', away_team: 'Kansas City Chiefs', home_team_abbr: 'DEN', away_team_abbr: 'KC', game_date: '2026-11-01T21:25Z', week: 8, season: '2026' },
+  { home_team: 'Miami Dolphins', away_team: 'New England Patriots', home_team_abbr: 'MIA', away_team_abbr: 'NE', game_date: '2026-11-01T21:25Z', week: 8, season: '2026' },
+  { home_team: 'Washington Commanders', away_team: 'Philadelphia Eagles', home_team_abbr: 'WAS', away_team_abbr: 'PHI', game_date: '2026-11-02T01:20Z', week: 8, season: '2026' },
+  { home_team: 'Seattle Seahawks', away_team: 'Chicago Bears', home_team_abbr: 'SEA', away_team_abbr: 'CHI', game_date: '2026-11-03T01:15Z', week: 8, season: '2026' },
+  // ---- Week 9 ----
+  { home_team: 'Baltimore Ravens', away_team: 'Jacksonville Jaguars', home_team_abbr: 'BAL', away_team_abbr: 'JAX', game_date: '2026-11-06T01:15Z', week: 9, season: '2026' },
+  { home_team: 'Atlanta Falcons', away_team: 'Cincinnati Bengals', home_team_abbr: 'ATL', away_team_abbr: 'CIN', game_date: '2026-11-08T14:30Z', week: 9, season: '2026' },
+  { home_team: 'Indianapolis Colts', away_team: 'Dallas Cowboys', home_team_abbr: 'IND', away_team_abbr: 'DAL', game_date: '2026-11-08T18:00Z', week: 9, season: '2026' },
+  { home_team: 'Kansas City Chiefs', away_team: 'New York Jets', home_team_abbr: 'KC', away_team_abbr: 'NYJ', game_date: '2026-11-08T18:00Z', week: 9, season: '2026' },
+  { home_team: 'Miami Dolphins', away_team: 'Detroit Lions', home_team_abbr: 'MIA', away_team_abbr: 'DET', game_date: '2026-11-08T18:00Z', week: 9, season: '2026' },
+  { home_team: 'New Orleans Saints', away_team: 'Cleveland Browns', home_team_abbr: 'NO', away_team_abbr: 'CLE', game_date: '2026-11-08T18:00Z', week: 9, season: '2026' },
+  { home_team: 'Philadelphia Eagles', away_team: 'New York Giants', home_team_abbr: 'PHI', away_team_abbr: 'NYG', game_date: '2026-11-08T18:00Z', week: 9, season: '2026' },
+  { home_team: 'Washington Commanders', away_team: 'Los Angeles Rams', home_team_abbr: 'WAS', away_team_abbr: 'LAR', game_date: '2026-11-08T18:00Z', week: 9, season: '2026' },
+  { home_team: 'Carolina Panthers', away_team: 'Denver Broncos', home_team_abbr: 'CAR', away_team_abbr: 'DEN', game_date: '2026-11-08T18:00Z', week: 9, season: '2026' },
+  { home_team: 'Los Angeles Chargers', away_team: 'Houston Texans', home_team_abbr: 'LAC', away_team_abbr: 'HOU', game_date: '2026-11-08T21:05Z', week: 9, season: '2026' },
+  { home_team: 'San Francisco 49ers', away_team: 'Las Vegas Raiders', home_team_abbr: 'SF', away_team_abbr: 'LV', game_date: '2026-11-08T21:05Z', week: 9, season: '2026' },
+  { home_team: 'New England Patriots', away_team: 'Green Bay Packers', home_team_abbr: 'NE', away_team_abbr: 'GB', game_date: '2026-11-08T21:25Z', week: 9, season: '2026' },
+  { home_team: 'Seattle Seahawks', away_team: 'Arizona Cardinals', home_team_abbr: 'SEA', away_team_abbr: 'ARI', game_date: '2026-11-08T21:25Z', week: 9, season: '2026' },
+  { home_team: 'Chicago Bears', away_team: 'Tampa Bay Buccaneers', home_team_abbr: 'CHI', away_team_abbr: 'TB', game_date: '2026-11-09T01:20Z', week: 9, season: '2026' },
+  { home_team: 'Minnesota Vikings', away_team: 'Buffalo Bills', home_team_abbr: 'MIN', away_team_abbr: 'BUF', game_date: '2026-11-10T01:15Z', week: 9, season: '2026' },
+  // ---- Week 10 ----
+  { home_team: 'New York Giants', away_team: 'Washington Commanders', home_team_abbr: 'NYG', away_team_abbr: 'WAS', game_date: '2026-11-13T01:15Z', week: 10, season: '2026' },
+  { home_team: 'Detroit Lions', away_team: 'New England Patriots', home_team_abbr: 'DET', away_team_abbr: 'NE', game_date: '2026-11-15T14:30Z', week: 10, season: '2026' },
+  { home_team: 'Atlanta Falcons', away_team: 'Kansas City Chiefs', home_team_abbr: 'ATL', away_team_abbr: 'KC', game_date: '2026-11-15T18:00Z', week: 10, season: '2026' },
+  { home_team: 'Cleveland Browns', away_team: 'Houston Texans', home_team_abbr: 'CLE', away_team_abbr: 'HOU', game_date: '2026-11-15T18:00Z', week: 10, season: '2026' },
+  { home_team: 'Green Bay Packers', away_team: 'Minnesota Vikings', home_team_abbr: 'GB', away_team_abbr: 'MIN', game_date: '2026-11-15T18:00Z', week: 10, season: '2026' },
+  { home_team: 'Tennessee Titans', away_team: 'Jacksonville Jaguars', home_team_abbr: 'TEN', away_team_abbr: 'JAX', game_date: '2026-11-15T18:00Z', week: 10, season: '2026' },
+  { home_team: 'Indianapolis Colts', away_team: 'Miami Dolphins', home_team_abbr: 'IND', away_team_abbr: 'MIA', game_date: '2026-11-15T18:00Z', week: 10, season: '2026' },
+  { home_team: 'New Orleans Saints', away_team: 'Carolina Panthers', home_team_abbr: 'NO', away_team_abbr: 'CAR', game_date: '2026-11-15T18:00Z', week: 10, season: '2026' },
+  { home_team: 'New York Jets', away_team: 'Buffalo Bills', home_team_abbr: 'NYJ', away_team_abbr: 'BUF', game_date: '2026-11-15T18:00Z', week: 10, season: '2026' },
+  { home_team: 'Las Vegas Raiders', away_team: 'Seattle Seahawks', home_team_abbr: 'LV', away_team_abbr: 'SEA', game_date: '2026-11-15T21:05Z', week: 10, season: '2026' },
+  { home_team: 'Arizona Cardinals', away_team: 'Los Angeles Rams', home_team_abbr: 'ARI', away_team_abbr: 'LAR', game_date: '2026-11-15T21:05Z', week: 10, season: '2026' },
+  { home_team: 'Dallas Cowboys', away_team: 'San Francisco 49ers', home_team_abbr: 'DAL', away_team_abbr: 'SF', game_date: '2026-11-15T21:25Z', week: 10, season: '2026' },
+  { home_team: 'Cincinnati Bengals', away_team: 'Pittsburgh Steelers', home_team_abbr: 'CIN', away_team_abbr: 'PIT', game_date: '2026-11-16T01:20Z', week: 10, season: '2026' },
+  { home_team: 'Baltimore Ravens', away_team: 'Los Angeles Chargers', home_team_abbr: 'BAL', away_team_abbr: 'LAC', game_date: '2026-11-17T01:15Z', week: 10, season: '2026' },
+  // ---- Week 11 ----
+  { home_team: 'Houston Texans', away_team: 'Indianapolis Colts', home_team_abbr: 'HOU', away_team_abbr: 'IND', game_date: '2026-11-20T01:15Z', week: 11, season: '2026' },
+  { home_team: 'Buffalo Bills', away_team: 'Miami Dolphins', home_team_abbr: 'BUF', away_team_abbr: 'MIA', game_date: '2026-11-22T18:00Z', week: 11, season: '2026' },
+  { home_team: 'Chicago Bears', away_team: 'New Orleans Saints', home_team_abbr: 'CHI', away_team_abbr: 'NO', game_date: '2026-11-22T18:00Z', week: 11, season: '2026' },
+  { home_team: 'Dallas Cowboys', away_team: 'Tennessee Titans', home_team_abbr: 'DAL', away_team_abbr: 'TEN', game_date: '2026-11-22T18:00Z', week: 11, season: '2026' },
+  { home_team: 'Detroit Lions', away_team: 'Tampa Bay Buccaneers', home_team_abbr: 'DET', away_team_abbr: 'TB', game_date: '2026-11-22T18:00Z', week: 11, season: '2026' },
+  { home_team: 'Kansas City Chiefs', away_team: 'Arizona Cardinals', home_team_abbr: 'KC', away_team_abbr: 'ARI', game_date: '2026-11-22T18:00Z', week: 11, season: '2026' },
+  { home_team: 'New York Giants', away_team: 'Jacksonville Jaguars', home_team_abbr: 'NYG', away_team_abbr: 'JAX', game_date: '2026-11-22T18:00Z', week: 11, season: '2026' },
+  { home_team: 'Carolina Panthers', away_team: 'Baltimore Ravens', home_team_abbr: 'CAR', away_team_abbr: 'BAL', game_date: '2026-11-22T18:00Z', week: 11, season: '2026' },
+  { home_team: 'Los Angeles Chargers', away_team: 'New York Jets', home_team_abbr: 'LAC', away_team_abbr: 'NYJ', game_date: '2026-11-22T21:05Z', week: 11, season: '2026' },
+  { home_team: 'Denver Broncos', away_team: 'Las Vegas Raiders', home_team_abbr: 'DEN', away_team_abbr: 'LV', game_date: '2026-11-22T21:25Z', week: 11, season: '2026' },
+  { home_team: 'Philadelphia Eagles', away_team: 'Pittsburgh Steelers', home_team_abbr: 'PHI', away_team_abbr: 'PIT', game_date: '2026-11-22T21:25Z', week: 11, season: '2026' },
+  { home_team: 'San Francisco 49ers', away_team: 'Minnesota Vikings', home_team_abbr: 'SF', away_team_abbr: 'MIN', game_date: '2026-11-23T01:20Z', week: 11, season: '2026' },
+  { home_team: 'Washington Commanders', away_team: 'Cincinnati Bengals', home_team_abbr: 'WAS', away_team_abbr: 'CIN', game_date: '2026-11-24T01:15Z', week: 11, season: '2026' },
+  // ---- Week 12 ----
+  { home_team: 'Los Angeles Rams', away_team: 'Green Bay Packers', home_team_abbr: 'LAR', away_team_abbr: 'GB', game_date: '2026-11-26T01:00Z', week: 12, season: '2026' },
+  { home_team: 'Detroit Lions', away_team: 'Chicago Bears', home_team_abbr: 'DET', away_team_abbr: 'CHI', game_date: '2026-11-26T18:00Z', week: 12, season: '2026' },
+  { home_team: 'Dallas Cowboys', away_team: 'Philadelphia Eagles', home_team_abbr: 'DAL', away_team_abbr: 'PHI', game_date: '2026-11-26T21:30Z', week: 12, season: '2026' },
+  { home_team: 'Buffalo Bills', away_team: 'Kansas City Chiefs', home_team_abbr: 'BUF', away_team_abbr: 'KC', game_date: '2026-11-27T01:20Z', week: 12, season: '2026' },
+  { home_team: 'Pittsburgh Steelers', away_team: 'Denver Broncos', home_team_abbr: 'PIT', away_team_abbr: 'DEN', game_date: '2026-11-27T20:00Z', week: 12, season: '2026' },
+  { home_team: 'Cincinnati Bengals', away_team: 'New Orleans Saints', home_team_abbr: 'CIN', away_team_abbr: 'NO', game_date: '2026-11-29T18:00Z', week: 12, season: '2026' },
+  { home_team: 'Cleveland Browns', away_team: 'Las Vegas Raiders', home_team_abbr: 'CLE', away_team_abbr: 'LV', game_date: '2026-11-29T18:00Z', week: 12, season: '2026' },
+  { home_team: 'Indianapolis Colts', away_team: 'New York Giants', home_team_abbr: 'IND', away_team_abbr: 'NYG', game_date: '2026-11-29T18:00Z', week: 12, season: '2026' },
+  { home_team: 'Miami Dolphins', away_team: 'New York Jets', home_team_abbr: 'MIA', away_team_abbr: 'NYJ', game_date: '2026-11-29T18:00Z', week: 12, season: '2026' },
+  { home_team: 'Minnesota Vikings', away_team: 'Atlanta Falcons', home_team_abbr: 'MIN', away_team_abbr: 'ATL', game_date: '2026-11-29T18:00Z', week: 12, season: '2026' },
+  { home_team: 'Houston Texans', away_team: 'Baltimore Ravens', home_team_abbr: 'HOU', away_team_abbr: 'BAL', game_date: '2026-11-29T18:00Z', week: 12, season: '2026' },
+  { home_team: 'Jacksonville Jaguars', away_team: 'Tennessee Titans', home_team_abbr: 'JAX', away_team_abbr: 'TEN', game_date: '2026-11-29T21:05Z', week: 12, season: '2026' },
+  { home_team: 'Arizona Cardinals', away_team: 'Washington Commanders', home_team_abbr: 'ARI', away_team_abbr: 'WAS', game_date: '2026-11-29T21:25Z', week: 12, season: '2026' },
+  { home_team: 'San Francisco 49ers', away_team: 'Seattle Seahawks', home_team_abbr: 'SF', away_team_abbr: 'SEA', game_date: '2026-11-29T21:25Z', week: 12, season: '2026' },
+  { home_team: 'Los Angeles Chargers', away_team: 'New England Patriots', home_team_abbr: 'LAC', away_team_abbr: 'NE', game_date: '2026-11-30T01:20Z', week: 12, season: '2026' },
+  { home_team: 'Tampa Bay Buccaneers', away_team: 'Carolina Panthers', home_team_abbr: 'TB', away_team_abbr: 'CAR', game_date: '2026-12-01T01:15Z', week: 12, season: '2026' },
+  // ---- Week 13 ----
+  { home_team: 'Los Angeles Rams', away_team: 'Kansas City Chiefs', home_team_abbr: 'LAR', away_team_abbr: 'KC', game_date: '2026-12-04T01:15Z', week: 13, season: '2026' },
+  { home_team: 'Atlanta Falcons', away_team: 'Detroit Lions', home_team_abbr: 'ATL', away_team_abbr: 'DET', game_date: '2026-12-06T18:00Z', week: 13, season: '2026' },
+  { home_team: 'Chicago Bears', away_team: 'Jacksonville Jaguars', home_team_abbr: 'CHI', away_team_abbr: 'JAX', game_date: '2026-12-06T18:00Z', week: 13, season: '2026' },
+  { home_team: 'Cleveland Browns', away_team: 'Cincinnati Bengals', home_team_abbr: 'CLE', away_team_abbr: 'CIN', game_date: '2026-12-06T18:00Z', week: 13, season: '2026' },
+  { home_team: 'Tennessee Titans', away_team: 'Washington Commanders', home_team_abbr: 'TEN', away_team_abbr: 'WAS', game_date: '2026-12-06T18:00Z', week: 13, season: '2026' },
+  { home_team: 'New Orleans Saints', away_team: 'Green Bay Packers', home_team_abbr: 'NO', away_team_abbr: 'GB', game_date: '2026-12-06T18:00Z', week: 13, season: '2026' },
+  { home_team: 'New York Giants', away_team: 'San Francisco 49ers', home_team_abbr: 'NYG', away_team_abbr: 'SF', game_date: '2026-12-06T18:00Z', week: 13, season: '2026' },
+  { home_team: 'Tampa Bay Buccaneers', away_team: 'Los Angeles Chargers', home_team_abbr: 'TB', away_team_abbr: 'LAC', game_date: '2026-12-06T18:00Z', week: 13, season: '2026' },
+  { home_team: 'Denver Broncos', away_team: 'Miami Dolphins', home_team_abbr: 'DEN', away_team_abbr: 'MIA', game_date: '2026-12-06T21:05Z', week: 13, season: '2026' },
+  { home_team: 'Arizona Cardinals', away_team: 'Philadelphia Eagles', home_team_abbr: 'ARI', away_team_abbr: 'PHI', game_date: '2026-12-06T21:05Z', week: 13, season: '2026' },
+  { home_team: 'Minnesota Vikings', away_team: 'Carolina Panthers', home_team_abbr: 'MIN', away_team_abbr: 'CAR', game_date: '2026-12-06T21:25Z', week: 13, season: '2026' },
+  { home_team: 'New England Patriots', away_team: 'Buffalo Bills', home_team_abbr: 'NE', away_team_abbr: 'BUF', game_date: '2026-12-06T21:25Z', week: 13, season: '2026' },
+  { home_team: 'Pittsburgh Steelers', away_team: 'Houston Texans', home_team_abbr: 'PIT', away_team_abbr: 'HOU', game_date: '2026-12-07T01:20Z', week: 13, season: '2026' },
+  { home_team: 'Seattle Seahawks', away_team: 'Dallas Cowboys', home_team_abbr: 'SEA', away_team_abbr: 'DAL', game_date: '2026-12-08T01:15Z', week: 13, season: '2026' },
+  // ---- Week 14 ----
+  { home_team: 'New England Patriots', away_team: 'Minnesota Vikings', home_team_abbr: 'NE', away_team_abbr: 'MIN', game_date: '2026-12-11T01:15Z', week: 14, season: '2026' },
+  { home_team: 'Cleveland Browns', away_team: 'Atlanta Falcons', home_team_abbr: 'CLE', away_team_abbr: 'ATL', game_date: '2026-12-13T18:00Z', week: 14, season: '2026' },
+  { home_team: 'Detroit Lions', away_team: 'Tennessee Titans', home_team_abbr: 'DET', away_team_abbr: 'TEN', game_date: '2026-12-13T18:00Z', week: 14, season: '2026' },
+  { home_team: 'Miami Dolphins', away_team: 'Chicago Bears', home_team_abbr: 'MIA', away_team_abbr: 'CHI', game_date: '2026-12-13T18:00Z', week: 14, season: '2026' },
+  { home_team: 'New York Jets', away_team: 'Denver Broncos', home_team_abbr: 'NYJ', away_team_abbr: 'DEN', game_date: '2026-12-13T18:00Z', week: 14, season: '2026' },
+  { home_team: 'Philadelphia Eagles', away_team: 'Indianapolis Colts', home_team_abbr: 'PHI', away_team_abbr: 'IND', game_date: '2026-12-13T18:00Z', week: 14, season: '2026' },
+  { home_team: 'Washington Commanders', away_team: 'Houston Texans', home_team_abbr: 'WAS', away_team_abbr: 'HOU', game_date: '2026-12-13T18:00Z', week: 14, season: '2026' },
+  { home_team: 'Carolina Panthers', away_team: 'New Orleans Saints', home_team_abbr: 'CAR', away_team_abbr: 'NO', game_date: '2026-12-13T18:00Z', week: 14, season: '2026' },
+  { home_team: 'Baltimore Ravens', away_team: 'Tampa Bay Buccaneers', home_team_abbr: 'BAL', away_team_abbr: 'TB', game_date: '2026-12-13T18:00Z', week: 14, season: '2026' },
+  { home_team: 'Las Vegas Raiders', away_team: 'Los Angeles Chargers', home_team_abbr: 'LV', away_team_abbr: 'LAC', game_date: '2026-12-13T21:05Z', week: 14, season: '2026' },
+  { home_team: 'Cincinnati Bengals', away_team: 'Kansas City Chiefs', home_team_abbr: 'CIN', away_team_abbr: 'KC', game_date: '2026-12-13T21:25Z', week: 14, season: '2026' },
+  { home_team: 'San Francisco 49ers', away_team: 'Los Angeles Rams', home_team_abbr: 'SF', away_team_abbr: 'LAR', game_date: '2026-12-13T21:25Z', week: 14, season: '2026' },
+  { home_team: 'Seattle Seahawks', away_team: 'New York Giants', home_team_abbr: 'SEA', away_team_abbr: 'NYG', game_date: '2026-12-13T21:25Z', week: 14, season: '2026' },
+  { home_team: 'Green Bay Packers', away_team: 'Buffalo Bills', home_team_abbr: 'GB', away_team_abbr: 'BUF', game_date: '2026-12-14T01:20Z', week: 14, season: '2026' },
+  { home_team: 'Jacksonville Jaguars', away_team: 'Pittsburgh Steelers', home_team_abbr: 'JAX', away_team_abbr: 'PIT', game_date: '2026-12-15T01:15Z', week: 14, season: '2026' },
+  // ---- Week 15 ----
+  { home_team: 'Los Angeles Chargers', away_team: 'San Francisco 49ers', home_team_abbr: 'LAC', away_team_abbr: 'SF', game_date: '2026-12-18T01:15Z', week: 15, season: '2026' },
+  { home_team: 'Philadelphia Eagles', away_team: 'Seattle Seahawks', home_team_abbr: 'PHI', away_team_abbr: 'SEA', game_date: '2026-12-19T22:00Z', week: 15, season: '2026' },
+  { home_team: 'Buffalo Bills', away_team: 'Chicago Bears', home_team_abbr: 'BUF', away_team_abbr: 'CHI', game_date: '2026-12-20T01:20Z', week: 15, season: '2026' },
+  { home_team: 'Green Bay Packers', away_team: 'Miami Dolphins', home_team_abbr: 'GB', away_team_abbr: 'MIA', game_date: '2026-12-20T18:00Z', week: 15, season: '2026' },
+  { home_team: 'Tennessee Titans', away_team: 'Indianapolis Colts', home_team_abbr: 'TEN', away_team_abbr: 'IND', game_date: '2026-12-20T18:00Z', week: 15, season: '2026' },
+  { home_team: 'New York Giants', away_team: 'Cleveland Browns', home_team_abbr: 'NYG', away_team_abbr: 'CLE', game_date: '2026-12-20T18:00Z', week: 15, season: '2026' },
+  { home_team: 'Pittsburgh Steelers', away_team: 'Baltimore Ravens', home_team_abbr: 'PIT', away_team_abbr: 'BAL', game_date: '2026-12-20T18:00Z', week: 15, season: '2026' },
+  { home_team: 'Tampa Bay Buccaneers', away_team: 'New Orleans Saints', home_team_abbr: 'TB', away_team_abbr: 'NO', game_date: '2026-12-20T18:00Z', week: 15, season: '2026' },
+  { home_team: 'Washington Commanders', away_team: 'Atlanta Falcons', home_team_abbr: 'WAS', away_team_abbr: 'ATL', game_date: '2026-12-20T18:00Z', week: 15, season: '2026' },
+  { home_team: 'Carolina Panthers', away_team: 'Cincinnati Bengals', home_team_abbr: 'CAR', away_team_abbr: 'CIN', game_date: '2026-12-20T18:00Z', week: 15, season: '2026' },
+  { home_team: 'Houston Texans', away_team: 'Jacksonville Jaguars', home_team_abbr: 'HOU', away_team_abbr: 'JAX', game_date: '2026-12-20T18:00Z', week: 15, season: '2026' },
+  { home_team: 'Arizona Cardinals', away_team: 'New York Jets', home_team_abbr: 'ARI', away_team_abbr: 'NYJ', game_date: '2026-12-20T21:05Z', week: 15, season: '2026' },
+  { home_team: 'Las Vegas Raiders', away_team: 'Denver Broncos', home_team_abbr: 'LV', away_team_abbr: 'DEN', game_date: '2026-12-20T21:25Z', week: 15, season: '2026' },
+  { home_team: 'Los Angeles Rams', away_team: 'Dallas Cowboys', home_team_abbr: 'LAR', away_team_abbr: 'DAL', game_date: '2026-12-20T21:25Z', week: 15, season: '2026' },
+  { home_team: 'Minnesota Vikings', away_team: 'Detroit Lions', home_team_abbr: 'MIN', away_team_abbr: 'DET', game_date: '2026-12-21T01:20Z', week: 15, season: '2026' },
+  { home_team: 'Kansas City Chiefs', away_team: 'New England Patriots', home_team_abbr: 'KC', away_team_abbr: 'NE', game_date: '2026-12-22T01:15Z', week: 15, season: '2026' },
+  // ---- Week 16 ----
+  { home_team: 'Philadelphia Eagles', away_team: 'Houston Texans', home_team_abbr: 'PHI', away_team_abbr: 'HOU', game_date: '2026-12-25T01:15Z', week: 16, season: '2026' },
+  { home_team: 'Chicago Bears', away_team: 'Green Bay Packers', home_team_abbr: 'CHI', away_team_abbr: 'GB', game_date: '2026-12-25T18:00Z', week: 16, season: '2026' },
+  { home_team: 'Denver Broncos', away_team: 'Buffalo Bills', home_team_abbr: 'DEN', away_team_abbr: 'BUF', game_date: '2026-12-25T21:30Z', week: 16, season: '2026' },
+  { home_team: 'Seattle Seahawks', away_team: 'Los Angeles Rams', home_team_abbr: 'SEA', away_team_abbr: 'LAR', game_date: '2026-12-26T01:15Z', week: 16, season: '2026' },
+  { home_team: 'Atlanta Falcons', away_team: 'Tampa Bay Buccaneers', home_team_abbr: 'ATL', away_team_abbr: 'TB', game_date: '2026-12-27T05:00Z', week: 16, season: '2026' },
+  { home_team: 'Indianapolis Colts', away_team: 'Cincinnati Bengals', home_team_abbr: 'IND', away_team_abbr: 'CIN', game_date: '2026-12-27T05:00Z', week: 16, season: '2026' },
+  { home_team: 'Minnesota Vikings', away_team: 'Washington Commanders', home_team_abbr: 'MIN', away_team_abbr: 'WAS', game_date: '2026-12-27T05:00Z', week: 16, season: '2026' },
+  { home_team: 'Pittsburgh Steelers', away_team: 'Carolina Panthers', home_team_abbr: 'PIT', away_team_abbr: 'CAR', game_date: '2026-12-27T05:00Z', week: 16, season: '2026' },
+  { home_team: 'Miami Dolphins', away_team: 'Los Angeles Chargers', home_team_abbr: 'MIA', away_team_abbr: 'LAC', game_date: '2026-12-27T18:00Z', week: 16, season: '2026' },
+  { home_team: 'New Orleans Saints', away_team: 'Arizona Cardinals', home_team_abbr: 'NO', away_team_abbr: 'ARI', game_date: '2026-12-27T18:00Z', week: 16, season: '2026' },
+  { home_team: 'New York Jets', away_team: 'New England Patriots', home_team_abbr: 'NYJ', away_team_abbr: 'NE', game_date: '2026-12-27T18:00Z', week: 16, season: '2026' },
+  { home_team: 'Baltimore Ravens', away_team: 'Cleveland Browns', home_team_abbr: 'BAL', away_team_abbr: 'CLE', game_date: '2026-12-27T18:00Z', week: 16, season: '2026' },
+  { home_team: 'Las Vegas Raiders', away_team: 'Tennessee Titans', home_team_abbr: 'LV', away_team_abbr: 'TEN', game_date: '2026-12-27T21:05Z', week: 16, season: '2026' },
+  { home_team: 'Kansas City Chiefs', away_team: 'San Francisco 49ers', home_team_abbr: 'KC', away_team_abbr: 'SF', game_date: '2026-12-27T21:25Z', week: 16, season: '2026' },
+  { home_team: 'Dallas Cowboys', away_team: 'Jacksonville Jaguars', home_team_abbr: 'DAL', away_team_abbr: 'JAX', game_date: '2026-12-28T01:20Z', week: 16, season: '2026' },
+  { home_team: 'Detroit Lions', away_team: 'New York Giants', home_team_abbr: 'DET', away_team_abbr: 'NYG', game_date: '2026-12-29T01:15Z', week: 16, season: '2026' },
+  // ---- Week 17 ----
+  { home_team: 'Cincinnati Bengals', away_team: 'Baltimore Ravens', home_team_abbr: 'CIN', away_team_abbr: 'BAL', game_date: '2027-01-01T01:15Z', week: 17, season: '2026' },
+  { home_team: 'New England Patriots', away_team: 'Denver Broncos', home_team_abbr: 'NE', away_team_abbr: 'DEN', game_date: '2027-01-03T05:00Z', week: 17, season: '2026' },
+  { home_team: 'Los Angeles Chargers', away_team: 'Kansas City Chiefs', home_team_abbr: 'LAC', away_team_abbr: 'KC', game_date: '2027-01-03T05:00Z', week: 17, season: '2026' },
+  { home_team: 'Tampa Bay Buccaneers', away_team: 'Los Angeles Rams', home_team_abbr: 'TB', away_team_abbr: 'LAR', game_date: '2027-01-03T05:00Z', week: 17, season: '2026' },
+  { home_team: 'Jacksonville Jaguars', away_team: 'Washington Commanders', home_team_abbr: 'JAX', away_team_abbr: 'WAS', game_date: '2027-01-03T05:00Z', week: 17, season: '2026' },
+  { home_team: 'Atlanta Falcons', away_team: 'New Orleans Saints', home_team_abbr: 'ATL', away_team_abbr: 'NO', game_date: '2027-01-03T18:00Z', week: 17, season: '2026' },
+  { home_team: 'Cleveland Browns', away_team: 'Indianapolis Colts', home_team_abbr: 'CLE', away_team_abbr: 'IND', game_date: '2027-01-03T18:00Z', week: 17, season: '2026' },
+  { home_team: 'Dallas Cowboys', away_team: 'New York Giants', home_team_abbr: 'DAL', away_team_abbr: 'NYG', game_date: '2027-01-03T18:00Z', week: 17, season: '2026' },
+  { home_team: 'Tennessee Titans', away_team: 'Pittsburgh Steelers', home_team_abbr: 'TEN', away_team_abbr: 'PIT', game_date: '2027-01-03T18:00Z', week: 17, season: '2026' },
+  { home_team: 'Miami Dolphins', away_team: 'Buffalo Bills', home_team_abbr: 'MIA', away_team_abbr: 'BUF', game_date: '2027-01-03T18:00Z', week: 17, season: '2026' },
+  { home_team: 'New York Jets', away_team: 'Minnesota Vikings', home_team_abbr: 'NYJ', away_team_abbr: 'MIN', game_date: '2027-01-03T18:00Z', week: 17, season: '2026' },
+  { home_team: 'Carolina Panthers', away_team: 'Seattle Seahawks', home_team_abbr: 'CAR', away_team_abbr: 'SEA', game_date: '2027-01-03T18:00Z', week: 17, season: '2026' },
+  { home_team: 'Arizona Cardinals', away_team: 'Las Vegas Raiders', home_team_abbr: 'ARI', away_team_abbr: 'LV', game_date: '2027-01-03T21:05Z', week: 17, season: '2026' },
+  { home_team: 'Chicago Bears', away_team: 'Detroit Lions', home_team_abbr: 'CHI', away_team_abbr: 'DET', game_date: '2027-01-03T21:25Z', week: 17, season: '2026' },
+  { home_team: 'San Francisco 49ers', away_team: 'Philadelphia Eagles', home_team_abbr: 'SF', away_team_abbr: 'PHI', game_date: '2027-01-04T01:20Z', week: 17, season: '2026' },
+  { home_team: 'Green Bay Packers', away_team: 'Houston Texans', home_team_abbr: 'GB', away_team_abbr: 'HOU', game_date: '2027-01-05T01:15Z', week: 17, season: '2026' },
+  // ---- Week 18 ----
+  { home_team: 'Buffalo Bills', away_team: 'New York Jets', home_team_abbr: 'BUF', away_team_abbr: 'NYJ', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Cincinnati Bengals', away_team: 'Cleveland Browns', home_team_abbr: 'CIN', away_team_abbr: 'CLE', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Denver Broncos', away_team: 'Los Angeles Chargers', home_team_abbr: 'DEN', away_team_abbr: 'LAC', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Green Bay Packers', away_team: 'Detroit Lions', home_team_abbr: 'GB', away_team_abbr: 'DET', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Indianapolis Colts', away_team: 'Jacksonville Jaguars', home_team_abbr: 'IND', away_team_abbr: 'JAX', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Kansas City Chiefs', away_team: 'Las Vegas Raiders', home_team_abbr: 'KC', away_team_abbr: 'LV', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Los Angeles Rams', away_team: 'Seattle Seahawks', home_team_abbr: 'LAR', away_team_abbr: 'SEA', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Minnesota Vikings', away_team: 'Chicago Bears', home_team_abbr: 'MIN', away_team_abbr: 'CHI', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'New England Patriots', away_team: 'Miami Dolphins', home_team_abbr: 'NE', away_team_abbr: 'MIA', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'New Orleans Saints', away_team: 'Tampa Bay Buccaneers', home_team_abbr: 'NO', away_team_abbr: 'TB', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'New York Giants', away_team: 'Philadelphia Eagles', home_team_abbr: 'NYG', away_team_abbr: 'PHI', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Arizona Cardinals', away_team: 'San Francisco 49ers', home_team_abbr: 'ARI', away_team_abbr: 'SF', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Washington Commanders', away_team: 'Dallas Cowboys', home_team_abbr: 'WAS', away_team_abbr: 'DAL', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Carolina Panthers', away_team: 'Atlanta Falcons', home_team_abbr: 'CAR', away_team_abbr: 'ATL', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Baltimore Ravens', away_team: 'Pittsburgh Steelers', home_team_abbr: 'BAL', away_team_abbr: 'PIT', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+  { home_team: 'Houston Texans', away_team: 'Tennessee Titans', home_team_abbr: 'HOU', away_team_abbr: 'TEN', game_date: '2027-01-10T05:00Z', week: 18, season: '2026' },
+];
+
+    async function addSeasonGames() {
+      const btn = document.getElementById('add-btn');
+      btn.disabled = true;
+      btn.textContent = 'Wird hinzugefügt...';
+
+      log('🏈 Starte Hinzufügen des Season 2026 Spielplans...', 'info');
+
+      // Bereits vorhandene 2026er Spiele laden, um Duplikate zu vermeiden
+      const existingSnapshot = await collections.games().where('season', '==', '2026').get();
+      const existingKeys = new Set();
+      existingSnapshot.docs.forEach(doc => {
+        const g = doc.data();
+        existingKeys.add(`${g.week}_${g.home_team_abbr}_${g.away_team_abbr}`);
+      });
+      log(`ℹ️ ${existingKeys.size} bereits vorhandene Spiele der Season 2026 gefunden.`, 'info');
+
+      let successCount = 0;
+      let skipCount = 0;
+      let errorCount = 0;
+
+      for (const game of SEASON_2026_GAMES) {
+        const key = `${game.week}_${game.home_team_abbr}_${game.away_team_abbr}`;
+        if (existingKeys.has(key)) {
+          skipCount++;
+          continue;
+        }
+
+        try {
+          const gameId = db.collection('_').doc().id;
+          const gameDoc = {
+            id: gameId,
+            home_team: game.home_team,
+            away_team: game.away_team,
+            home_team_abbr: game.home_team_abbr,
+            away_team_abbr: game.away_team_abbr,
+            game_date: firebase.firestore.Timestamp.fromDate(new Date(game.game_date)),
+            week: game.week,
+            season: game.season,
+            home_score: game.home_score !== undefined ? game.home_score : null,
+            away_score: game.away_score !== undefined ? game.away_score : null,
+            status: game.status || 'scheduled',
+            created_at: firebase.firestore.FieldValue.serverTimestamp()
+          };
+
+          await collections.games().doc(gameId).set(gameDoc);
+
+          log(`✅ Woche ${game.week}: ${game.away_team_abbr} @ ${game.home_team_abbr}${game.status === 'finished' ? ` (${game.away_score}:${game.home_score})` : ''}`, 'success');
+          successCount++;
+
+          await new Promise(resolve => setTimeout(resolve, 120));
+        } catch (error) {
+          log(`❌ Fehler bei ${game.away_team_abbr} @ ${game.home_team_abbr} (Woche ${game.week}): ${error.message}`, 'error');
+          errorCount++;
+        }
+      }
+
+      log(``, 'info');
+      log(`🎉 Fertig! ${successCount} Spiele hinzugefügt, ${skipCount} übersprungen (bereits vorhanden), ${errorCount} Fehler`, successCount > 0 ? 'success' : 'error');
+
+      btn.textContent = 'Fertig! ✓';
+    }
+  </script>
+</body>
+</html>
