@@ -31,10 +31,9 @@ async function loadGroups() {
   try {
     userGroups = await firebaseGetUserGroups();
     
-    // Populate filter (Emoji muss identisch zur statischen Option in leaderboard.html
-    // sein, sonst "springt" der Text sichtbar sobald die Gruppen geladen sind)
+    // Populate filter
     const filter = document.getElementById('group-filter');
-    filter.innerHTML = '<option value="global">🌍 Global</option>';
+    filter.innerHTML = '<option value="global">Global</option>';
     
     userGroups.forEach(group => {
       const option = document.createElement('option');
