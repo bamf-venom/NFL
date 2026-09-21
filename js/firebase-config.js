@@ -842,6 +842,7 @@ async function firebaseJoinGroup(inviteCode) {
   // Invalidate groups cache
   invalidateCache('groups');
   delete groupMembersCache[groupDoc.id];
+  invalidateGroupBetsCache(groupDoc.id);
 
   return await firebaseGetGroup(groupDoc.id);
 }
@@ -868,6 +869,7 @@ async function firebaseLeaveGroup(groupId) {
   // Invalidate groups cache
   invalidateCache('groups');
   delete groupMembersCache[groupId];
+  invalidateGroupBetsCache(groupId);
 }
 
 async function firebaseKickMember(groupId, userId) {
@@ -894,6 +896,7 @@ async function firebaseKickMember(groupId, userId) {
   });
 
   delete groupMembersCache[groupId];
+  invalidateGroupBetsCache(groupId);
 }
 
 async function firebaseDeleteGroup(groupId) {
@@ -1026,13 +1029,38 @@ function getGroupMembersForBets(groupId) {
   return promise;
 }
 
-async function firebaseGetGroupBets(groupId, gameId) {
+// Cache für Gruppen-Wetten pro (Gruppe, Spiel). Bei einem BEENDETEN Spiel
+// ändern sich Tipps/Punkte nie wieder - das Ergebnis wird dann dauerhaft
+// (für die gesamte Session) gecacht statt bei jedem Seitenaufruf erneut
+// abgefragt zu werden. Bei laufenden/geplanten Spielen gilt nur ein kurzes
+// TTL, da sich dort noch etwas ändern kann.
+const groupBetsCache = {};
+const GROUP_BETS_CACHE_TTL = 30000; // 30 Sekunden für nicht-beendete Spiele
+
+// Löscht alle gecachten Gruppen-Wetten (auch die "permanenten" für beendete
+// Spiele) für eine Gruppe - nötig wenn sich die Mitgliederliste ändert, da
+// sich sonst z.B. ein neu beigetretenes Mitglied mit einem alten Tipp auf ein
+// schon beendetes Spiel nie im Cache zeigen würde
+function invalidateGroupBetsCache(groupId) {
+  const prefix = `${groupId}::`;
+  Object.keys(groupBetsCache).forEach(key => {
+    if (key.startsWith(prefix)) delete groupBetsCache[key];
+  });
+}
+
+async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
   // Ohne gültige gameId würde Query.where('game_id', '==', gameId) mit
   // "Unsupported field value: undefined" abstürzen und damit die komplette
   // Gruppen-Abfrage für ALLE Spiele in diesem Promise.all-Batch mitreißen
   if (!groupId || !gameId) {
     console.warn('firebaseGetGroupBets: ungültige groupId/gameId', groupId, gameId);
     return [];
+  }
+
+  const cacheKey = `${groupId}::${gameId}`;
+  const cached = groupBetsCache[cacheKey];
+  if (cached && (cached.permanent || (Date.now() - cached.timestamp) < GROUP_BETS_CACHE_TTL)) {
+    return cached.bets;
   }
 
   const { memberIds, memberPictures } = await getGroupMembersForBets(groupId);
@@ -1065,6 +1093,8 @@ async function firebaseGetGroupBets(groupId, gameId) {
       });
     });
   });
+
+  groupBetsCache[cacheKey] = { bets: allBets, timestamp: Date.now(), permanent: isGameFinished };
 
   return allBets;
 }

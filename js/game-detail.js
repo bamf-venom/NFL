@@ -85,7 +85,7 @@ async function loadGroupBetsForCurrentGame() {
     return;
   }
   try {
-    groupBetsData = await firebaseGetGroupBets(selectedGroupId, currentGameData.id);
+    groupBetsData = await firebaseGetGroupBets(selectedGroupId, currentGameData.id, currentGameData.status === 'finished');
   } catch (error) {
     console.error('Error loading group bets:', error);
     groupBetsData = [];

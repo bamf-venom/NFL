@@ -80,7 +80,7 @@ async function loadGroupBets() {
 
   const results = await Promise.all(gamesToLoad.map(async (game) => {
     try {
-      return { gameId: game.id, bets: await firebaseGetGroupBets(currentGroupData.id, game.id) };
+      return { gameId: game.id, bets: await firebaseGetGroupBets(currentGroupData.id, game.id, game.status === 'finished') };
     } catch (error) {
       console.error(`Error loading bets for game ${game.id}:`, error);
       return { gameId: game.id, bets: [] };

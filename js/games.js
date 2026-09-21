@@ -212,7 +212,7 @@ async function loadGroupBets() {
       // Prüfe ob Gruppe noch die gleiche ist (früher Abbruch)
       if (selectedGroupId !== loadingGroupId) return null;
 
-      const bets = await firebaseGetGroupBets(loadingGroupId, game.id);
+      const bets = await firebaseGetGroupBets(loadingGroupId, game.id, game.status === 'finished');
       if (bets.length > 0) {
         return { gameId: game.id, bets };
       }
