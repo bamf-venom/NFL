@@ -4,11 +4,12 @@
 (function() {
   'use strict';
 
-  // Warte bis DOM geladen ist
-  document.addEventListener('DOMContentLoaded', function() {
-    // Kurze Verzögerung um sicherzustellen dass alle Selects gerendert sind
-    setTimeout(initAllCustomSelects, 150);
-  });
+  // Warte bis DOM geladen ist. Sofort (ohne Verzögerung) ausführen, da beim
+  // DOMContentLoaded-Event bereits alle statischen Selects im DOM existieren -
+  // eine künstliche Verzögerung hat vorher nur dazu geführt, dass kurz das
+  // native, unstylte Browser-Dropdown sichtbar war (auffällig z.B. bei der
+  // Emoji-Option in der Rangliste).
+  document.addEventListener('DOMContentLoaded', initAllCustomSelects);
 
   // Beobachte DOM-Änderungen für dynamisch hinzugefügte Selects
   const observer = new MutationObserver(function(mutations) {
@@ -28,9 +29,10 @@
       });
     });
     
-    // Nur einmal initialisieren wenn neue Selects gefunden wurden
+    // Nur einmal initialisieren wenn neue Selects gefunden wurden - sofort,
+    // aus demselben Grund wie beim initialen DOMContentLoaded-Aufruf
     if (hasNewSelects) {
-      setTimeout(initAllCustomSelects, 50);
+      initAllCustomSelects();
     }
   });
 
