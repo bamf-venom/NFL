@@ -15,6 +15,13 @@ const firebaseConfig = {
 // ==================== PERFORMANCE CACHE ====================
 const dataCache = {
   games: { data: null, timestamp: 0, ttl: 30000 }, // 30 Sekunden
+  // Beendete Spiele ändern sich praktisch nie wieder - deutlich länger cachen
+  // als der Rest, damit nicht bei jedem Besuch die komplette Historie (alte
+  // Saisons + Playoffs) erneut aus Firestore geladen wird. TTL bewusst nicht
+  // zu lang (nur wenige Minuten), damit ein Spiel, das gerade eben live zu
+  // Ende gegangen ist, nicht für zu lange Zeit aus der Liste verschwindet,
+  // bevor es hier ankommt (die aktive/laufende Abfrage bleibt immer frisch).
+  finishedGames: { data: null, timestamp: 0, ttl: 180000 }, // 3 Minuten
   leaderboard: { data: null, timestamp: 0, ttl: 60000 }, // 60 Sekunden
   userBets: { data: null, timestamp: 0, ttl: 15000 }, // 15 Sekunden
   groups: { data: null, timestamp: 0, ttl: 30000 } // 30 Sekunden
@@ -332,42 +339,79 @@ async function firebaseUpdateUsername(newUsername) {
 }
 
 // ==================== GAMES HELPERS ====================
+function mapGameDoc(doc) {
+  const data = doc.data();
+  return {
+    ...data,
+    game_date: data.game_date?.toDate?.()?.toISOString() || data.game_date,
+    created_at: data.created_at?.toDate?.()?.toISOString() || data.created_at
+  };
+}
+
+// Beendete Spiele ändern sich nie wieder - lange cachen statt bei jedem
+// Seitenaufruf die komplette Historie (alte Saisons + Playoffs) neu zu laden
+async function getFinishedGamesCached() {
+  const cached = getCachedData('finishedGames');
+  if (cached) {
+    debugLog('📦 Beendete Spiele aus Cache');
+    return cached;
+  }
+
+  const snapshot = await collections.games().where('status', '==', 'finished').get();
+  const games = snapshot.docs.map(mapGameDoc);
+  setCachedData('finishedGames', games);
+  return games;
+}
+
+// Laufende/geplante Spiele können sich jederzeit ändern (Automatik setzt sie
+// live/beendet) - immer frisch bzw. nur kurz gecacht laden
+async function getActiveGamesFresh() {
+  const snapshot = await collections.games().where('status', 'in', ['scheduled', 'live']).get();
+  return snapshot.docs.map(mapGameDoc);
+}
+
 async function firebaseGetGames(filters = {}, useCache = true) {
   try {
-    // Check cache first (only if no specific filters)
-    const cacheKey = 'games';
-    if (useCache && !filters.week && !filters.season) {
-      const cached = getCachedData(cacheKey);
-      if (cached) {
-        debugLog('📦 Games loaded from cache');
-        return cached;
+    // Unfilterte Vollabfrage: aufgeteilt in beendete (lang gecacht) und
+    // laufende/geplante Spiele (immer frisch), da beendete Spiele den
+    // Großteil der Datenmenge ausmachen und sich nie mehr ändern
+    if (!filters.week && !filters.season) {
+      const cacheKey = 'games';
+      if (useCache) {
+        const cached = getCachedData(cacheKey);
+        if (cached) {
+          debugLog('📦 Games loaded from cache');
+          return cached;
+        }
       }
+
+      const [finishedGames, activeGames] = await Promise.all([
+        getFinishedGamesCached(),
+        getActiveGamesFresh()
+      ]);
+
+      const sortedGames = [...finishedGames, ...activeGames]
+        .sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
+
+      setCachedData(cacheKey, sortedGames);
+      debugLog('🎮 Games loaded from Firestore:', sortedGames.length);
+      return sortedGames;
     }
-    
+
+    // Gefilterte Abfragen (z.B. nur eine Woche/Saison) unverändert
     let query = collections.games();
-    
+
     if (filters.week) {
       query = query.where('week', '==', filters.week);
     }
     if (filters.season) {
       query = query.where('season', '==', filters.season);
     }
-    
+
     const snapshot = await query.get();
-    const games = snapshot.docs.map(doc => ({
-      ...doc.data(),
-      game_date: doc.data().game_date?.toDate?.()?.toISOString() || doc.data().game_date,
-      created_at: doc.data().created_at?.toDate?.()?.toISOString() || doc.data().created_at
-    }));
-    
-    // Sortiere client-seitig nach game_date
-    const sortedGames = games.sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
-    
-    // Cache results if no filters
-    if (!filters.week && !filters.season) {
-      setCachedData(cacheKey, sortedGames);
-    }
-    
+    const sortedGames = snapshot.docs.map(mapGameDoc)
+      .sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
+
     debugLog('🎮 Games loaded from Firestore:', sortedGames.length);
     return sortedGames;
   } catch (error) {
@@ -404,6 +448,7 @@ async function firebaseCreateGame(gameData) {
   
   // Invalidate games cache
   invalidateCache('games');
+  invalidateCache('finishedGames');
   
   return { ...game, game_date: gameData.game_date, created_at: new Date().toISOString() };
 }
@@ -418,6 +463,7 @@ async function firebaseUpdateGame(gameId, updateData) {
   
   // Invalidate games cache
   invalidateCache('games');
+  invalidateCache('finishedGames');
   
   if (updateData.status === 'finished' && updateData.home_score != null && updateData.away_score != null) {
     await calculatePointsForGame(gameId, updateData.home_score, updateData.away_score);
@@ -433,6 +479,7 @@ async function firebaseDeleteGame(gameId) {
   
   // Invalidate games cache
   invalidateCache('games');
+  invalidateCache('finishedGames');
   
   const betsSnapshot = await collections.bets().where('game_id', '==', gameId).get();
   const batch = db.batch();
