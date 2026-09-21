@@ -45,68 +45,96 @@ function loadFilterState() {
 async function initGamesPage() {
   // Load saved filter state FIRST
   loadFilterState();
-  
-  await loadGames();
+
+  // Zuerst nur EINE Saison laden (gespeicherte Auswahl oder aktuelle NFL-Saison) -
+  // deutlich schneller als alle jemals gespielten Saisons auf einmal, da die
+  // aktuelle Woche ohnehin nur aus dieser einen Saison kommt
+  const initialSeason = selectedSeason || getCurrentNFLSeason();
+
+  await loadGames(initialSeason);
   populateSeasonFilter(); // Season first - will auto-select current season if none saved
   populateWeekFilter();
-  
+
   // Render games with filters applied
   renderGames();
-  
+
   // Week filter change
   document.getElementById('week-filter').addEventListener('change', function(e) {
     selectedWeek = e.target.value ? parseInt(e.target.value) : null;
     saveFilterState();
     renderGames();
   });
-  
+
   // Season filter change
-  document.getElementById('season-filter').addEventListener('change', function(e) {
+  document.getElementById('season-filter').addEventListener('change', async function(e) {
     selectedSeason = e.target.value; // Always required now
     selectedWeek = null; // Reset week when season changes to auto-select new current week
+
+    // Falls die gewählte Saison noch nicht (vollständig) geladen ist, jetzt
+    // nachladen. Der Hintergrund-Fetch (loadAllSeasonsInBackground) lädt zwar
+    // irgendwann alle Saisons, aber falls der Nutzer schneller klickt als der
+    // im Hintergrund fertig wird, holen wir die Saison hier gezielt nach.
+    if (!gamesData.some(g => g.season === selectedSeason)) {
+      try {
+        const seasonGames = await firebaseGetGames({ season: selectedSeason });
+        // Mit bereits geladenen Spielen anderer Saisons zusammenführen
+        const otherSeasons = gamesData.filter(g => g.season !== selectedSeason);
+        gamesData = [...otherSeasons, ...seasonGames];
+      } catch (error) {
+        console.error('Error loading season on demand:', error);
+      }
+    }
+
     // Update week filter based on selected season
     populateWeekFilter();
     saveFilterState();
     renderGames();
   });
-  
+
   // Group filter change - note: event listener is already added in populateGroupFilter
+
+  // Im Hintergrund alle übrigen Saisons nachladen, ohne die schnelle initiale
+  // Anzeige zu blockieren
+  loadAllSeasonsInBackground();
 }
 
 // Load games from Firebase
-async function loadGames() {
+// seasonFilter: wenn gesetzt, wird NUR diese Saison geladen (schneller initialer
+// Ladevorgang) statt aller jemals gespielten Saisons. Der Rest wird danach im
+// Hintergrund nachgeladen, siehe loadAllSeasonsInBackground().
+async function loadGames(seasonFilter = null) {
   try {
     // Lade Spiele, User-Wetten, Gruppen und aktuellen User parallel
     const [games, userBets, groups, freshUser] = await Promise.all([
-      firebaseGetGames(),
+      firebaseGetGames(seasonFilter ? { season: seasonFilter } : {}),
       firebaseGetCurrentUserBets(),
       firebaseGetUserGroups(),
       firebaseGetCurrentUser()
     ]);
-    
+
     // Update currentUser mit frischen Daten (inkl. profile_picture)
     if (freshUser) {
       currentUser = freshUser;
       localStorage.setItem('user', JSON.stringify(currentUser));
     }
-    
+
     gamesData = games;
     userGroups = groups;
-    
+
     // Erstelle Map von game_id zu eigener Wette
     userBetsMap = {};
     userBets.forEach(bet => {
       userBetsMap[bet.game_id] = bet;
     });
-    
+
     // Populate group filter (will restore saved group selection)
     populateGroupFilter();
-    
+
     // Load group bets if a group was previously selected and still valid
     if (selectedGroupId && userGroups.find(g => g.id === selectedGroupId)) {
       await loadGroupBets();
     }
-    
+
     // Don't render here - let populateSeasonFilter and populateWeekFilter handle it
   } catch (error) {
     console.error('Error loading games:', error);
@@ -118,6 +146,27 @@ async function loadGames() {
         <button class="btn btn-primary" onclick="loadGames()">Erneut versuchen</button>
       </div>
     `;
+  }
+}
+
+// Lädt im Hintergrund (nicht blockierend) ALLE Saisons nach, damit der
+// Saison-Filter alle historischen Optionen zeigt und ein späterer Wechsel der
+// Saison keinen zusätzlichen Ladevorgang mehr braucht. Die aktuell sichtbare
+// Auswahl (Season+Woche) bleibt dabei unverändert - es werden nur weitere
+// Optionen im Filter ergänzt.
+async function loadAllSeasonsInBackground() {
+  try {
+    const allGames = await firebaseGetGames();
+
+    const loadedSeasons = new Set(gamesData.map(g => g.season));
+    const allSeasons = new Set(allGames.map(g => g.season));
+
+    if (allSeasons.size > loadedSeasons.size) {
+      gamesData = allGames;
+      populateSeasonFilter();
+    }
+  } catch (error) {
+    console.error('Error loading additional seasons in background:', error);
   }
 }
 
