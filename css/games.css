@@ -113,8 +113,11 @@
 }
 
 .team-abbr {
-  font-weight: 700;
-  font-size: 18px;
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: 0.3px;
 }
 
 .team-name {
@@ -206,8 +209,10 @@
 }
 
 .game-score-num {
-  font-size: 28px;
-  font-weight: 800;
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-size: 30px;
+  font-weight: 900;
   /* Feste Breite für jede Zahl */
   min-width: 40px;
   text-align: center;
@@ -266,8 +271,10 @@
 }
 
 .game-detail-team h3 {
-  font-size: 20px;
-  font-weight: 700;
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-size: 24px;
+  font-weight: 900;
 }
 
 .game-detail-vs {
@@ -287,8 +294,10 @@
 }
 
 .game-detail-score-num {
-  font-size: 56px;
-  font-weight: 800;
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-size: 58px;
+  font-weight: 900;
 }
 
 .game-detail-score-sep {
@@ -406,8 +415,10 @@
 }
 
 .my-bet-score-num {
-  font-size: 56px;
-  font-weight: 800;
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-size: 58px;
+  font-weight: 900;
 }
 
 .my-bet-score-team {
@@ -491,8 +502,10 @@
 }
 
 .bet-prediction-score {
-  font-weight: 700;
-  font-size: 17px;
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 18px;
 }
 
 .bet-earned {
@@ -617,8 +630,10 @@
 }
 
 .my-bet-preview-score {
-  font-size: 16px;
-  font-weight: 800;
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-size: 17px;
+  font-weight: 900;
   color: var(--text);
 }
 
@@ -814,8 +829,10 @@
 }
 
 .group-bet-prediction {
-  font-size: 14px;
-  font-weight: 800;
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-size: 15px;
+  font-weight: 900;
   padding: 4px 10px;
   background: rgba(var(--white-rgb), 0.1);
   border-radius: 6px;
@@ -965,8 +982,10 @@
 }
 
 .my-bet-inline-score-desktop {
-  font-size: 18px;
-  font-weight: 800;
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-size: 19px;
+  font-weight: 900;
   color: var(--text);
 }
 
@@ -997,8 +1016,10 @@
 }
 
 .my-bet-inline-score {
-  font-size: 13px;
-  font-weight: 700;
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 900;
   color: var(--text);
 }
 
