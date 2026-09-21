@@ -308,8 +308,11 @@ function renderAdminGames() {
   let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
   
   filteredGames.forEach((game, index) => {
-    const status = game.status === 'finished' ? 'Beendet' : game.status === 'live' ? 'Live' : 'Geplant';
-    const statusClass = game.status === 'finished' ? 'badge-success' : game.status === 'live' ? 'badge-warning' : 'badge-default';
+    // Gleiche Statusfarben wie im Rest der App: beendet = rot, live = helles
+    // Rot, geplant = grün (vorher inkonsistent: beendet war hier grün)
+    const statusInfo = getStatusBadge(game.status);
+    const status = statusInfo.text;
+    const statusClass = statusInfo.class;
     
     html += `
       <div class="card admin-game-card" 
