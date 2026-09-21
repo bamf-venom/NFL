@@ -9,20 +9,20 @@ async function initLeaderboardPage() {
   // Gruppen-Liste und globale Rangliste hängen nicht voneinander ab (Rangliste
   // startet immer mit "global") - parallel statt nacheinander laden
   await Promise.all([loadGroups(), loadLeaderboard()]);
-
-  if (window.NFLLoader) NFLLoader.hide();
-
+  
   // Group filter change
   document.getElementById('group-filter').addEventListener('change', async function(e) {
     selectedGroup = e.target.value;
     updateGroupInfo();
-
-    if (window.NFLLoader) NFLLoader.show();
-    try {
-      await loadLeaderboard(true);
-    } finally {
-      if (window.NFLLoader) NFLLoader.hide();
-    }
+    
+    // Zeige Loading-Spinner während Daten geladen werden
+    document.getElementById('leaderboard-container').innerHTML = `
+      <div class="loading-container">
+        <div class="spinner spinner-lg"></div>
+      </div>
+    `;
+    
+    await loadLeaderboard(true);
   });
 }
 

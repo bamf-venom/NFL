@@ -17,7 +17,6 @@ async function initGameDetailPage() {
   }
 
   await loadGameDetail(gameId);
-  if (window.NFLLoader) NFLLoader.hide();
 }
 
 // Load game detail from Firebase
@@ -97,13 +96,13 @@ async function loadGroupBetsForCurrentGame() {
 async function switchGameDetailGroup(groupId) {
   selectedGroupId = groupId;
 
-  if (window.NFLLoader) NFLLoader.show();
-  try {
-    await loadGroupBetsForCurrentGame();
-    renderGameDetail();
-  } finally {
-    if (window.NFLLoader) NFLLoader.hide();
+  const section = document.getElementById('group-bets-section-content');
+  if (section) {
+    section.innerHTML = `<div class="loading-container"><div class="spinner"></div></div>`;
   }
+
+  await loadGroupBetsForCurrentGame();
+  renderGameDetail();
 }
 
 // Render game detail

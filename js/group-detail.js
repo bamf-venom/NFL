@@ -18,7 +18,6 @@ async function initGroupDetailPage() {
   }
   
   await loadGroupDetail(groupId);
-  if (window.NFLLoader) NFLLoader.hide();
 }
 
 // Load group detail from Firebase

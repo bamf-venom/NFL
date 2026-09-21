@@ -18,11 +18,9 @@ async function initAdminPage() {
   // Populate team selects first (before loading data)
   populateTeamSelects();
   await loadAdminData();
-
+  
   // Setup filter listeners
   setupAdminFilters();
-
-  if (window.NFLLoader) NFLLoader.hide();
 }
 
 // Setup filter event listeners
