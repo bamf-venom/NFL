@@ -1,8 +1,8 @@
 /* ==================== Ladeanimation ====================
    Exakt nach Frame-fuer-Frame-Analyse eines Referenz-Videos der NFL-App
    nachgebaut: der Ball selbst bewegt sich NICHT (fester Winkel), nur die
-   Naht/Schnuerung wird von einem weichen Streifen "abgetastet", der quer
-   zur Ball-Laengsachse wandert (oben -> unten), wieder verschwindet und
+   Naht/Schnuerung wird von einem Streifen mit hartem Rand "abgetastet", der
+   quer zur Ball-Laengsachse wandert (oben -> unten), wieder verschwindet und
    von vorne beginnt - dadurch wirkt es wie eine Rotation, ohne dass sich die
    Ball-Silhouette tatsaechlich dreht. Sichtbar per Default (kein JS-Delay
    noetig, verhindert weisses Aufblitzen beim Seitenwechsel) - wird per JS
