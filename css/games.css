@@ -127,13 +127,12 @@
 }
 
 /* ==================== Team Logo ==================== */
+/* Kein Kreis mehr dahinter - Logo liegt frei, wird von nichts mehr
+   abgeschnitten (viele Logos sind breiter/höher als eine perfekte Kreisform) */
 .team-logo {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
   object-fit: contain;
-  background: rgba(var(--white-rgb), 0.03);
-  padding: 4px;
   transition: transform 0.3s ease;
 }
 
