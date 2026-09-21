@@ -5,3 +5,13 @@ node_modules/
 # GitHub Actions Secret hinterlegt (siehe automation/README.md)
 serviceAccountKey.json
 *serviceAccount*.json
+
+# Android-Signing-Key fuer die APK - gehoert nicht ins oeffentliche Repo,
+# wird fuer zukuenftige App-Updates gebraucht (sicher aufbewahren!)
+android-signing/
+*.keystore
+*.jks
+
+# Gebaute APK selbst - grosse Binärdatei, gehoert nicht ins Repo
+*.apk
+*.aab
