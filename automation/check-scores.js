@@ -58,7 +58,10 @@ function findEspnMatch(espnEvents, homeAbbr, awayAbbr) {
   return null;
 }
 
-// Gleiche Punktelogik wie firebaseUpdateGame/calculatePointsForGame in js/firebase-config.js
+// Gleiche Punktelogik wie firebaseUpdateGame/calculatePointsForGame in js/firebase-config.js.
+// Führt zusätzlich correct_winners/correct_scores am Nutzer-Konto mit, damit die
+// Rangliste komplett aus den Nutzer-Konten gelesen werden kann statt jedes Mal
+// alle Wetten aller Nutzer zu scannen.
 async function calculatePointsForGame(gameId, homeScore, awayScore) {
   const betsSnapshot = await db.collection('bets').where('game_id', '==', gameId).get();
 
@@ -68,7 +71,7 @@ async function calculatePointsForGame(gameId, homeScore, awayScore) {
   else actualWinner = 0;
 
   const batch = db.batch();
-  const userPointsMap = {};
+  const userStatsMap = {};
 
   betsSnapshot.docs.forEach(doc => {
     const bet = doc.data();
@@ -86,15 +89,21 @@ async function calculatePointsForGame(gameId, homeScore, awayScore) {
 
     batch.update(doc.ref, { points_earned: points });
 
-    if (!userPointsMap[bet.user_id]) userPointsMap[bet.user_id] = 0;
-    userPointsMap[bet.user_id] += points;
+    if (!userStatsMap[bet.user_id]) {
+      userStatsMap[bet.user_id] = { points: 0, correctWinners: 0, correctScores: 0 };
+    }
+    userStatsMap[bet.user_id].points += points;
+    if (points > 0) userStatsMap[bet.user_id].correctWinners += 1;
+    if (points >= 3) userStatsMap[bet.user_id].correctScores += 1;
   });
 
   await batch.commit();
 
-  for (const [userId, points] of Object.entries(userPointsMap)) {
+  for (const [userId, stats] of Object.entries(userStatsMap)) {
     await db.collection('users').doc(userId).update({
-      total_points: admin.firestore.FieldValue.increment(points),
+      total_points: admin.firestore.FieldValue.increment(stats.points),
+      correct_winners: admin.firestore.FieldValue.increment(stats.correctWinners),
+      correct_scores: admin.firestore.FieldValue.increment(stats.correctScores),
     });
   }
 }

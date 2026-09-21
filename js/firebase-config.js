@@ -560,10 +560,17 @@ async function firebasePlaceBet(betData) {
   };
   
   await collections.bets().doc(betId).set(bet);
-  
+
+  // total_bets direkt am Nutzer-Konto mitführen, damit die Rangliste nicht
+  // mehr ALLE Wetten aller Nutzer scannen muss, um diese Zahl zu ermitteln
+  await collections.users().doc(user.uid).update({
+    total_bets: firebase.firestore.FieldValue.increment(1)
+  });
+
   // Invalidate user bets cache
   invalidateCache('userBets');
-  
+  invalidateCache('leaderboard');
+
   return { ...bet, created_at: new Date().toISOString() };
 }
 
@@ -608,9 +615,15 @@ async function firebaseDeleteBet(betId) {
   }
   
   await collections.bets().doc(betId).delete();
-  
+
+  // Gegenstück zum increment beim Platzieren der Wette
+  await collections.users().doc(user.uid).update({
+    total_bets: firebase.firestore.FieldValue.increment(-1)
+  });
+
   // Invalidate user bets cache
   invalidateCache('userBets');
+  invalidateCache('leaderboard');
 }
 
 // Alle Wetten des aktuellen Users laden (für Spielübersicht)
@@ -650,45 +663,59 @@ async function firebaseGetCurrentUserBets(useCache = true) {
 
 async function calculatePointsForGame(gameId, homeScore, awayScore) {
   const betsSnapshot = await collections.bets().where('game_id', '==', gameId).get();
-  
+
   let actualWinner;
   if (homeScore > awayScore) actualWinner = 1;
   else if (awayScore > homeScore) actualWinner = 2;
   else actualWinner = 0;
-  
+
   const batch = db.batch();
-  const userPointsMap = {};
-  
+  // Statt nur Punkte auch correct_winners/correct_scores pro Nutzer mitführen,
+  // damit die Rangliste komplett aus den Nutzer-Konten gelesen werden kann statt
+  // jedes Mal ALLE Wetten aller Nutzer im System zu scannen
+  const userStatsMap = {};
+
   betsSnapshot.docs.forEach(doc => {
     const bet = doc.data();
     let points = 0;
-    
+
     if (bet.home_score_prediction === homeScore) points += 3;
     if (bet.away_score_prediction === awayScore) points += 3;
-    
+
     let predictedWinner;
     if (bet.home_score_prediction > bet.away_score_prediction) predictedWinner = 1;
     else if (bet.away_score_prediction > bet.home_score_prediction) predictedWinner = 2;
     else predictedWinner = 0;
-    
+
     if (predictedWinner === actualWinner) points += 1;
-    
+
     batch.update(doc.ref, { points_earned: points });
-    
-    if (!userPointsMap[bet.user_id]) userPointsMap[bet.user_id] = 0;
-    userPointsMap[bet.user_id] += points;
+
+    if (!userStatsMap[bet.user_id]) {
+      userStatsMap[bet.user_id] = { points: 0, correctWinners: 0, correctScores: 0 };
+    }
+    userStatsMap[bet.user_id].points += points;
+    if (points > 0) userStatsMap[bet.user_id].correctWinners += 1;
+    if (points >= 3) userStatsMap[bet.user_id].correctScores += 1;
   });
-  
+
   await batch.commit();
-  
-  for (const [userId, points] of Object.entries(userPointsMap)) {
+
+  for (const [userId, stats] of Object.entries(userStatsMap)) {
     await collections.users().doc(userId).update({
-      total_points: firebase.firestore.FieldValue.increment(points)
+      total_points: firebase.firestore.FieldValue.increment(stats.points),
+      correct_winners: firebase.firestore.FieldValue.increment(stats.correctWinners),
+      correct_scores: firebase.firestore.FieldValue.increment(stats.correctScores)
     });
   }
 }
 
 // ==================== LEADERBOARD HELPERS ====================
+// Liest die Rangliste direkt aus den Nutzer-Konten (total_points, total_bets,
+// correct_winners, correct_scores werden dort schon inkrementell mitgeführt -
+// siehe firebasePlaceBet/firebaseDeleteBet/calculatePointsForGame) statt wie
+// bisher ALLE Wetten ALLER Nutzer im System zu laden und clientseitig neu zu
+// aggregieren. Das war mit Abstand die teuerste Abfrage der App.
 async function firebaseGetLeaderboard(useCache = true) {
   // Check cache first
   if (useCache) {
@@ -698,35 +725,25 @@ async function firebaseGetLeaderboard(useCache = true) {
       return cached;
     }
   }
-  
-  const snapshot = await collections.bets().get();
-  
-  const userStats = {};
-  
-  snapshot.docs.forEach(doc => {
-    const bet = doc.data();
-    if (!userStats[bet.user_id]) {
-      userStats[bet.user_id] = {
-        user_id: bet.user_id,
-        username: bet.username,
-        total_points: 0,
-        total_bets: 0,
-        correct_winners: 0,
-        correct_scores: 0
-      };
-    }
-    
-    userStats[bet.user_id].total_points += bet.points_earned || 0;
-    userStats[bet.user_id].total_bets += 1;
-    if (bet.points_earned > 0) userStats[bet.user_id].correct_winners += 1;
-    if (bet.points_earned >= 3) userStats[bet.user_id].correct_scores += 1;
-  });
-  
-  const leaderboard = Object.values(userStats).sort((a, b) => b.total_points - a.total_points);
-  
+
+  const snapshot = await collections.users().get();
+
+  const leaderboard = snapshot.docs
+    .map(doc => doc.data())
+    .filter(user => (user.total_bets || 0) > 0) // nur Nutzer, die auch getippt haben
+    .map(user => ({
+      user_id: user.id,
+      username: user.username,
+      total_points: user.total_points || 0,
+      total_bets: user.total_bets || 0,
+      correct_winners: user.correct_winners || 0,
+      correct_scores: user.correct_scores || 0
+    }))
+    .sort((a, b) => b.total_points - a.total_points);
+
   // Cache results
   setCachedData('leaderboard', leaderboard);
-  
+
   debugLog('🏆 Leaderboard loaded from Firestore:', leaderboard.length);
   return leaderboard;
 }
