@@ -97,13 +97,13 @@ async function loadGroupBetsForCurrentGame() {
 async function switchGameDetailGroup(groupId) {
   selectedGroupId = groupId;
 
-  const section = document.getElementById('group-bets-section-content');
-  if (section) {
-    section.innerHTML = `<div class="loading-container"><div class="spinner"></div></div>`;
+  if (window.NFLLoader) NFLLoader.show();
+  try {
+    await loadGroupBetsForCurrentGame();
+    renderGameDetail();
+  } finally {
+    if (window.NFLLoader) NFLLoader.hide();
   }
-
-  await loadGroupBetsForCurrentGame();
-  renderGameDetail();
 }
 
 // Render game detail

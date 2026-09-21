@@ -23,19 +23,24 @@
 </head>
 <body>
   <div id="nfl-loader" aria-hidden="true">
-    <div class="nfl-loader-content">
-      <div class="nfl-loader-bounce">
-        <div class="nfl-loader-spin">
-          <svg class="nfl-loader-ball-svg" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="50" cy="30" rx="47" ry="26" fill="#8a4a22" stroke="#3e220f" stroke-width="2"/>
-            <path d="M13 30 L87 30" stroke="#f2e6d8" stroke-width="3" stroke-linecap="round"/>
-            <path d="M33 21 L33 39 M42 19 L42 41 M58 19 L58 41 M67 21 L67 39" stroke="#f2e6d8" stroke-width="2.5" stroke-linecap="round"/>
-          </svg>
-        </div>
+    <div class="nfl-loader-stage">
+      <div class="nfl-loader-spin">
+        <svg class="nfl-loader-ball-svg" viewBox="0 0 100 56" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="nflBallGrad" x1="15%" y1="10%" x2="90%" y2="95%">
+              <stop offset="0%" stop-color="#c17d45"/>
+              <stop offset="50%" stop-color="#8a4a22"/>
+              <stop offset="100%" stop-color="#5c2f13"/>
+            </linearGradient>
+          </defs>
+          <path d="M5,28 Q50,2 95,28 Q50,54 5,28 Z" fill="url(#nflBallGrad)"/>
+          <path d="M21,28 L79,28" stroke="#f2e6d8" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M37,21 L37,35 M45,19 L45,37 M55,19 L55,37 M63,21 L63,35" stroke="#f2e6d8" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
       </div>
-      <div class="nfl-loader-track"><div class="nfl-loader-fill"></div></div>
-      <div class="nfl-loader-label">Lädt</div>
+      <div class="nfl-loader-shadow"></div>
     </div>
+    <div class="nfl-loader-label">Lädt</div>
   </div>
   <div id="navbar-container"></div>
   

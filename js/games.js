@@ -77,6 +77,7 @@ async function initGamesPage() {
     // irgendwann alle Saisons, aber falls der Nutzer schneller klickt als der
     // im Hintergrund fertig wird, holen wir die Saison hier gezielt nach.
     if (!gamesData.some(g => g.season === selectedSeason)) {
+      if (window.NFLLoader) NFLLoader.show();
       try {
         const seasonGames = await firebaseGetGames({ season: selectedSeason });
         // Mit bereits geladenen Spielen anderer Saisons zusammenführen
@@ -84,6 +85,8 @@ async function initGamesPage() {
         gamesData = [...otherSeasons, ...seasonGames];
       } catch (error) {
         console.error('Error loading season on demand:', error);
+      } finally {
+        if (window.NFLLoader) NFLLoader.hide();
       }
     }
 
@@ -229,13 +232,15 @@ function populateGroupFilter() {
       // Deaktiviere Filter während Laden
       groupFilter.disabled = true;
       groupFilter.style.opacity = '0.6';
-      
+      if (window.NFLLoader) NFLLoader.show();
+
       try {
         await loadGroupBets();
       } finally {
         // Reaktiviere Filter
         groupFilter.disabled = false;
         groupFilter.style.opacity = '1';
+        if (window.NFLLoader) NFLLoader.hide();
       }
     }
     

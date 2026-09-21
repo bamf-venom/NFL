@@ -16,15 +16,13 @@ async function initLeaderboardPage() {
   document.getElementById('group-filter').addEventListener('change', async function(e) {
     selectedGroup = e.target.value;
     updateGroupInfo();
-    
-    // Zeige Loading-Spinner während Daten geladen werden
-    document.getElementById('leaderboard-container').innerHTML = `
-      <div class="loading-container">
-        <div class="spinner spinner-lg"></div>
-      </div>
-    `;
-    
-    await loadLeaderboard(true);
+
+    if (window.NFLLoader) NFLLoader.show();
+    try {
+      await loadLeaderboard(true);
+    } finally {
+      if (window.NFLLoader) NFLLoader.hide();
+    }
   });
 }
 
