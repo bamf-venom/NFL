@@ -1,0 +1,26 @@
+name: Einmalige Korrektur - Moritz Punkte zurücksetzen
+
+on:
+  workflow_dispatch: {} # NUR manuell auslösbar, kein Zeitplan
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Abhängigkeiten installieren
+        working-directory: automation
+        run: npm install
+
+      - name: Korrektur ausführen
+        working-directory: automation
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node fix-moritz-points.js
