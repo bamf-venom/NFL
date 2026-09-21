@@ -1,12 +1,13 @@
 /* ==================== Ladeanimation ====================
-   Exakt nach Frame-fuer-Frame-Analyse eines Referenz-Videos der NFL-App
-   nachgebaut: der Ball selbst bewegt sich NICHT (fester Winkel), nur die
-   Naht/Schnuerung wird von einem Streifen mit hartem Rand "abgetastet", der
-   quer zur Ball-Laengsachse wandert (oben -> unten), wieder verschwindet und
-   von vorne beginnt - dadurch wirkt es wie eine Rotation, ohne dass sich die
-   Ball-Silhouette tatsaechlich dreht. Sichtbar per Default (kein JS-Delay
-   noetig, verhindert weisses Aufblitzen beim Seitenwechsel) - wird per JS
-   (loader.js) wieder ausgeblendet. */
+   Exakt nach genauer Frame-fuer-Frame-Analyse (gezoomt, 60ms-Schritte)
+   eines Referenz-Videos der NFL-App nachgebaut: der Ball selbst bewegt sich
+   NICHT (fester Winkel). Die Naht/Schnuerung ist ein eigenstaendiges
+   Element, das komplett von einer Ball-Spitze zur anderen WANDERT
+   (translateX), waehrend es hart von der Ball-Kontur (ClipPath in exakter
+   Ball-Form) abgeschnitten wird - dadurch taucht es an einer Spitze auf,
+   gleitet durchs Zentrum, verschwindet an der anderen Spitze, und beginnt
+   von vorne. Sichtbar per Default (kein JS-Delay noetig, verhindert weisses
+   Aufblitzen beim Seitenwechsel) - wird per JS (loader.js) ausgeblendet. */
 
 #nfl-loader {
   position: fixed;
@@ -44,14 +45,15 @@
   transform-origin: 22px 13px;
 }
 
-/* Der Abtast-Streifen wandert quer zur Ball-Laengsachse (oben -> unten) */
+/* Die Naht wandert von einer Ball-Spitze zur anderen, von der Kontur
+   (ClipPath) hart abgeschnitten */
 .nfl-loader-seam-sweep {
-  animation: nfl-loader-seam-sweep 1.1s linear infinite;
+  animation: nfl-loader-seam-sweep 0.9s linear infinite;
 }
 
 @keyframes nfl-loader-seam-sweep {
-  from { transform: translateY(-5px); }
-  to { transform: translateY(27px); }
+  from { transform: translateX(-22px); }
+  to { transform: translateX(22px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
