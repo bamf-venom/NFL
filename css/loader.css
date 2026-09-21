@@ -1,18 +1,14 @@
 /* ==================== Ladeanimation ====================
-   Bewusst reduziert: EIN Bewegungselement (der Football, der um seine
-   Laengsachse "spiralt"), kein Farb-/Deko-Feuerwerk drumherum. Sichtbar per
-   Default (kein JS-Delay noetig, verhindert weisses Aufblitzen beim
-   Seitenwechsel) - wird per JS (loader.js) wieder ausgeblendet. */
+   Angelehnt an das Ladebild der offiziellen NFL-App: schlichter dunkler
+   Vollbild-Hintergrund, keine Deko - nur eine kleine, dezente Football-Icon-
+   Animation unten am Bildschirm. Sichtbar per Default (kein JS-Delay noetig,
+   verhindert weisses Aufblitzen beim Seitenwechsel) - wird per JS
+   (loader.js) wieder ausgeblendet. */
 
 #nfl-loader {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 22px;
   background: var(--background);
   opacity: 1;
   visibility: visible;
@@ -25,66 +21,52 @@
   pointer-events: none;
 }
 
-.nfl-loader-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
+.nfl-loader-bottom {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  transform: translateX(-50%);
 }
 
-/* Verjuengt sich beim Drehen sichtbar wie ein echter Spiralpass um die
-   Laengsachse, statt sich flach wie ein Pinwheel im Kreis zu drehen.
-   scaleX statt echtem rotateY, damit der Ball nie komplett auf 0 Breite
-   kollabiert (waere bei echtem 3D-Rotate im 90-Grad-Punkt unsichtbar). */
-.nfl-loader-spin {
-  animation: nfl-loader-spin 0.9s ease-in-out infinite;
+.nfl-loader-ball-wrap {
+  position: relative;
+  width: 44px;
+  height: 26px;
 }
 
-@keyframes nfl-loader-spin {
-  0%, 100% { transform: scaleX(1); filter: brightness(1); }
-  50% { transform: scaleX(0.22); filter: brightness(1.4); }
-}
-
-.nfl-loader-ball-svg {
-  width: 60px;
-  height: 34px;
+.nfl-loader-ball-outline {
+  width: 44px;
+  height: 26px;
   display: block;
-  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
+  opacity: 0.9;
 }
 
-/* Bodenschatten, der beim Rotieren dezent mitatmet */
-.nfl-loader-shadow {
-  width: 40px;
-  height: 7px;
+/* Kleiner Punkt, der um den Football kreist - dezenter "still busy"-Hinweis
+   statt einer grossen, auffaelligen Animation. */
+.nfl-loader-orbit {
+  position: absolute;
+  inset: 0;
+  animation: nfl-loader-orbit-spin 1.3s linear infinite;
+}
+
+.nfl-loader-dot {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
-  filter: blur(1.5px);
-  animation: nfl-loader-shadow 1s ease-in-out infinite;
+  background: var(--muted);
+  transform: translateX(-50%);
 }
 
-@keyframes nfl-loader-shadow {
-  0%, 100% { transform: scaleX(1); opacity: 0.4; }
-  50% { transform: scaleX(0.72); opacity: 0.22; }
-}
-
-.nfl-loader-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--muted);
+@keyframes nfl-loader-orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nfl-loader-spin,
-  .nfl-loader-shadow {
+  .nfl-loader-orbit {
     animation: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .nfl-loader-ball-svg {
-    width: 50px;
-    height: 28px;
   }
 }
