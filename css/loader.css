@@ -50,8 +50,8 @@
 }
 
 @keyframes nfl-loader-seam-sweep {
-  from { transform: translateY(-2px); }
-  to { transform: translateY(30px); }
+  from { transform: translateY(-5px); }
+  to { transform: translateY(27px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
