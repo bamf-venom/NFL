@@ -272,3 +272,18 @@ function initPage() {
 // Run on DOM ready
 document.addEventListener('DOMContentLoaded', initPage);
 
+// PWA: Service Worker registrieren, damit die App installierbar ist und ein
+// Offline-Grundgeruest hat. sw.js liegt im Projekt-Root, der relative Pfad
+// unterscheidet sich je nachdem ob wir auf index.html oder einer Unterseite
+// unter /pages/ sind - der Geltungsbereich (Scope) richtet sich trotzdem
+// automatisch nach dem Ordner, in dem sw.js selbst liegt (Projekt-Root),
+// deckt also immer die ganze App ab.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    const swPath = window.location.pathname.includes('/pages/') ? '../sw.js' : 'sw.js';
+    navigator.serviceWorker.register(swPath).catch((err) => {
+      console.warn('Service Worker Registrierung fehlgeschlagen:', err);
+    });
+  });
+}
+
