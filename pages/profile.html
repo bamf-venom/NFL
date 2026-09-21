@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="../css/leaderboard-groups.css">
   <link rel="stylesheet" href="../css/profile-admin.css">
   <link rel="stylesheet" href="../css/utilities.css">
+  <link rel="stylesheet" href="../css/loader.css">
   <link rel="stylesheet" href="../css/mobile.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,6 +22,21 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
+  <div id="nfl-loader" aria-hidden="true">
+    <div class="nfl-loader-content">
+      <div class="nfl-loader-bounce">
+        <div class="nfl-loader-spin">
+          <svg class="nfl-loader-ball-svg" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="50" cy="30" rx="47" ry="26" fill="#8a4a22" stroke="#3e220f" stroke-width="2"/>
+            <path d="M13 30 L87 30" stroke="#f2e6d8" stroke-width="3" stroke-linecap="round"/>
+            <path d="M33 21 L33 39 M42 19 L42 41 M58 19 L58 41 M67 21 L67 39" stroke="#f2e6d8" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="nfl-loader-track"><div class="nfl-loader-fill"></div></div>
+      <div class="nfl-loader-label">Lädt</div>
+    </div>
+  </div>
   <div id="navbar-container"></div>
   
   <main class="main-content">
@@ -136,6 +152,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
   <script src="../js/config.js"></script>
+  <script src="../js/loader.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/main.js"></script>

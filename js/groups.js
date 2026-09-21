@@ -5,6 +5,7 @@ let userGroups = [];
 // Initialize groups page
 async function initGroupsPage() {
   await loadGroups();
+  if (window.NFLLoader) NFLLoader.hide();
 }
 
 // Load user groups from Firebase

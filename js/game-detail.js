@@ -17,6 +17,7 @@ async function initGameDetailPage() {
   }
 
   await loadGameDetail(gameId);
+  if (window.NFLLoader) NFLLoader.hide();
 }
 
 // Load game detail from Firebase

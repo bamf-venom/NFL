@@ -58,6 +58,8 @@ async function initGamesPage() {
   // Render games with filters applied
   renderGames();
 
+  if (window.NFLLoader) NFLLoader.hide();
+
   // Week filter change
   document.getElementById('week-filter').addEventListener('change', function(e) {
     selectedWeek = e.target.value ? parseInt(e.target.value) : null;

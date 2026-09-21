@@ -36,6 +36,7 @@ async function initProfilePage() {
   ]);
   renderProfile();
   initCropper();
+  if (window.NFLLoader) NFLLoader.hide();
 }
 
 // Initialize cropper event listeners

@@ -1,0 +1,160 @@
+/* ==================== Seiten-Ladeanimation ====================
+   Football-Intro im Stil einer Sport-Broadcast-Bumper-Animation.
+   Sichtbar per Default (kein JS-Delay nötig, verhindert weißes Aufblitzen
+   beim Seitenwechsel) - wird per JS (loader.js) wieder ausgeblendet,
+   sobald die jeweilige Seite ihre Daten geladen hat. */
+
+#nfl-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  background: radial-gradient(circle at 50% 38%, #16161f 0%, #0a0a0f 65%);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+  overflow: hidden;
+}
+
+#nfl-loader.nfl-loader-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Sweepende Field-Yardlines im Hintergrund */
+#nfl-loader::before {
+  content: '';
+  position: absolute;
+  inset: -20% -50%;
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0px,
+    transparent 64px,
+    rgba(var(--accent-rgb), 0.07) 64px,
+    rgba(var(--accent-rgb), 0.07) 67px
+  );
+  animation: nfl-loader-stripes 5s linear infinite;
+}
+
+/* Stadionlicht-Glow, der hinter dem Ball pulsiert */
+#nfl-loader::after {
+  content: '';
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  width: 260px;
+  height: 260px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.35) 0%, rgba(var(--accent-rgb), 0) 70%);
+  animation: nfl-loader-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes nfl-loader-stripes {
+  from { transform: translateX(0); }
+  to { transform: translateX(-240px); }
+}
+
+@keyframes nfl-loader-glow {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.9); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+}
+
+.nfl-loader-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+/* Wurf-Bewegung (auf und ab), außen - separates Element vom Rotieren,
+   damit beide Transform-Animationen unabhängig voneinander laufen können */
+.nfl-loader-bounce {
+  animation: nfl-loader-bounce 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes nfl-loader-bounce {
+  0%, 100% { transform: translateY(-6px); }
+  50% { transform: translateY(6px); }
+}
+
+/* Spiral-Rotation des Footballs, innen */
+.nfl-loader-spin {
+  animation: nfl-loader-spin 0.85s linear infinite;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.5));
+}
+
+@keyframes nfl-loader-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.nfl-loader-ball-svg {
+  width: 76px;
+  height: 76px;
+  display: block;
+}
+
+/* Indeterminierter Fortschrittsbalken ("Yard-Marker") */
+.nfl-loader-track {
+  width: 168px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(var(--white-rgb), 0.1);
+  overflow: hidden;
+}
+
+.nfl-loader-fill {
+  width: 35%;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent) 0%, #ff5a4d 100%);
+  animation: nfl-loader-fill-move 1.05s ease-in-out infinite;
+}
+
+@keyframes nfl-loader-fill-move {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(380%); }
+}
+
+.nfl-loader-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: nfl-loader-label-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes nfl-loader-label-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #nfl-loader::before,
+  #nfl-loader::after,
+  .nfl-loader-bounce,
+  .nfl-loader-spin,
+  .nfl-loader-fill,
+  .nfl-loader-label {
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .nfl-loader-ball-svg {
+    width: 60px;
+    height: 60px;
+  }
+
+  .nfl-loader-track {
+    width: 140px;
+  }
+}
