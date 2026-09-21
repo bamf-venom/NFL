@@ -1,5 +1,29 @@
 // Main application logic
 
+// Escaped nutzerkontrollierten Text (Username, Gruppenname, ...) sicher in
+// HTML ein - schuetzt vor gespeichertem XSS, da diese Werte frei vom Nutzer
+// gesetzt werden koennen und an vielen Stellen ungeprueft angezeigt werden.
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Fuer nutzerkontrollierten Text, der als JS-String-Argument in ein inline
+// onclick/onerror-Attribut eingebettet wird: HTML-Escaping allein reicht
+// dort NICHT (der Browser dekodiert HTML-Entities in Attributwerten, bevor
+// der JS-String geparst wird - ein escaptes ' wuerde also trotzdem als '
+// im JS landen und den String-Literal aufbrechen). encodeURIComponent
+// erzeugt dagegen keine Anfuehrungszeichen/Klammern und ist damit sicher;
+// der Handler muss den Wert dann mit decodeURIComponent() zuruecklesen.
+function jsAttrSafe(str) {
+  return encodeURIComponent(str === null || str === undefined ? '' : String(str));
+}
+
 // Format date for German locale
 function formatDate(dateString) {
   const date = new Date(dateString);
@@ -160,7 +184,7 @@ function renderNavbar() {
             <div class="mobile-profile-avatar">
               ${avatarContent}
             </div>
-            <span class="mobile-profile-name">${user.username}</span>
+            <span class="mobile-profile-name">${escapeHtml(user.username)}</span>
           </a>
           
           <!-- Desktop: User Menu -->
@@ -169,7 +193,7 @@ function renderNavbar() {
               <div class="user-avatar">
                 ${avatarContent}
               </div>
-              <span>${user.username}</span>
+              <span>${escapeHtml(user.username)}</span>
               <i class="fas fa-chevron-down"></i>
             </button>
             

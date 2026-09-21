@@ -127,6 +127,7 @@ function copyInviteLink() {
 
 // Kick member
 async function kickMember(userId, username) {
+  username = decodeURIComponent(username);
   if (!confirm(`${username} wirklich aus der Gruppe entfernen?`)) return;
   
   try {
@@ -214,7 +215,7 @@ function renderGroupDetail() {
         </div>
         <div>
           <div style="display: flex; align-items: center; gap: 10px;">
-            <h1 class="group-header-name" data-testid="group-name">${group.name}</h1>
+            <h1 class="group-header-name" data-testid="group-name">${escapeHtml(group.name)}</h1>
             ${isAdmin ? `
               <button class="btn btn-ghost btn-sm" onclick="openEditNameModal()" data-testid="edit-name-btn" title="Name ändern">
                 <i class="fas fa-edit"></i>
@@ -339,9 +340,9 @@ function renderTabContent() {
       const isMemberAdmin = member.user_id === group.admin_id;
       
       // Profile picture or initial
-      const avatarContent = member.profile_picture 
-        ? `<img src="${member.profile_picture}" alt="${member.username}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
-        : member.username.charAt(0).toUpperCase();
+      const avatarContent = member.profile_picture
+        ? `<img src="${member.profile_picture}" alt="${escapeHtml(member.username)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+        : escapeHtml(member.username.charAt(0).toUpperCase());
       
       html += `
         <div class="card member-item ${isOwn ? 'own' : ''}" 
@@ -351,7 +352,7 @@ function renderTabContent() {
             <div class="member-avatar" style="overflow: hidden;">${avatarContent}</div>
             <div>
               <div class="member-name">
-                ${member.username}
+                ${escapeHtml(member.username)}
                 ${isOwn ? '<span style="font-size: 12px; padding: 2px 8px; background: rgba(255,255,255,0.1); border-radius: 4px;">Du</span>' : ''}
                 ${isMemberAdmin ? '<i class="fas fa-crown" style="color: #fbbf24;"></i>' : ''}
               </div>
@@ -359,7 +360,7 @@ function renderTabContent() {
             </div>
           </div>
           ${isAdmin && !isOwn ? `
-            <button class="btn btn-ghost btn-sm" onclick="kickMember('${member.user_id}', '${member.username}')" data-testid="kick-${member.user_id}">
+            <button class="btn btn-ghost btn-sm" onclick="kickMember('${member.user_id}', '${jsAttrSafe(member.username)}')" data-testid="kick-${member.user_id}">
               <i class="fas fa-user-minus" style="color: var(--error);"></i>
             </button>
           ` : ''}
@@ -443,7 +444,7 @@ function renderTabContent() {
           
           <div class="leaderboard-user">
             <div class="leaderboard-username">
-              ${entry.username}
+              ${escapeHtml(entry.username)}
               ${isOwn ? '<span class="leaderboard-you">Du</span>' : ''}
             </div>
             <div class="leaderboard-stats">
@@ -503,7 +504,7 @@ function renderTabContent() {
             <div style="display: flex; flex-direction: column; gap: 8px;">
               ${bets.map(bet => `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-radius: 8px; background: ${bet.user_id === currentUser.id ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)'};">
-                  <span style="font-size: 14px;">${bet.username}</span>
+                  <span style="font-size: 14px;">${escapeHtml(bet.username)}</span>
                   <div style="display: flex; align-items: center; gap: 12px;">
                     <span style="font-weight: 500;">${bet.home_score_prediction} : ${bet.away_score_prediction}</span>
                     ${game.status === 'finished' ? `

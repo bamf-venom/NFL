@@ -502,7 +502,7 @@ function renderProfile() {
             type="text" 
             id="username-edit-input"
             class="form-input username-input"
-            value="${user.username}"
+            value="${escapeHtml(user.username)}"
             maxlength="30"
             data-testid="username-edit-input"
             onkeydown="if(event.key === 'Enter') saveUsername(); if(event.key === 'Escape') toggleUsernameEdit();"
@@ -520,7 +520,7 @@ function renderProfile() {
       ` : `
         <!-- Username Display Mode -->
         <div class="username-display-container" data-testid="username-display-container">
-          <h1 class="profile-username" data-testid="profile-username">${user.username}</h1>
+          <h1 class="profile-username" data-testid="profile-username">${escapeHtml(user.username)}</h1>
           <button class="btn-edit-username" onclick="toggleUsernameEdit()" data-testid="edit-username-btn" title="Benutzernamen ändern">
             <i class="fas fa-pencil"></i>
           </button>
@@ -580,7 +580,7 @@ function renderProfile() {
                     <i class="fas fa-users" style="font-size: 14px;"></i>
                   </div>
                   <div>
-                    <div style="font-weight: 600;">${group.name}</div>
+                    <div style="font-weight: 600;">${escapeHtml(group.name)}</div>
                     <div style="font-size: 12px; color: var(--muted);">
                       ${memberCount} Mitglied${memberCount !== 1 ? 'er' : ''}
                       ${isAdmin ? ' • Admin' : ''}

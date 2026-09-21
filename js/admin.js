@@ -364,19 +364,19 @@ function renderAdminUsers() {
            style="animation: fadeIn 0.3s ease-out ${index * 0.03}s both;"
            data-testid="user-${user.id}">
         <div class="user-card-info">
-          <div class="user-card-avatar">${user.username.charAt(0).toUpperCase()}</div>
+          <div class="user-card-avatar">${escapeHtml(user.username.charAt(0).toUpperCase())}</div>
           <div>
             <div class="user-card-name">
-              ${user.username}
+              ${escapeHtml(user.username)}
               ${user.is_admin ? '<span class="badge badge-warning">Admin</span>' : ''}
             </div>
-            <div class="user-card-email">${user.email}</div>
+            <div class="user-card-email">${escapeHtml(user.email)}</div>
           </div>
         </div>
         <div class="user-card-actions">
           <div class="user-card-points">${user.total_points || 0} Pkt</div>
           ${!user.is_admin && user.id !== currentUser.id ? `
-            <button class="btn btn-danger btn-sm" onclick="handleDeleteUser('${user.id}', '${user.username}')" data-testid="delete-user-${user.id}">
+            <button class="btn btn-danger btn-sm" onclick="handleDeleteUser('${user.id}', '${jsAttrSafe(user.username)}')" data-testid="delete-user-${user.id}">
               <i class="fas fa-trash"></i>
             </button>
           ` : ''}
@@ -678,6 +678,7 @@ async function handleDeleteGame(gameId) {
 
 // Handle delete user
 async function handleDeleteUser(userId, username) {
+  username = decodeURIComponent(username);
   if (!confirm(`Benutzer "${username}" wirklich löschen? Alle Daten werden gelöscht!`)) return;
   
   try {

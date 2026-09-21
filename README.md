@@ -99,44 +99,11 @@ const FIREBASE_CONFIG = {
 
 ### 4. Firestore Security Rules
 
-Kopiere diese Regeln in deine Firestore Rules:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Games
-    match /games/{gameId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
-    }
-    
-    // Bets
-    match /bets/{betId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.user_id;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.user_id;
-    }
-    
-    // Groups
-    match /groups/{groupId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && 
-        (request.auth.uid in resource.data.member_ids || 
-         request.auth.uid == resource.data.created_by);
-      allow delete: if request.auth != null && request.auth.uid == resource.data.created_by;
-    }
-  }
-}
-```
+Die eigentlichen Zugriffsregeln (wer welche Daten lesen/schreiben darf) werden ausschließlich
+in der Firebase Console unter **Firestore Database → Regeln** gepflegt, nicht in diesem Repo.
+Grundprinzip: Lesen erfordert eine eingeloggte Sitzung, Schreiben ist jeweils auf die eigenen
+Daten beschränkt (eigenes Profil, eigene Wetten, Gruppen deren Mitglied man ist), Spiele dürfen
+nur von Admin-Konten (`is_admin: true`) angelegt/geändert werden.
 
 ### 5. Lokal starten
 

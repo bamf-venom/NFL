@@ -190,7 +190,7 @@ function populateGroupFilter() {
   const groupFilterHTML = `
     <select id="group-filter" class="form-input" style="width: auto; min-width: 150px;" data-testid="group-filter">
       <option value="none">Keine Gruppe</option>
-      ${userGroups.map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
+      ${userGroups.map(g => `<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('')}
     </select>
   `;
   
@@ -675,9 +675,9 @@ function renderGames() {
                     <div class="group-bet-item ${bet.user_id === currentUser?.id ? 'own' : ''}" data-testid="group-bet-${bet.id}">
                       <div class="group-bet-user">
                         <div class="group-bet-avatar">
-                          ${bet.profile_picture ? `<img src="${bet.profile_picture}" alt="${bet.username}" class="group-bet-avatar-img" onerror="this.style.display='none'; this.parentElement.innerHTML='${bet.username.charAt(0).toUpperCase()}';">` : bet.username.charAt(0).toUpperCase()}
+                          ${bet.profile_picture ? `<img src="${bet.profile_picture}" alt="${escapeHtml(bet.username)}" class="group-bet-avatar-img" data-fallback-letter="${escapeHtml(bet.username.charAt(0).toUpperCase())}" onerror="this.style.display='none'; this.parentElement.textContent=this.dataset.fallbackLetter;">` : escapeHtml(bet.username.charAt(0).toUpperCase())}
                         </div>
-                        <span class="group-bet-username">${bet.user_id === currentUser?.id ? 'Du' : bet.username}</span>
+                        <span class="group-bet-username">${bet.user_id === currentUser?.id ? 'Du' : escapeHtml(bet.username)}</span>
                       </div>
                       <div class="group-bet-prediction">
                         ${bet.home_score_prediction} : ${bet.away_score_prediction}

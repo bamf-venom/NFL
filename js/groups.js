@@ -66,7 +66,7 @@ function renderGroups() {
             <i class="fas fa-users"></i>
           </div>
           <div>
-            <div class="group-name">${group.name}</div>
+            <div class="group-name">${escapeHtml(group.name)}</div>
             <div class="group-members">
               ${memberCount} Mitglied${memberCount !== 1 ? 'er' : ''}
               ${isAdmin ? '<span class="badge badge-default">Admin</span>' : ''}

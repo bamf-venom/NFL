@@ -292,9 +292,9 @@ function renderGameDetail() {
   if (userGroups.length > 0) {
     const groupSelectorHTML = userGroups.length > 1 ? `
       <select class="form-input" style="width: auto; min-width: 160px;" data-testid="game-detail-group-select" onchange="switchGameDetailGroup(this.value)">
-        ${userGroups.map(g => `<option value="${g.id}" ${g.id === selectedGroupId ? 'selected' : ''}>${g.name}</option>`).join('')}
+        ${userGroups.map(g => `<option value="${g.id}" ${g.id === selectedGroupId ? 'selected' : ''}>${escapeHtml(g.name)}</option>`).join('')}
       </select>
-    ` : `<span style="color: var(--muted); font-size: 14px;">${userGroups[0].name}</span>`;
+    ` : `<span style="color: var(--muted); font-size: 14px;">${escapeHtml(userGroups[0].name)}</span>`;
 
     html += `
       <div class="card animate-fade-in" style="margin-top: 24px; animation-delay: 0.2s;">
@@ -318,9 +318,9 @@ function renderGameDetail() {
                      style="animation: fadeIn 0.3s ease-out ${i * 0.05}s both;"
                      data-testid="bet-${bet.id}">
                   <div class="bet-user">
-                    <div class="bet-avatar">${bet.username.charAt(0).toUpperCase()}</div>
+                    <div class="bet-avatar">${escapeHtml(bet.username.charAt(0).toUpperCase())}</div>
                     <div>
-                      <div class="bet-username">${bet.username}</div>
+                      <div class="bet-username">${escapeHtml(bet.username)}</div>
                       <div class="bet-date">${new Date(bet.created_at).toLocaleDateString('de-DE')}</div>
                     </div>
                   </div>

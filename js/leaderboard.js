@@ -143,7 +143,7 @@ function renderLeaderboard() {
         
         <div class="leaderboard-user">
           <div class="leaderboard-username">
-            ${entry.username}
+            ${escapeHtml(entry.username)}
             ${isOwn ? '<span class="leaderboard-you">Du</span>' : ''}
           </div>
           <div class="leaderboard-stats">
