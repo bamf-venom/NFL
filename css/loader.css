@@ -1,20 +1,14 @@
 /* ==================== Ladeanimation ====================
-   Angelehnt an das Ladebild der offiziellen NFL-App: schlichter dunkler
-   Vollbild-Hintergrund, mittig ein angewinkeltes Football-Icon. Der Ball
-   selbst bewegt sich nicht - nur die Naht/Schnürung blendet sich rhythmisch
-   ein und aus, wodurch der Eindruck einer Rotation um die eigene Achse
-   entsteht, ohne die Probleme einer echten Dreh-Animation (Ball wirkt bei
-   echtem rotateY im 90-Grad-Punkt unsichtbar, bei flachem rotate wie ein
-   Pinwheel). Sichtbar per Default (kein JS-Delay noetig, verhindert weisses
-   Aufblitzen beim Seitenwechsel) - wird per JS (loader.js) ausgeblendet. */
+   Exakt nach Referenz-Video der offiziellen NFL-App nachgebaut: schlichter
+   dunkler Vollbild-Hintergrund, unten am Bildschirm ein kleines, sich
+   durchgehend drehendes Football-Icon (Outline-Stil). Sichtbar per Default
+   (kein JS-Delay noetig, verhindert weisses Aufblitzen beim Seitenwechsel) -
+   wird per JS (loader.js) wieder ausgeblendet. */
 
 #nfl-loader {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: var(--background);
   opacity: 1;
   visibility: visible;
@@ -27,32 +21,32 @@
   pointer-events: none;
 }
 
+.nfl-loader-bottom {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  transform: translateX(-50%);
+}
+
 .nfl-loader-ball-outline {
-  width: 76px;
-  height: 45px;
+  width: 52px;
+  height: 31px;
   display: block;
   overflow: visible;
 }
 
-/* Statischer Winkel wie im Vorbild - der Ball selbst dreht sich nicht */
-.nfl-loader-ball-tilt {
-  transform: rotate(-28deg);
+.nfl-loader-spin {
   transform-origin: 22px 13px;
+  animation: nfl-loader-spin 1.25s linear infinite;
 }
 
-/* Naht + Schnuerung blenden rhythmisch ein/aus - simuliert Rotation */
-.nfl-loader-seam {
-  animation: nfl-loader-seam-pulse 1.3s ease-in-out infinite;
-}
-
-@keyframes nfl-loader-seam-pulse {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+@keyframes nfl-loader-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nfl-loader-seam {
+  .nfl-loader-spin {
     animation: none;
-    opacity: 1;
   }
 }
