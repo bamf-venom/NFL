@@ -150,8 +150,12 @@ function renderNavbar() {
     </a>
   `).join('');
 
-  // Bottom tab bar items (mobile app style) - primary nav + Profil
-  const bottomNavItems = [...navItems, { href: 'profile.html', id: 'profile', label: 'Profil', icon: 'fa-user' }];
+  // Bottom tab bar items (mobile app style) - primary nav + Profil + Einstellungen
+  const bottomNavItems = [
+    ...navItems,
+    { href: 'profile.html', id: 'profile', label: 'Profil', icon: 'fa-user' },
+    { href: 'settings.html', id: 'settings', label: 'Einstellungen', icon: 'fa-cog' }
+  ];
 
   const bottomNavHTML = bottomNavItems.map(item => `
     <a href="${item.href}" class="bottom-nav-link ${currentPage === item.id ? 'active' : ''}" data-testid="bottom-nav-${item.label.toLowerCase()}">
@@ -202,6 +206,10 @@ function renderNavbar() {
                 <i class="fas fa-user"></i>
                 Mein Profil
               </a>
+              <a href="settings.html" class="user-menu-item" data-testid="settings-link">
+                <i class="fas fa-cog"></i>
+                Einstellungen
+              </a>
               <button onclick="logout()" class="user-menu-item danger" data-testid="logout-button">
                 <i class="fas fa-sign-out-alt"></i>
                 Abmelden
@@ -241,6 +249,10 @@ function renderNavbar() {
         <a href="profile.html" class="mobile-nav-link" onclick="closeMobileMenu()">
           <i class="fas fa-user"></i>
           <span>Mein Profil</span>
+        </a>
+        <a href="settings.html" class="mobile-nav-link" onclick="closeMobileMenu()">
+          <i class="fas fa-cog"></i>
+          <span>Einstellungen</span>
         </a>
         <button onclick="logout(); closeMobileMenu();" class="mobile-nav-link logout-link">
           <i class="fas fa-sign-out-alt"></i>

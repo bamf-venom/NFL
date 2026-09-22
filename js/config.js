@@ -111,3 +111,9 @@ const ADMIN_EMAIL = 'info@mbpvfx.com';
 
 // Wetten werden so viele Minuten vor Anpfiff gesperrt
 const BETTING_LOCK_MINUTES_BEFORE_KICKOFF = 60;
+
+// App-Version für die Update-Anzeige in den Einstellungen (settings.js
+// vergleicht diese Konstante mit einer frisch vom Server geholten Kopie
+// dieser Datei). WICHTIG: bei jedem sichtbaren Deploy hochzählen, sonst
+// zeigt die Update-Erkennung nichts an.
+const APP_VERSION = '2026.09.22.1';
