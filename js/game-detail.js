@@ -1,34 +1,26 @@
-// Game detail page logic
-
+// Spiel-Detail-Logik - läuft als In-Page-Ansicht innerhalb von games.html
+// (aufgerufen über openGameDetail() in games.js), nicht mehr als eigene
+// Seite. userGroups/selectedGroupId werden deshalb NICHT hier deklariert,
+// sondern von games.js mitverwendet (dort bereits vorhanden) - zwei
+// let-Deklarationen desselben Namens im selben globalen Scope (beide
+// Skripte laufen jetzt auf derselben Seite) würden sonst einen SyntaxError
+// werfen. Als netter Nebeneffekt bleibt die Gruppenauswahl so automatisch
+// zwischen Liste und Detail-Ansicht konsistent.
 let currentGameData = null;
 let groupBetsData = []; // Wetten der Mitglieder der ausgewählten Gruppe (nicht mehr "alle Wetten global")
 let myBetData = null;
-let userGroups = [];
-let selectedGroupId = null;
 
-// Initialize game detail page
-async function initGameDetailPage() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const gameId = urlParams.get('id');
-
-  if (!gameId) {
-    window.location.href = 'games.html';
-    return;
-  }
-
-  await loadGameDetail(gameId);
-}
-
-// Load game detail from Firebase
+// Load game detail - bevorzugt aus den bereits von games.js geladenen
+// Daten (gamesData/userBetsMap/userGroups), damit das Öffnen eines Spiels
+// im Normalfall OHNE Firestore-Aufruf und damit sofort passiert. Nur falls
+// etwas dort nicht gefunden wird (z.B. Deep-Link auf ein Spiel aus einer
+// noch nicht geladenen Saison), wird gezielt nachgeladen.
 async function loadGameDetail(gameId) {
   try {
-    // Spiel, eigene Wette (nur die eine, nicht alle Wetten im System) und die
-    // eigenen Gruppen unabhängig voneinander parallel laden
-    const [game, myBet, groups] = await Promise.all([
-      firebaseGetGame(gameId),
-      firebaseGetUserBetForGame(currentUser.id, gameId),
-      firebaseGetUserGroups()
-    ]);
+    let game = (typeof gamesData !== 'undefined' ? gamesData.find(g => g.id === gameId) : null) || null;
+    if (!game) {
+      game = await firebaseGetGame(gameId);
+    }
 
     currentGameData = game;
 
@@ -36,28 +28,32 @@ async function loadGameDetail(gameId) {
       document.getElementById('game-detail-container').innerHTML = `
         <div class="card empty-state">
           <h3 class="empty-title">Spiel nicht gefunden</h3>
-          <a href="games.html" class="btn btn-primary" style="margin-top: 16px;">Zurück zu Spielen</a>
+          <a href="#" class="btn btn-primary" style="margin-top: 16px;" onclick="closeGameDetail(); return false;">Zurück zu Spielen</a>
         </div>
       `;
       return;
     }
 
-    myBetData = myBet;
-    userGroups = groups;
+    myBetData = (typeof userBetsMap !== 'undefined' ? userBetsMap[gameId] : null) || null;
+    if (!myBetData && currentUser) {
+      // Fallback, falls userBetsMap ausnahmsweise noch nicht gefüllt ist
+      myBetData = await firebaseGetUserBetForGame(currentUser.id, gameId);
+    }
 
-    // Gruppe auswählen: zuletzt auf der Spiele-Seite gewählte Gruppe falls noch
-    // gültig, sonst die erste eigene Gruppe. Ohne Gruppen gibt es nichts zu wählen.
+    if (typeof userGroups === 'undefined' || !userGroups) {
+      userGroups = await firebaseGetUserGroups();
+    }
+
+    // Gruppe auswählen: userGroups/selectedGroupId sind dieselben Variablen
+    // wie auf der Spiele-Liste (siehe Kommentar oben im Datei-Header) - die
+    // dortige loadFilterState() hat selectedGroupId beim Seitenaufruf schon
+    // aus dem gespeicherten Filter wiederhergestellt. Hier nur noch prüfen,
+    // ob die Auswahl noch gültig ist, sonst auf die erste eigene Gruppe
+    // zurückfallen. Ohne Gruppen gibt es nichts zu wählen.
     if (userGroups.length > 0) {
-      let preferredGroupId = null;
-      try {
-        const savedFilter = JSON.parse(localStorage.getItem('nflpoints_games_filter') || '{}');
-        preferredGroupId = savedFilter.groupId || null;
-      } catch (e) { /* ignore */ }
-
-      selectedGroupId = userGroups.find(g => g.id === preferredGroupId)
-        ? preferredGroupId
-        : userGroups[0].id;
-
+      if (!selectedGroupId || !userGroups.find(g => g.id === selectedGroupId)) {
+        selectedGroupId = userGroups[0].id;
+      }
       await loadGroupBetsForCurrentGame();
     } else {
       selectedGroupId = null;
@@ -470,15 +466,7 @@ async function handleDeleteBet() {
   }
 }
 
-// Run on page load
-document.addEventListener('DOMContentLoaded', async function() {
-  // Initialize Firebase first
-  if (typeof initializeFirebase === 'function') {
-    initializeFirebase();
-  }
-  
-  const isAuthed = await checkAuth();
-  if (isAuthed) {
-    initGameDetailPage();
-  }
-});
+// Kein eigener DOMContentLoaded-Listener mehr - diese Datei läuft jetzt als
+// In-Page-Ansicht innerhalb von games.html, dessen eigener Listener
+// (games.js) bereits Firebase initialisiert und Auth prüft. Aufgerufen wird
+// diese Ansicht über openGameDetail() in games.js.

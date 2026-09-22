@@ -58,6 +58,13 @@ async function initGamesPage() {
   // Render games with filters applied
   renderGames();
 
+  // Deep-Link/Reload während eine Spiel-Detail-Ansicht offen war - direkt
+  // dorthin springen statt erst kurz die Liste zu zeigen
+  const deepLinkGameId = new URLSearchParams(window.location.search).get('game');
+  if (deepLinkGameId) {
+    openGameDetail(deepLinkGameId, { pushState: false });
+  }
+
   // Week filter change
   document.getElementById('week-filter').addEventListener('change', function(e) {
     selectedWeek = e.target.value ? parseInt(e.target.value) : null;
@@ -583,7 +590,7 @@ function renderGames() {
              data-testid="game-card-${game.id}">
           
           <!-- Game Header - klickbar -->
-          <div class="game-card-header" onclick="window.location.href='game-detail.html?id=${game.id}'">
+          <div class="game-card-header" onclick="openGameDetail('${game.id}')">
             <!-- Top Row: Badge + eigene Wette (für Mobile) -->
             <div class="game-card-top-row">
               <div class="top-row-status">
@@ -703,6 +710,60 @@ function renderGames() {
   
   container.innerHTML = html;
 }
+
+// ==================== SPIEL-DETAIL ALS IN-PAGE-ANSICHT ====================
+// Öffnet die Detail-Ansicht eines Spiels OHNE Seiten-Navigation (früher
+// window.location.href='game-detail.html?id=...') - dadurch entfällt bei
+// jedem Spiel-Öffnen/Zurückgehen der komplette Seiten-Reload samt erneuter
+// Firebase-Initialisierung, was der Hauptgrund für die lange Ladezeit war.
+// loadGameDetail() (in game-detail.js) nutzt gamesData/userBetsMap, die hier
+// schon im Speicher sind, statt sie erneut von Firestore zu laden.
+async function openGameDetail(gameId, { pushState = true } = {}) {
+  const listView = document.getElementById('games-list-view');
+  const detailView = document.getElementById('game-detail-view');
+  if (!listView || !detailView) return;
+
+  if (pushState) {
+    history.pushState({ gameId }, '', `games.html?game=${encodeURIComponent(gameId)}`);
+  }
+
+  listView.classList.add('hidden');
+  detailView.classList.remove('hidden');
+  window.scrollTo(0, 0);
+
+  document.getElementById('game-detail-container').innerHTML = `
+    <div class="loading-container"><div class="spinner spinner-lg"></div></div>
+  `;
+
+  await loadGameDetail(gameId);
+}
+
+// Zurück zur Spiele-Liste - reiner DOM-Wechsel, kein Reload. Die Liste
+// selbst wurde nie zerstört, Scroll-Position bleibt dadurch automatisch
+// erhalten.
+function closeGameDetail({ pushState = true } = {}) {
+  const listView = document.getElementById('games-list-view');
+  const detailView = document.getElementById('game-detail-view');
+  if (!listView || !detailView) return;
+
+  if (pushState) {
+    history.pushState({}, '', 'games.html');
+  }
+
+  detailView.classList.add('hidden');
+  listView.classList.remove('hidden');
+}
+
+// Reagiert auf Browser-/Android-Hardware-Zurück-Taste, wenn eine
+// Detail-Ansicht per pushState geöffnet wurde
+window.addEventListener('popstate', () => {
+  const gameId = new URLSearchParams(window.location.search).get('game');
+  if (gameId) {
+    openGameDetail(gameId, { pushState: false });
+  } else {
+    closeGameDetail({ pushState: false });
+  }
+});
 
 // Run on page load
 document.addEventListener('DOMContentLoaded', async function() {

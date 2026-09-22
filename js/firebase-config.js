@@ -304,6 +304,16 @@ async function firebaseRegister(email, password, username) {
     email: email,
     is_admin: false,
     total_points: 0,
+    // total_bets/correct_winners/correct_scores waren hier bisher NICHT
+    // gesetzt (nur implizit über FieldValue.increment() beim ersten Wetten/
+    // Punkte-Berechnen entstanden). Das bricht die Firestore-Regel für
+    // users.update: die vergleicht resource.data.correct_winners/
+    // correct_scores VOR der Änderung mit dem Wert danach - fehlt das Feld
+    // komplett, schlägt der Vergleich fehl und JEDE erste Wette eines neuen
+    // Nutzers wurde mit "Missing or insufficient permissions" abgelehnt.
+    total_bets: 0,
+    correct_winners: 0,
+    correct_scores: 0,
     created_at: firebase.firestore.FieldValue.serverTimestamp()
   };
   

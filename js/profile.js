@@ -616,7 +616,7 @@ function renderProfile() {
             
             return `
               <div class="bet-item" 
-                   onclick="window.location.href='game-detail.html?id=${bet.game_id}'" 
+                   onclick="window.location.href='games.html?game=${bet.game_id}'"
                    style="cursor: pointer;"
                    data-testid="my-bet-${bet.id}">
                 <div>
