@@ -19,9 +19,16 @@ function waitForAuth() {
               currentUser = await firebaseGetCurrentUser();
               localStorage.setItem('user', JSON.stringify(currentUser));
             } catch (error) {
-              console.error('Error getting user data:', error);
-              currentUser = null;
-              localStorage.removeItem('user');
+              // Firebase Auth selbst sagt "eingeloggt" (user != null) - ein
+              // Fehler hier ist ein Firestore-Problem (z.B. Netzwerk, oder wie
+              // beim Kontingent-Vorfall vom 21.09. ein RESOURCE_EXHAUSTED),
+              // keine echte Abmeldung. Vorher wurde das faelschlich als Logout
+              // behandelt - jeder Firestore-Hakler hat den Nutzer rausgeworfen,
+              // obwohl die Session noch gueltig war. Bereits gespeicherte
+              // Nutzerdaten bleiben deshalb jetzt einfach stehen.
+              console.error('Error getting user data (Session bleibt trotzdem bestehen):', error);
+              const storedUser = localStorage.getItem('user');
+              currentUser = storedUser ? JSON.parse(storedUser) : null;
             }
           } else {
             currentUser = null;

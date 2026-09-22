@@ -15,10 +15,16 @@ const firebaseConfig = {
 // ==================== PERFORMANCE CACHE ====================
 // Games-Caching läuft über eigene, saison-fähige Strukturen (siehe
 // finishedGamesCache/gamesCombinedCache weiter unten), nicht über dataCache.
+// TTLs bewusst grosszuegig, seit die localStorage-Schicht (unten) sie auch
+// über Seitenwechsel hinweg gültig hält - eigene Wetten/Gruppen ändern sich
+// selten spontan von aussen, und jede Aktion die sie ändert (Wette
+// platzieren/löschen, Gruppe beitreten/verlassen, Profil bearbeiten)
+// invalidiert den jeweiligen Cache ohnehin sofort explizit.
 const dataCache = {
   leaderboard: { data: null, timestamp: 0, ttl: 60000 }, // 60 Sekunden
-  userBets: { data: null, timestamp: 0, ttl: 15000 }, // 15 Sekunden
-  groups: { data: null, timestamp: 0, ttl: 30000 } // 30 Sekunden
+  userBets: { data: null, timestamp: 0, ttl: 60000 }, // 60 Sekunden (vorher 15s)
+  groups: { data: null, timestamp: 0, ttl: 60000 }, // 60 Sekunden (vorher 30s)
+  currentUser: { data: null, timestamp: 0, ttl: 60000 } // 60 Sekunden
 };
 
 // ==================== LOCALSTORAGE-PERSISTENZ ====================
@@ -70,7 +76,7 @@ function lsRemovePrefix(prefix) {
 // Nutzers sichtbar werden
 function dataCacheStorageKey(key) {
   if (key === 'leaderboard') return 'leaderboard';
-  if (key === 'userBets' || key === 'groups') {
+  if (key === 'userBets' || key === 'groups' || key === 'currentUser') {
     const uid = auth && auth.currentUser && auth.currentUser.uid;
     return uid ? `${key}_${uid}` : null;
   }
@@ -327,18 +333,25 @@ async function firebaseLogout() {
   await auth.signOut();
 }
 
-async function firebaseGetCurrentUser() {
+async function firebaseGetCurrentUser(useCache = true) {
   const user = auth.currentUser;
   if (!user) return null;
-  
+
+  if (useCache) {
+    const cached = getCachedData('currentUser');
+    if (cached) return cached;
+  }
+
   const userDoc = await collections.users().doc(user.uid).get();
   if (!userDoc.exists) return null;
-  
+
   const userData = userDoc.data();
-  return {
+  const result = {
     ...userData,
     created_at: userData.created_at?.toDate?.()?.toISOString() || new Date().toISOString()
   };
+  setCachedData('currentUser', result);
+  return result;
 }
 
 async function firebaseDeleteAccount() {
@@ -422,9 +435,19 @@ function mapGameDoc(doc) {
 // Dynamischer Cache für (ggf. saison-gefilterte) Spiele-Kombi-Abfragen.
 // Key: Saison-String oder 'all' für unfilterte Abfragen.
 const finishedGamesCache = {};
-const FINISHED_GAMES_TTL = 180000; // 3 Minuten - siehe Kommentar bei firebaseGetGames
+// Beendete Spiele ändern sich nie von selbst - lange TTL ist sicher, jede
+// nachträgliche Korrektur (Admin ändert Endstand) ruft ohnehin
+// invalidateGamesCaches() auf. War 3 Minuten, was in Kombination mit der
+// localStorage-Persistenz kaum noch Vorteile brachte, da der Cache trotzdem
+// ständig neu ablief.
+const FINISHED_GAMES_TTL = 21600000; // 6 Stunden (vorher 3 Minuten)
 const gamesCombinedCache = {};
-const GAMES_COMBINED_TTL = 30000; // 30 Sekunden
+// War 30s - zu kurz für den häufigsten Ablauf (Spiele-Liste -> Spiel öffnen,
+// tippen, zurück): das dauert oft länger als 30s, wodurch der Cache beim
+// Zurückgehen schon wieder abgelaufen war und alles neu geladen wurde. 2 Min
+// ist immer noch kurz genug, dass Live-Spielstände nicht spürbar veraltet
+// wirken, aber deckt diesen Rundgang jetzt zuverlässig ab.
+const GAMES_COMBINED_TTL = 120000; // 2 Minuten (vorher 30s)
 
 // Beendete Spiele ändern sich nie wieder - lange cachen statt bei jedem
 // Seitenaufruf die komplette Historie (alte Saisons + Playoffs) neu zu laden.

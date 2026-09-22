@@ -335,7 +335,8 @@ async function applyCrop() {
       // Update local user data
       currentUser.profile_picture = base64Image;
       localStorage.setItem('user', JSON.stringify(currentUser));
-      
+      invalidateCache('currentUser');
+
       // Re-render profile and navbar
       renderProfile();
       updateNavbarAvatar();
@@ -365,7 +366,8 @@ async function removeProfilePicture() {
     // Update local user data
     delete currentUser.profile_picture;
     localStorage.setItem('user', JSON.stringify(currentUser));
-    
+    invalidateCache('currentUser');
+
     // Re-render profile and navbar
     renderProfile();
     updateNavbarAvatar();
@@ -434,7 +436,8 @@ async function saveUsername() {
     // Update local user data
     currentUser.username = newUsername;
     localStorage.setItem('user', JSON.stringify(currentUser));
-    
+    invalidateCache('currentUser');
+
     isEditingUsername = false;
     renderProfile();
   } catch (error) {
