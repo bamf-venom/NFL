@@ -116,4 +116,4 @@ const BETTING_LOCK_MINUTES_BEFORE_KICKOFF = 60;
 // vergleicht diese Konstante mit einer frisch vom Server geholten Kopie
 // dieser Datei). WICHTIG: bei jedem sichtbaren Deploy hochzählen, sonst
 // zeigt die Update-Erkennung nichts an.
-const APP_VERSION = '2026.09.22.1';
+const APP_VERSION = '2026.09.22.2';

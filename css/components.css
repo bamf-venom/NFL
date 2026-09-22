@@ -284,6 +284,18 @@ input[type='datetime-local']::-webkit-calendar-picker-indicator {
   transform: translateY(0);
 }
 
+/* .card.animate-fade-in behält nach der Animation dauerhaft ein transform
+   (translateY(0) scale(1), wegen "forwards") - das erzeugt einen eigenen
+   Stacking-Context pro Karte. Liegt ein Custom-Select in so einer Karte und
+   danach folgt noch eine weitere Karte im DOM, malt die spätere Karte trotz
+   z-index:100 auf den Dropdown-Optionen darüber (spätere Geschwister-
+   Stacking-Contexts gewinnen sonst per DOM-Reihenfolge). Fix: die Karte mit
+   offenem Dropdown bekommt selbst einen expliziten, positiven z-index. */
+.card:has(.custom-select.open) {
+  position: relative;
+  z-index: 20;
+}
+
 .custom-select-option {
   padding: 10px 14px;
   border-radius: 8px;

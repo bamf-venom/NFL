@@ -97,7 +97,7 @@ function renderSettings() {
         <i class="fas fa-language"></i> Sprache
       </h3>
       <select class="form-input" id="language-select" data-testid="language-select" onchange="handleLanguageChange(this.value)">
-        <option value="de">Deutsch</option>
+        <option value="de">German</option>
         <option value="en">English</option>
       </select>
       <p id="language-note" class="hidden" style="color: var(--muted); font-size: 13px; margin-top: 8px;">
@@ -142,7 +142,7 @@ function renderSettings() {
       </h3>
       <p style="color: var(--muted); font-size: 14px;">
         NFL POINTS - Wette mit Freunden auf NFL-Spiele.<br>
-        <a href="https://github.com/bamf-venom/NFL" target="_blank" rel="noopener" style="color: var(--accent);">Quellcode auf GitHub</a>
+        Erstellt von MBP - <a href="https://mbpvfx.com" target="_blank" rel="noopener" style="color: var(--accent);">mbpvfx.com</a>
       </p>
     </div>
   `;
