@@ -35,9 +35,11 @@
   --primary-foreground: #000000;
   
   /* ===== AKZENT-FARBE (Hauptmarke/Brand) ===== */
-  --accent: #8b5cf6;
-  --accent-dark: #7c3aed;
-  --accent-rgb: 139, 92, 246;
+  /* NFL-Navy (#013369) statt Lila - offizielle Markenfarbe der Liga, aber
+     nur die Farbe selbst wird verwendet, kein Logo/Schriftzug/Symbol */
+  --accent: #013369;
+  --accent-dark: #012a52;
+  --accent-rgb: 1, 51, 105;
   
   /* ===== BUTTON GRADIENT FARBEN ===== */
   --btn-primary-start: #ffffff;
@@ -61,5 +63,5 @@
   --black-rgb: 0, 0, 0;
   --background-rgb: 10, 10, 10;
   --card-rgb: 20, 20, 20;
-  --accent-dark-rgb: 124, 58, 237;
+  --accent-dark-rgb: 1, 42, 82;
 }
