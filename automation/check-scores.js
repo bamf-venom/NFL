@@ -112,17 +112,20 @@ async function main() {
   const now = new Date();
 
   // Alle Spiele holen, die noch nicht final sind, aber laut Anstoßzeit schon
-  // begonnen haben könnten (kein Sinn, Spiele in der Zukunft schon abzufragen)
+  // begonnen haben könnten. Der game_date-Filter läuft bewusst SERVERSEITIG
+  // mit (nicht erst client-seitig danach) - Firestore berechnet pro
+  // QUERY-TREFFER einen Lesevorgang, unabhängig davon, ob man das Ergebnis
+  // hinterher noch filtert. Bei ca. 280 Spielen pro Saison, die alle auf
+  // einmal als 'scheduled' angelegt werden (siehe add-season-2026.html), hat
+  // die alte reine status-Abfrage bei JEDEM Lauf (alle 5-15 Min, rund um die
+  // Uhr) praktisch die komplette Saison gelesen statt nur die paar fälligen
+  // Spiele - Hauptursache des Kontingent-Vorfalls vom 21.09.2026.
   const snapshot = await db.collection('games')
     .where('status', 'in', ['scheduled', 'live'])
+    .where('game_date', '<=', admin.firestore.Timestamp.fromDate(now))
     .get();
 
-  const pendingGames = snapshot.docs
-    .map(doc => ({ id: doc.id, ref: doc.ref, ...doc.data() }))
-    .filter(game => {
-      const gameDate = game.game_date?.toDate?.() || new Date(game.game_date);
-      return gameDate <= now;
-    });
+  const pendingGames = snapshot.docs.map(doc => ({ id: doc.id, ref: doc.ref, ...doc.data() }));
 
   if (pendingGames.length === 0) {
     console.log('Keine fälligen Spiele zu prüfen.');
