@@ -21,11 +21,79 @@ const dataCache = {
   groups: { data: null, timestamp: 0, ttl: 30000 } // 30 Sekunden
 };
 
+// ==================== LOCALSTORAGE-PERSISTENZ ====================
+// Ohne SPA-Routing wird bei jedem Seitenwechsel dieses komplette Script neu
+// geladen und alle Caches oben sind wieder leer - jeder Klick auf eine andere
+// Seite hat dadurch praktisch alles neu von Firestore geholt, auch wenn es
+// Sekunden vorher schon geladen wurde. Das war der Hauptgrund für das
+// Firestore-Kontingent-Problem vom 21.09.2026 (siehe Obsidian: Sicherheit.md).
+// localStorage übersteht Seitenwechsel und dient hier als zweite Schicht
+// hinter dem In-Memory-Cache - gleiche TTLs, nur mit größerer Reichweite.
+const LS_PREFIX = 'nflp_cache_';
+
+function lsRead(key) {
+  try {
+    const raw = localStorage.getItem(LS_PREFIX + key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function lsWrite(key, value) {
+  try {
+    localStorage.setItem(LS_PREFIX + key, JSON.stringify(value));
+  } catch (e) {
+    // z.B. Safari Privatmodus oder voller Speicher - Cache ist nur eine
+    // Optimierung, darf den eigentlichen Ablauf nie blockieren
+  }
+}
+
+function lsRemove(key) {
+  try {
+    localStorage.removeItem(LS_PREFIX + key);
+  } catch (e) {}
+}
+
+function lsRemovePrefix(prefix) {
+  try {
+    const full = LS_PREFIX + prefix;
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(full))
+      .forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+}
+
+// 'leaderboard' ist global, 'userBets'/'groups' gehören zum eingeloggten
+// Nutzer - deshalb pro Nutzer (uid) getrennt speichern, damit auf einem
+// gemeinsam genutzten Browser nicht die Wetten/Gruppen des vorherigen
+// Nutzers sichtbar werden
+function dataCacheStorageKey(key) {
+  if (key === 'leaderboard') return 'leaderboard';
+  if (key === 'userBets' || key === 'groups') {
+    const uid = auth && auth.currentUser && auth.currentUser.uid;
+    return uid ? `${key}_${uid}` : null;
+  }
+  return null;
+}
+
 // Cache helper functions
 function getCachedData(key) {
   const cache = dataCache[key];
   if (cache && cache.data && (Date.now() - cache.timestamp) < cache.ttl) {
     return cache.data;
+  }
+
+  // In-Memory-Cache leer (z.B. nach Seitenwechsel) - in localStorage nachsehen,
+  // bevor Firestore gefragt wird
+  const storageKey = dataCacheStorageKey(key);
+  if (cache && storageKey) {
+    const persisted = lsRead(storageKey);
+    if (persisted && (Date.now() - persisted.timestamp) < cache.ttl) {
+      cache.data = persisted.data;
+      cache.timestamp = persisted.timestamp;
+      return persisted.data;
+    }
   }
   return null;
 }
@@ -34,6 +102,11 @@ function setCachedData(key, data) {
   if (dataCache[key]) {
     dataCache[key].data = data;
     dataCache[key].timestamp = Date.now();
+
+    const storageKey = dataCacheStorageKey(key);
+    if (storageKey) {
+      lsWrite(storageKey, { data, timestamp: dataCache[key].timestamp });
+    }
   }
 }
 
@@ -43,11 +116,15 @@ function invalidateCache(key) {
       dataCache[key].data = null;
       dataCache[key].timestamp = 0;
     }
+    const storageKey = dataCacheStorageKey(key);
+    if (storageKey) lsRemove(storageKey);
   } else {
     // Invalidate all
     Object.keys(dataCache).forEach(k => {
       dataCache[k].data = null;
       dataCache[k].timestamp = 0;
+      const storageKey = dataCacheStorageKey(k);
+      if (storageKey) lsRemove(storageKey);
     });
   }
 }
@@ -361,13 +438,25 @@ async function getFinishedGamesCached(season = null) {
     return cached.data;
   }
 
+  // Beendete Spiele ändern sich nie wieder - lohnt sich besonders, über
+  // Seitenwechsel hinweg aus localStorage zu bedienen statt neu zu laden
+  const storageKey = `finishedGames_${cacheKey}`;
+  const persisted = lsRead(storageKey);
+  if (persisted && (Date.now() - persisted.timestamp) < FINISHED_GAMES_TTL) {
+    debugLog('📦 Beendete Spiele aus localStorage:', cacheKey);
+    finishedGamesCache[cacheKey] = persisted;
+    return persisted.data;
+  }
+
   let query = collections.games().where('status', '==', 'finished');
   if (season) {
     query = query.where('season', '==', season);
   }
   const snapshot = await query.get();
   const games = snapshot.docs.map(mapGameDoc);
-  finishedGamesCache[cacheKey] = { data: games, timestamp: Date.now() };
+  const entry = { data: games, timestamp: Date.now() };
+  finishedGamesCache[cacheKey] = entry;
+  lsWrite(storageKey, entry);
   return games;
 }
 
@@ -385,6 +474,8 @@ async function getActiveGamesFresh(season = null) {
 function invalidateGamesCaches() {
   Object.keys(finishedGamesCache).forEach(key => delete finishedGamesCache[key]);
   Object.keys(gamesCombinedCache).forEach(key => delete gamesCombinedCache[key]);
+  lsRemovePrefix('finishedGames_');
+  lsRemovePrefix('gamesCombined_');
 }
 
 async function firebaseGetGames(filters = {}, useCache = true) {
@@ -408,11 +499,20 @@ async function firebaseGetGames(filters = {}, useCache = true) {
     // mehr ändern. Kombi-Ergebnis zusätzlich kurz gecacht (30s) gegen
     // mehrfache Aufrufe kurz hintereinander.
     const cacheKey = filters.season || 'all';
+    const storageKey = `gamesCombined_${cacheKey}`;
     if (useCache) {
       const cached = gamesCombinedCache[cacheKey];
       if (cached && (Date.now() - cached.timestamp) < GAMES_COMBINED_TTL) {
         debugLog('📦 Games loaded from cache:', cacheKey);
         return cached.data;
+      }
+      // Kurzes TTL (30s), hilft aber trotzdem bei schnellem Hin-und-Her
+      // zwischen Seiten (z.B. Spiele -> Spiel-Detail -> zurück)
+      const persisted = lsRead(storageKey);
+      if (persisted && (Date.now() - persisted.timestamp) < GAMES_COMBINED_TTL) {
+        debugLog('📦 Games loaded from localStorage:', cacheKey);
+        gamesCombinedCache[cacheKey] = persisted;
+        return persisted.data;
       }
     }
 
@@ -424,7 +524,9 @@ async function firebaseGetGames(filters = {}, useCache = true) {
     const sortedGames = [...finishedGames, ...activeGames]
       .sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
 
-    gamesCombinedCache[cacheKey] = { data: sortedGames, timestamp: Date.now() };
+    const entry = { data: sortedGames, timestamp: Date.now() };
+    gamesCombinedCache[cacheKey] = entry;
+    lsWrite(storageKey, entry);
     debugLog('🎮 Games loaded from Firestore:', sortedGames.length);
     return sortedGames;
   } catch (error) {
@@ -556,7 +658,24 @@ async function firebasePlaceBet(betData) {
   
   const userDoc = await collections.users().doc(user.uid).get();
   const userData = userDoc.data();
-  
+
+  // Sperrfrist wird fest am Wett-Dokument gespeichert (statt sie bei jedem
+  // späteren Ändern/Löschen erneut über das Spiel-Dokument nachzuschlagen) -
+  // die Firestore Security Rule prüft beim update/delete direkt
+  // request.time < resource.data.betting_lock_time statt eines get() auf
+  // games/{gameId}. Erfordert trotzdem hier einen get(), aber nur einmal pro
+  // Wette statt einmal pro Änderung/Löschung.
+  const gameDoc = await collections.games().doc(betData.game_id).get();
+  if (!gameDoc.exists) {
+    throw new Error('Spiel nicht gefunden');
+  }
+  const gameData = gameDoc.data();
+  const gameDate = gameData.game_date?.toDate?.() || new Date(gameData.game_date);
+  const bettingLockTime = new Date(gameDate.getTime() - BETTING_LOCK_MINUTES_BEFORE_KICKOFF * 60000);
+  if (new Date() >= bettingLockTime) {
+    throw new Error('Die Tipp-Sperrfrist ist erreicht. Wette kann nicht mehr platziert werden.');
+  }
+
   const betId = db.collection('_').doc().id;
   const bet = {
     id: betId,
@@ -566,9 +685,10 @@ async function firebasePlaceBet(betData) {
     home_score_prediction: betData.home_score_prediction,
     away_score_prediction: betData.away_score_prediction,
     points_earned: 0,
+    betting_lock_time: firebase.firestore.Timestamp.fromDate(bettingLockTime),
     created_at: firebase.firestore.FieldValue.serverTimestamp()
   };
-  
+
   await collections.bets().doc(betId).set(bet);
 
   // total_bets direkt am Nutzer-Konto mitführen, damit die Rangliste nicht
@@ -581,7 +701,7 @@ async function firebasePlaceBet(betData) {
   invalidateCache('userBets');
   invalidateCache('leaderboard');
 
-  return { ...bet, created_at: new Date().toISOString() };
+  return { ...bet, created_at: new Date().toISOString(), betting_lock_time: bettingLockTime.toISOString() };
 }
 
 async function firebaseUpdateBet(betId, betData) {
@@ -589,11 +709,12 @@ async function firebaseUpdateBet(betId, betData) {
     home_score_prediction: betData.home_score_prediction,
     away_score_prediction: betData.away_score_prediction
   });
-  
+
   const doc = await collections.bets().doc(betId).get();
   return {
     ...doc.data(),
-    created_at: doc.data().created_at?.toDate?.()?.toISOString() || doc.data().created_at
+    created_at: doc.data().created_at?.toDate?.()?.toISOString() || doc.data().created_at,
+    betting_lock_time: doc.data().betting_lock_time?.toDate?.()?.toISOString() || doc.data().betting_lock_time
   };
 }
 
@@ -601,29 +722,40 @@ async function firebaseUpdateBet(betId, betData) {
 async function firebaseDeleteBet(betId) {
   const user = auth.currentUser;
   if (!user) throw new Error('Nicht angemeldet');
-  
+
   // Prüfe ob es die eigene Wette ist
   const betDoc = await collections.bets().doc(betId).get();
   if (!betDoc.exists) {
     throw new Error('Wette nicht gefunden');
   }
-  
+
   const betData = betDoc.data();
   if (betData.user_id !== user.uid) {
     throw new Error('Du kannst nur deine eigenen Wetten löschen');
   }
-  
-  // Prüfe ob die Sperrfrist vor Anpfiff noch nicht erreicht ist
-  const gameDoc = await collections.games().doc(betData.game_id).get();
-  if (gameDoc.exists) {
-    const gameData = gameDoc.data();
-    const gameDate = gameData.game_date?.toDate?.() || new Date(gameData.game_date);
-    const bettingLockTime = new Date(gameDate.getTime() - BETTING_LOCK_MINUTES_BEFORE_KICKOFF * 60000);
+
+  // Prüfe ob die Sperrfrist vor Anpfiff noch nicht erreicht ist. Sperrfrist
+  // liegt bei neueren Wetten direkt am Dokument (betting_lock_time, siehe
+  // firebasePlaceBet) - kein get() auf das Spiel mehr nötig. Ältere Wetten
+  // (vor dieser Änderung angelegt) haben das Feld noch nicht und fallen auf
+  // den alten, get()-basierten Check zurück.
+  if (betData.betting_lock_time) {
+    const bettingLockTime = betData.betting_lock_time.toDate?.() || new Date(betData.betting_lock_time);
     if (new Date() >= bettingLockTime) {
       throw new Error('Die Tipp-Sperrfrist ist erreicht. Wette kann nicht mehr gelöscht werden.');
     }
+  } else {
+    const gameDoc = await collections.games().doc(betData.game_id).get();
+    if (gameDoc.exists) {
+      const gameData = gameDoc.data();
+      const gameDate = gameData.game_date?.toDate?.() || new Date(gameData.game_date);
+      const bettingLockTime = new Date(gameDate.getTime() - BETTING_LOCK_MINUTES_BEFORE_KICKOFF * 60000);
+      if (new Date() >= bettingLockTime) {
+        throw new Error('Die Tipp-Sperrfrist ist erreicht. Wette kann nicht mehr gelöscht werden.');
+      }
+    }
   }
-  
+
   await collections.bets().doc(betId).delete();
 
   // Gegenstück zum increment beim Platzieren der Wette
@@ -916,6 +1048,7 @@ async function firebaseJoinGroup(inviteCode) {
   // Invalidate groups cache
   invalidateCache('groups');
   delete groupMembersCache[groupDoc.id];
+  lsRemove(`groupMembers_${groupDoc.id}`);
   invalidateGroupBetsCache(groupDoc.id);
 
   return await firebaseGetGroup(groupDoc.id);
@@ -943,6 +1076,7 @@ async function firebaseLeaveGroup(groupId) {
   // Invalidate groups cache
   invalidateCache('groups');
   delete groupMembersCache[groupId];
+  lsRemove(`groupMembers_${groupId}`);
   invalidateGroupBetsCache(groupId);
 }
 
@@ -970,6 +1104,7 @@ async function firebaseKickMember(groupId, userId) {
   });
 
   delete groupMembersCache[groupId];
+  lsRemove(`groupMembers_${groupId}`);
   invalidateGroupBetsCache(groupId);
 }
 
@@ -1076,6 +1211,17 @@ function getGroupMembersForBets(groupId) {
     return cached.promise;
   }
 
+  // localStorage hält nur den AUFGELÖSTEN Wert (kein Promise serialisierbar) -
+  // übersteht damit Seitenwechsel, während das In-Memory-Promise-Cache oben
+  // nur gleichzeitige Aufrufe innerhalb derselben Seite dedupliziert
+  const storageKey = `groupMembers_${groupId}`;
+  const persisted = lsRead(storageKey);
+  if (persisted && (Date.now() - persisted.timestamp) < GROUP_MEMBERS_CACHE_TTL) {
+    const promise = Promise.resolve(persisted.data);
+    groupMembersCache[groupId] = { promise, timestamp: persisted.timestamp };
+    return promise;
+  }
+
   const promise = (async () => {
     const groupDoc = await collections.groups().doc(groupId).get();
     const groupData = groupDoc.data();
@@ -1096,7 +1242,9 @@ function getGroupMembersForBets(groupId) {
       }
     }));
 
-    return { memberIds, memberPictures };
+    const result = { memberIds, memberPictures };
+    lsWrite(storageKey, { data: result, timestamp: Date.now() });
+    return result;
   })();
 
   groupMembersCache[groupId] = { promise, timestamp: Date.now() };
@@ -1120,6 +1268,7 @@ function invalidateGroupBetsCache(groupId) {
   Object.keys(groupBetsCache).forEach(key => {
     if (key.startsWith(prefix)) delete groupBetsCache[key];
   });
+  lsRemovePrefix(`groupBets_${prefix}`);
 }
 
 async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
@@ -1135,6 +1284,15 @@ async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
   const cached = groupBetsCache[cacheKey];
   if (cached && (cached.permanent || (Date.now() - cached.timestamp) < GROUP_BETS_CACHE_TTL)) {
     return cached.bets;
+  }
+
+  // Beendete Spiele werden "permanent" gecacht (ändern sich nie mehr) - genau
+  // dieser Fall profitiert am meisten davon, auch Seitenwechsel zu überstehen
+  const storageKey = `groupBets_${cacheKey}`;
+  const persisted = lsRead(storageKey);
+  if (persisted && (persisted.permanent || (Date.now() - persisted.timestamp) < GROUP_BETS_CACHE_TTL)) {
+    groupBetsCache[cacheKey] = persisted;
+    return persisted.bets;
   }
 
   const { memberIds, memberPictures } = await getGroupMembersForBets(groupId);
@@ -1168,7 +1326,9 @@ async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
     });
   });
 
-  groupBetsCache[cacheKey] = { bets: allBets, timestamp: Date.now(), permanent: isGameFinished };
+  const entry = { bets: allBets, timestamp: Date.now(), permanent: isGameFinished };
+  groupBetsCache[cacheKey] = entry;
+  lsWrite(storageKey, entry);
 
   return allBets;
 }

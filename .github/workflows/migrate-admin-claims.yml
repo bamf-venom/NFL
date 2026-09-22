@@ -1,0 +1,26 @@
+name: Einmalige Migration - Admin-Claims
+
+on:
+  workflow_dispatch: {} # NUR manuell auslösbar, kein Zeitplan
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Abhängigkeiten installieren
+        working-directory: automation
+        run: npm install
+
+      - name: Migration ausführen
+        working-directory: automation
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node migrate-admin-claims.js
