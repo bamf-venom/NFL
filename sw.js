@@ -94,8 +94,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // WICHTIG (2026-09-23): fetch(event.request) allein reicht nicht für
+  // echtes "Network first" - GitHub Pages schickt Cache-Control: max-age=600
+  // für diese Dateien, wodurch der Browser die Anfrage bis zu 10 Minuten
+  // lang aus seinem EIGENEN HTTP-Cache beantwortet, komplett unabhängig vom
+  // Service Worker/CacheStorage oben. Der "Jetzt aktualisieren"-Button hat
+  // dadurch bei einem Nutzer nichts bewirkt, obwohl Caches/Service-Worker
+  // korrekt zurückgesetzt wurden. { cache: 'no-store' } erzwingt einen
+  // echten Netzwerk-Request, der den Browser-HTTP-Cache umgeht - nur so
+  // kommt bei einem neuen Deploy auch wirklich sofort die neue Version an,
+  // nicht erst nach bis zu 10 Minuten.
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request.url, { cache: 'no-store' })
       .then((response) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
