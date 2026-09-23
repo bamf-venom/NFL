@@ -2,6 +2,31 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+  <script>
+    // TEMPORÄRE DIAGNOSE (2026-09-23) - prüft ganz unabhängig von Firebase,
+    // ob localStorage das Schließen/Wiederöffnen der installierten Android-
+    // App überhaupt übersteht. Läuft als Allererstes, vor jedem anderen
+    // Script. Wieder entfernen sobald die Ursache fürs wiederholte Ausloggen
+    // gefunden ist.
+    (function() {
+      try {
+        var KEY = 'nflp_storage_persist_test';
+        var now = Date.now();
+        var prevRaw = localStorage.getItem(KEY);
+        if (prevRaw) {
+          var prev = JSON.parse(prevRaw);
+          var secondsAgo = Math.round((now - prev.timestamp) / 1000);
+          alert('DEBUG STORAGE: localStorage hat überlebt. Letzter Eintrag vor ' + secondsAgo + ' Sekunden, Öffnung Nr. ' + prev.count + '.');
+          localStorage.setItem(KEY, JSON.stringify({ timestamp: now, count: prev.count + 1 }));
+        } else {
+          alert('DEBUG STORAGE: KEIN vorheriger Eintrag gefunden - localStorage übersteht das Schließen der App NICHT (oder das ist der allererste Start). Wird jetzt neu gesetzt.');
+          localStorage.setItem(KEY, JSON.stringify({ timestamp: now, count: 1 }));
+        }
+      } catch (e) {
+        alert('DEBUG STORAGE ERROR: ' + e.message);
+      }
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0a0a0a">

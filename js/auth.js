@@ -47,14 +47,6 @@ function waitForAuth() {
         // sonst kann dieser allererste Check noch mit der SDK-Standard-
         // persistenz statt LOCAL laufen (Race Condition, vermutlich Ursache
         // für wiederholtes Ausloggen in der installierten Android-App).
-        // TEMPORÄRE DIAGNOSE (2026-09-23) - Nutzer meldet wiederholtes
-        // Ausloggen in der installierten Android-App, Ursache bisher trotz
-        // zweier behobener Bugs (fehlende TWA-Verifizierung, Race Condition
-        // bei setPersistence) nicht gefunden. Zeigt beim nächsten Reproduzieren
-        // per alert() sichtbar an, WELCHER der drei möglichen Fälle zutrifft.
-        // Wieder entfernen sobald die Ursache gefunden ist.
-        const hadStoredUserBeforeCheck = !!localStorage.getItem('user');
-
         Promise.resolve(typeof authPersistenceReady !== 'undefined' ? authPersistenceReady : null).finally(() => {
           auth.onAuthStateChanged(async (user) => {
             if (user) {
@@ -72,14 +64,8 @@ function waitForAuth() {
                 console.error('Error getting user data (Session bleibt trotzdem bestehen):', error);
                 const storedUser = localStorage.getItem('user');
                 currentUser = storedUser ? JSON.parse(storedUser) : null;
-                if (hadStoredUserBeforeCheck && !currentUser) {
-                  alert('DEBUG B: Firebase Auth hatte einen Nutzer, aber firebaseGetCurrentUser() ist fehlgeschlagen UND localStorage-Fallback fehlte auch. Fehler: ' + error.message);
-                }
               }
             } else {
-              if (hadStoredUserBeforeCheck) {
-                alert('DEBUG A: Firebase Auth selbst meldet keinen Nutzer (user === null), obwohl vorher ein gespeicherter Nutzer da war. Die Session-Speicherung selbst hat nicht überlebt.');
-              }
               currentUser = null;
               localStorage.removeItem('user');
             }
