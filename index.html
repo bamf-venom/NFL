@@ -13,12 +13,13 @@
     // bestätigt ist, dass das Ausloggen-Problem behoben ist.
     (function() {
       try {
-        var authKey = Object.keys(localStorage).find(function(k) { return k.indexOf('firebase:authUser:') === 0; });
-        if (authKey) {
-          window.__storageDebugMessage = 'AUTH KEY DA: ' + authKey + ' ist noch in localStorage vorhanden - Sitzung sollte erhalten bleiben.';
-        } else {
-          window.__storageDebugMessage = 'AUTH KEY WEG: Kein firebase:authUser:-Schlüssel in localStorage gefunden (entweder nie eingeloggt gewesen, oder die Sitzung ist trotzdem verloren gegangen).';
-        }
+        var keys = Object.keys(localStorage);
+        var authKey = keys.find(function(k) { return k.indexOf('firebase:authUser:') === 0; });
+        var persistenceDebug = localStorage.getItem('nflp_persistence_debug') || '(kein Eintrag)';
+        var msg = (authKey ? 'AUTH KEY DA' : 'AUTH KEY WEG') + ' | ' +
+          'Persistenz-Umstellung letzten Lauf: ' + persistenceDebug + ' | ' +
+          'Alle localStorage-Keys (' + keys.length + '): ' + keys.join(', ');
+        window.__storageDebugMessage = msg;
       } catch (e) {
         window.__storageDebugMessage = 'STORAGE ERROR: ' + e.message;
       }
@@ -59,8 +60,8 @@
     if (window.__storageDebugMessage) {
       document.write(
         '<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#ffcc00;color:#000;' +
-        'font-family:monospace;font-size:13px;padding:10px 12px;word-break:break-word;' +
-        'box-shadow:0 2px 8px rgba(0,0,0,0.4);">' +
+        'font-family:monospace;font-size:11px;padding:10px 12px;word-break:break-word;' +
+        'max-height:45vh;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,0.4);">' +
         window.__storageDebugMessage.replace(/</g, '&lt;') +
         '</div>'
       );

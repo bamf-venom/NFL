@@ -239,9 +239,11 @@ function initializeFirebase() {
         })
         .then(() => {
           debugLog('✅ Auth-Persistenz auf browserLocalPersistence (localStorage) umgestellt');
+          try { localStorage.setItem('nflp_persistence_debug', 'OK: modulare SDK geladen, browserLocalPersistence gesetzt.'); } catch (e) {}
         })
         .catch((err) => {
           debugLog('Auth-Persistenz (browserLocalPersistence) konnte nicht gesetzt werden, Fallback auf Compat LOCAL:', err);
+          try { localStorage.setItem('nflp_persistence_debug', 'FEHLER beim modularen Import: ' + (err && err.message ? err.message : err)); } catch (e) {}
           // Fallback auf die alte Compat-Persistenz, falls das Nachladen der
           // modularen SDK fehlschlägt (z.B. Netzwerkproblem) - besser als gar
           // keine Persistenz-Einstellung
