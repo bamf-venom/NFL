@@ -4,7 +4,9 @@
 // Nutzer per Push-Benachrichtigung ca. 1h vor Anpfiff eines Spiels, FALLS er
 // dafür noch keine Wette platziert hat. Startet mehrere Spiele in etwa
 // derselben Stunde, bekommt der Nutzer trotzdem nur EINE Benachrichtigung für
-// diesen Lauf (siehe buildUserReminders).
+// diesen Lauf (siehe buildUserReminders). Text kommt je nach `language`-Feld
+// am Nutzer-Dokument auf Deutsch oder Englisch (Default 'de', siehe
+// REMINDER_TEXT).
 
 const admin = require('firebase-admin');
 const webpush = require('web-push');
@@ -30,10 +32,26 @@ function teamMatchup(game) {
   return `${game.away_team_abbr} @ ${game.home_team_abbr}`;
 }
 
+// Notification-Texte je Sprache - Sprachwahl kommt aus dem `language`-Feld am
+// Nutzer-Dokument (js/firebase-config.js: firebaseUpdateUserLanguage()),
+// Default 'de' falls nie gesetzt (z.B. Nutzer war nie in den Einstellungen)
+const REMINDER_TEXT = {
+  de: {
+    title: 'NFL POINTS - Wett-Erinnerung',
+    single: (game) => `${teamMatchup(game)} beginnt in ca. 1 Stunde - du hast noch keine Wette platziert!`,
+    multi: (count) => `${count} Spiele beginnen in ca. 1 Stunde, für die du noch keine Wette platziert hast!`,
+  },
+  en: {
+    title: 'NFL POINTS - Bet Reminder',
+    single: (game) => `${teamMatchup(game)} starts in about 1 hour - you haven't placed a bet yet!`,
+    multi: (count) => `${count} games start in about 1 hour that you haven't bet on yet!`,
+  },
+};
+
 // Baut pro Nutzer genau EINE Erinnerung aus allen fälligen Spielen, für die er
 // noch nicht getippt hat - verhindert Nachrichtenflut wenn mehrere Spiele in
 // etwa zur gleichen Zeit anstehen
-function buildUserReminders(gamesNeedingReminder, missingBetsByGame) {
+function buildUserReminders(gamesNeedingReminder, missingBetsByGame, userLanguages) {
   const perUser = new Map(); // userId -> [game, ...]
 
   for (const game of gamesNeedingReminder) {
@@ -46,15 +64,17 @@ function buildUserReminders(gamesNeedingReminder, missingBetsByGame) {
 
   const reminders = new Map(); // userId -> { title, body, url }
   for (const [userId, games] of perUser.entries()) {
+    const lang = userLanguages.get(userId) === 'en' ? 'en' : 'de';
+    const text = REMINDER_TEXT[lang];
     let body;
     let url = './pages/games.html';
     if (games.length === 1) {
-      body = `${teamMatchup(games[0])} beginnt in ca. 1 Stunde - du hast noch keine Wette platziert!`;
+      body = text.single(games[0]);
       url = `./pages/games.html?game=${games[0].id}`;
     } else {
-      body = `${games.length} Spiele beginnen in ca. 1 Stunde, für die du noch keine Wette platziert hast!`;
+      body = text.multi(games.length);
     }
-    reminders.set(userId, { title: 'NFL POINTS - Wett-Erinnerung', body, url });
+    reminders.set(userId, { title: text.title, body, url });
   }
   return reminders;
 }
@@ -115,6 +135,7 @@ async function main() {
 
   const usersSnapshot = await db.collection('users').get();
   const allUserIds = usersSnapshot.docs.map(doc => doc.id);
+  const userLanguages = new Map(usersSnapshot.docs.map(doc => [doc.id, doc.data().language]));
 
   const missingBetsByGame = new Map();
   for (const game of candidateGames) {
@@ -125,7 +146,7 @@ async function main() {
     console.log(`  ${teamMatchup(game)}: ${missingUserIds.length} von ${allUserIds.length} Nutzern ohne Wette`);
   }
 
-  const reminders = buildUserReminders(candidateGames, missingBetsByGame);
+  const reminders = buildUserReminders(candidateGames, missingBetsByGame, userLanguages);
 
   let notifiedUsers = 0;
   let totalSent = 0;

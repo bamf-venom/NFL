@@ -19,6 +19,16 @@ Workflow `.github/workflows/notify-new-version.yml`):
   → **Neue-Version-Benachrichtigung senden** → **Run workflow** (erst NACHDEM der eigentliche
   Deploy/Commit mit der neuen `APP_VERSION` schon live ist).
 
+  **Wichtig (seit 2026-09-23):** `APP_VERSION` wird NICHT mehr bei jedem Deploy automatisch
+  hochgezählt (kleinere Deploys laufen unversioniert, der Service Worker liefert dank
+  Network-first ohnehin immer den neuesten Stand aus). Erst hochzählen und diesen Workflow
+  auslösen, wenn es explizit eine neue "Vollversion" geben soll.
+
+Beide Push-Benachrichtigungen (Wett-Erinnerung UND Versions-Update) werden pro Nutzer in dessen
+in den Einstellungen gewählter Sprache verschickt (`language`-Feld am Nutzer-Dokument, gepflegt
+von `firebaseUpdateUserLanguage()` in `js/firebase-config.js`; Default Deutsch, falls ein Nutzer
+seine Sprache nie explizit umgestellt hat).
+
 ## Einmaliges Setup (musst du selbst machen)
 
 ### 1. Firebase Service-Account-Key erstellen

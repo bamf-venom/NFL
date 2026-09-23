@@ -560,6 +560,25 @@ async function firebaseSendPasswordReset(email) {
   return email;
 }
 
+// Speichert die gewählte Sprache zusätzlich am Nutzer-Dokument (nicht nur
+// localStorage) - der Sprachwahl-Schalter selbst bleibt rein clientseitig,
+// aber die Push-Benachrichtigungen werden serverseitig verschickt
+// (automation/send-bet-reminders.js, notify-new-version.js) und haben sonst
+// keine Möglichkeit, die Sprache des jeweiligen Nutzers zu kennen. Bewusst
+// "fire and forget" (kein await beim Aufruf, kein Fehler blockiert die
+// eigentliche Sprachumschaltung) - schlägt der Schreibvorgang fehl, bleibt
+// die Sprache im Browser trotzdem korrekt umgestellt, nur die
+// Benachrichtigungen würden dann auf der zuletzt bekannten Sprache bleiben.
+async function firebaseUpdateUserLanguage(lang) {
+  const user = auth.currentUser;
+  if (!user) return;
+  try {
+    await collections.users().doc(user.uid).update({ language: lang });
+  } catch (error) {
+    console.warn('Sprache konnte nicht am Nutzer-Dokument gespeichert werden:', error);
+  }
+}
+
 // Update username
 async function firebaseUpdateUsername(newUsername) {
   const user = auth.currentUser;

@@ -49,6 +49,13 @@ Object.assign(TRANSLATIONS.en, {
 
 function handleLanguageChange(value) {
   setCurrentLanguage(value);
+  // Bewusst nicht awaited - Push-Benachrichtigungen (send-bet-reminders.js,
+  // notify-new-version.js) laufen serverseitig und lesen diese Kopie der
+  // Sprache am Nutzer-Dokument, aber der Reload direkt danach soll nicht
+  // auf den Netzwerk-Roundtrip warten.
+  if (typeof firebaseUpdateUserLanguage === 'function') {
+    firebaseUpdateUserLanguage(value);
+  }
   // Einfachster zuverlässiger Weg, die neue Sprache überall durchschlagen zu
   // lassen: jede Seite baut ihren Inhalt ohnehin aus denselben
   // Render-Funktionen neu auf, ein Reload reicht.

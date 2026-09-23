@@ -120,6 +120,10 @@ const VAPID_PUBLIC_KEY = 'BP9m9K3SVLgugOANXXViTu2iQ_4oTTCRsNIwQIb5HTRcSuidTrvUEV
 
 // App-Version für die Update-Anzeige in den Einstellungen (settings.js
 // vergleicht diese Konstante mit einer frisch vom Server geholten Kopie
-// dieser Datei). WICHTIG: bei jedem sichtbaren Deploy hochzählen, sonst
-// zeigt die Update-Erkennung nichts an.
-const APP_VERSION = '2026.09.23.18';
+// dieser Datei) UND für die "Neue Version verfügbar"-Push-Benachrichtigung
+// (automation/notify-new-version.js). WICHTIG (2026-09-23, geändert auf
+// Nutzerwunsch): NICHT mehr bei jedem Deploy automatisch hochzählen - nur
+// noch bei einer "Vollversion", und nur wenn der Nutzer das explizit sagt.
+// Kleinere Deploys dazwischen laufen unversioniert (Service Worker liefert
+// dank Network-first ohnehin automatisch den neuesten Stand aus).
+const APP_VERSION = 'V1.0';

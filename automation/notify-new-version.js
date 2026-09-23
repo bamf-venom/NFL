@@ -1,10 +1,12 @@
 // ==================== NFL POINTS - Neue-Version-Benachrichtigung ====================
-// Läuft periodisch zusammen mit check-scores.js/send-bet-reminders.js (siehe
-// .github/workflows/update-scores.yml, alle 15 Minuten). Vergleicht die
-// aktuelle APP_VERSION (js/config.js, wird bei jedem sichtbaren Deploy
-// hochgezählt) mit der zuletzt an alle Nutzer gemeldeten Version - bei einem
-// Unterschied bekommt jeder abonnierte Nutzer einmalig eine Push-
-// Benachrichtigung "Neue Version verfügbar".
+// Wird MANUELL ausgelöst (siehe .github/workflows/notify-new-version.yml,
+// workflow_dispatch, kein Cron) - nicht bei jedem Deploy, sondern nur wenn
+// der Nutzer explizit eine neue Vollversion ankündigen will. Vergleicht die
+// aktuelle APP_VERSION (js/config.js, wird seit 2026-09-23 nur noch manuell
+// auf Zuruf hochgezählt, siehe Kommentar dort) mit der zuletzt an alle
+// Nutzer gemeldeten Version - bei einem Unterschied bekommt jeder
+// abonnierte Nutzer einmalig eine Push-Benachrichtigung "Neue Version
+// verfügbar", in seiner jeweils eingestellten Sprache.
 
 const fs = require('fs');
 const path = require('path');
@@ -28,6 +30,17 @@ function readCurrentAppVersion() {
   if (!match) throw new Error('APP_VERSION nicht in js/config.js gefunden');
   return match[1];
 }
+
+const VERSION_TEXT = {
+  de: {
+    title: 'NFL POINTS - Update verfügbar',
+    body: 'Es gibt eine neue Version der App. Tippe hier, um sie zu öffnen.',
+  },
+  en: {
+    title: 'NFL POINTS - Update available',
+    body: 'A new version of the app is available. Tap here to open it.',
+  },
+};
 
 async function sendToUser(userId, payload) {
   const subsSnapshot = await db.collection('users').doc(userId).collection('push_subscriptions').get();
@@ -74,17 +87,15 @@ async function main() {
   console.log(`Neue Version erkannt: ${notifiedVersion} -> ${currentVersion}. Benachrichtige alle abonnierten Nutzer...`);
 
   const usersSnapshot = await db.collection('users').get();
-  const payload = {
-    title: 'NFL POINTS - Update verfügbar',
-    body: 'Es gibt eine neue Version der App. Tippe hier, um sie zu öffnen.',
-    url: './pages/settings.html',
-  };
 
   let notifiedUsers = 0;
   let totalSent = 0;
   let totalRemoved = 0;
 
   for (const userDoc of usersSnapshot.docs) {
+    const lang = userDoc.data().language === 'en' ? 'en' : 'de';
+    const text = VERSION_TEXT[lang];
+    const payload = { title: text.title, body: text.body, url: './pages/settings.html' };
     const { sent, removed } = await sendToUser(userDoc.id, payload);
     if (sent > 0) notifiedUsers++;
     totalSent += sent;
