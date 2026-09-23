@@ -231,33 +231,24 @@ function initializeFirebase() {
 
       auth = firebase.auth();
 
-      // WICHTIG (2026-09-23): firebase.auth.Auth.Persistence.LOCAL (Compat-
-      // API) wählt intern IndexedDB (Datenbank "firebaseLocalStorageDb",
-      // irreführender Name - ist tatsächlich IndexedDB, kein localStorage!).
-      // Per Diagnose mit dem Nutzer bestätigt: in der installierten Android-
-      // App (TWA) übersteht schlichtes localStorage das Schließen der App
-      // zuverlässig, IndexedDB-Sessions von Firebase Auth aber nicht (führte
-      // zu wiederholtem Ausloggen). Die Compat-API bietet keinen direkten Weg,
-      // explizit localStorage statt IndexedDB zu erzwingen - deshalb per
-      // dynamic import() die MODULARE Firebase-Auth-SDK nachladen (funktioniert
-      // auf derselben Auth-Instanz, Compat und Modular teilen sich intern
-      // dieselbe App/Auth) und dort gezielt browserLocalPersistence setzen.
-      authPersistenceReady = import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js')
-        .then(({ getAuth, setPersistence, browserLocalPersistence }) => {
-          return setPersistence(getAuth(app), browserLocalPersistence);
-        })
-        .then(() => {
-          debugLog('✅ Auth-Persistenz auf browserLocalPersistence (localStorage) umgestellt');
-          try { localStorage.setItem('nflp_persistence_debug', 'OK: modulare SDK geladen, browserLocalPersistence gesetzt.'); } catch (e) {}
-        })
-        .catch((err) => {
-          debugLog('Auth-Persistenz (browserLocalPersistence) konnte nicht gesetzt werden, Fallback auf Compat LOCAL:', err);
-          try { localStorage.setItem('nflp_persistence_debug', 'FEHLER beim modularen Import: ' + (err && err.message ? err.message : err)); } catch (e) {}
-          // Fallback auf die alte Compat-Persistenz, falls das Nachladen der
-          // modularen SDK fehlschlägt (z.B. Netzwerkproblem) - besser als gar
-          // keine Persistenz-Einstellung
-          return auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
-        });
+      // WICHTIG (2026-09-23): war kurzzeitig auf einen per dynamic import()
+      // nachgeladenen, MODULAREN browserLocalPersistence umgestellt (in der
+      // Annahme, dass IndexedDB - was Compat-LOCAL tatsächlich nutzt, siehe
+      // Datenbank "firebaseLocalStorageDb" - in der installierten Android-App
+      // nicht zuverlässig übersteht). Nach dieser Umstellung trat aber ein
+      // NEUES, reproduzierbares Symptom auf: der Auth-Schlüssel war beim
+      // Laden noch da, verschwand aber WÄHREND Firebase's eigener
+      // Initialisierung wieder (bestätigt über mehrere sauber getestete
+      // Läufe). Vermutung: das Mischen von Compat- und modularer SDK auf
+      // derselben Auth-Instanz für die Persistenz-Umstellung hat einen
+      // internen Migrations-Konflikt ausgelöst statt das Problem zu lösen.
+      // Zurückgerollt auf die einfache, gut getestete Compat-API - das
+      // eigentliche Problem war vermutlich ohnehin der jetzt behobene
+      // Service-Worker-Cache-Bug (sw.js, Browser-HTTP-Cache wurde nicht
+      // umgangen), der frühere Testergebnisse verfälscht haben könnte.
+      authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+        debugLog('Auth-Persistenz konnte nicht gesetzt werden:', err.code);
+      });
 
       db = firebase.firestore();
       

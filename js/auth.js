@@ -31,6 +31,21 @@ Object.assign(TRANSLATIONS.en, {
 let currentUser = null;
 let authInitialized = false;
 
+// TEMPORÄRE DIAGNOSE (2026-09-23) - hängt Zeitstempel-Einträge an eine Liste
+// in localStorage an (überlebt App-Neustarts, im Gegensatz zu console.log),
+// damit sichtbar wird was genau beim Wiederherstellen der Sitzung passiert.
+// Banner auf index.html zeigt die letzten Einträge an. Wieder entfernen
+// sobald das Ausloggen-Problem geklärt ist.
+function logAuthDebug(msg) {
+  try {
+    const key = 'nflp_auth_debug_log';
+    const log = JSON.parse(localStorage.getItem(key) || '[]');
+    log.push(new Date().toISOString().slice(11, 23) + ' ' + msg);
+    while (log.length > 20) log.shift();
+    localStorage.setItem(key, JSON.stringify(log));
+  } catch (e) {}
+}
+
 // Wait for Firebase auth to be ready
 function waitForAuth() {
   return new Promise((resolve) => {
@@ -49,6 +64,11 @@ function waitForAuth() {
         // für wiederholtes Ausloggen in der installierten Android-App).
         Promise.resolve(typeof authPersistenceReady !== 'undefined' ? authPersistenceReady : null).finally(() => {
           auth.onAuthStateChanged(async (user) => {
+            // TEMPORÄRE DIAGNOSE (2026-09-23) - zeichnet genau auf was hier
+            // passiert (welcher Schritt scheitert, mit welchem Fehlercode),
+            // sichtbar im Banner auf index.html. Wieder entfernen sobald das
+            // Ausloggen-Problem geklärt ist.
+            logAuthDebug('onAuthStateChanged: user=' + (user ? 'vorhanden (' + user.uid + ')' : 'null'));
             if (user) {
               try {
                 // WICHTIG (2026-09-23): Firebase kann `user` hier schon als
@@ -63,8 +83,10 @@ function waitForAuth() {
                 // fälschlichen Logout. getIdToken() erzwingt, dass der Token
                 // wirklich bereit ist, bevor der Firestore-Zugriff versucht wird.
                 await user.getIdToken();
+                logAuthDebug('getIdToken() OK');
                 currentUser = await firebaseGetCurrentUser();
                 localStorage.setItem('user', JSON.stringify(currentUser));
+                logAuthDebug('firebaseGetCurrentUser() OK, currentUser gesetzt');
               } catch (error) {
                 // Firebase Auth selbst sagt "eingeloggt" (user != null) - ein
                 // Fehler hier ist ein Firestore-Problem (z.B. Netzwerk, oder wie
@@ -74,6 +96,7 @@ function waitForAuth() {
                 // obwohl die Session noch gueltig war. Bereits gespeicherte
                 // Nutzerdaten bleiben deshalb jetzt einfach stehen.
                 console.error('Error getting user data (Session bleibt trotzdem bestehen):', error);
+                logAuthDebug('FEHLER: ' + (error && error.code ? error.code : '') + ' ' + (error && error.message ? error.message : error));
                 const storedUser = localStorage.getItem('user');
                 currentUser = storedUser ? JSON.parse(storedUser) : null;
               }

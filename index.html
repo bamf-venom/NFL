@@ -17,10 +17,10 @@
         var keys = Object.keys(localStorage);
         var groupBetsCount = keys.filter(function(k) { return k.indexOf('nflp_cache_groupBets_') === 0; }).length;
         var authKey = keys.find(function(k) { return k.indexOf('firebase:authUser:') === 0; });
-        var persistenceDebug = localStorage.getItem('nflp_persistence_debug') || '(kein Eintrag)';
+        var authLog = JSON.parse(localStorage.getItem('nflp_auth_debug_log') || '[]');
         return (authKey ? 'AUTH KEY DA' : 'AUTH KEY WEG') +
           ' | Gesamt: ' + keys.length + ' Keys, davon groupBets-Cache: ' + groupBetsCount +
-          ' | Persistenz: ' + persistenceDebug;
+          ' | Auth-Log: [' + authLog.join(' ; ') + ']';
       } catch (e) {
         return 'STORAGE ERROR: ' + e.message;
       }
@@ -203,9 +203,22 @@
       });
     }
     
-    waitForFirebaseSDK().then(() => {
+    // WICHTIG (2026-09-23): checkAuth() - die Funktion, die einen bereits
+    // angemeldeten Nutzer automatisch zu pages/games.html weiterleitet -
+    // wurde bisher NUR auf jeder Unterseite aufgerufen (siehe deren eigene
+    // DOMContentLoaded-Handler, z.B. games.js), aber nie hier auf der
+    // Startseite selbst. Da die App laut PWA-Manifest (start_url) immer
+    // zuerst hier landet, hat das dazu geführt, dass Nutzer bei JEDEM
+    // App-Start den Login-Bildschirm sahen und sich manuell neu anmelden
+    // mussten - unabhängig davon, ob ihre Sitzung im Hintergrund eigentlich
+    // noch gültig war. Vermutlich die eigentliche, vollständige Ursache
+    // fürs wiederholt gemeldete Ausloggen-Problem.
+    waitForFirebaseSDK().then(async () => {
       if (typeof initializeFirebase === 'function') {
         initializeFirebase();
+      }
+      if (typeof checkAuth === 'function') {
+        await checkAuth();
       }
     });
   </script>
