@@ -211,8 +211,13 @@ async function handleDisableNotifications() {
 
 function renderSettings() {
   const container = document.getElementById('settings-container');
+  // App-Version-Check und Benachrichtigungen ergeben nur in der installierten
+  // App Sinn (Android-TWA/APK oder "Zum Startbildschirm hinzugefügt") - auf
+  // der normalen Webseite werden beide Karten komplett ausgeblendet
+  const isApp = isInstalledApp();
 
   container.innerHTML = `
+    ${isApp ? `
     <div class="card animate-fade-in" style="margin-bottom: 16px;">
       <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
         <i class="fas fa-mobile-screen-button"></i> ${t('section_app_version')}
@@ -221,6 +226,7 @@ function renderSettings() {
         <div class="spinner" style="width: 20px; height: 20px;"></div>
       </div>
     </div>
+    ` : ''}
 
     <div class="card animate-fade-in" style="margin-bottom: 16px; animation-delay: 0.05s;">
       <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
@@ -232,6 +238,7 @@ function renderSettings() {
       </select>
     </div>
 
+    ${isApp ? `
     <div class="card animate-fade-in" style="margin-bottom: 16px; animation-delay: 0.08s;">
       <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
         <i class="fas fa-bell"></i> ${t('section_notifications')}
@@ -243,6 +250,7 @@ function renderSettings() {
         <div class="spinner" style="width: 20px; height: 20px;"></div>
       </div>
     </div>
+    ` : ''}
 
     <div class="card animate-fade-in" style="margin-bottom: 16px; animation-delay: 0.1s;">
       <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
@@ -291,8 +299,10 @@ function renderSettings() {
     langSelect.value = getCurrentLanguage();
   }
 
-  checkForAppUpdate();
-  renderNotificationStatus();
+  if (isApp) {
+    checkForAppUpdate();
+    renderNotificationStatus();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async function() {

@@ -85,6 +85,18 @@ function formatTime(dateString) {
   });
 }
 
+// Erkennt ob die App als installierte App läuft (Android-TWA/APK oder "Zum
+// Startbildschirm hinzugefügt") statt als normaler Browser-Tab auf der
+// Webseite - genutzt um App-only Einstellungen (Benachrichtigungen,
+// Versions-Update-Check) auf der normalen Webseite auszublenden.
+// display-mode: standalone deckt beides ab, da manifest.json bereits
+// "display": "standalone" setzt; navigator.standalone ist der ältere
+// iOS-Safari-spezifische Fallback dafür.
+function isInstalledApp() {
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+         window.navigator.standalone === true;
+}
+
 // Get status badge HTML
 function getStatusBadge(status) {
   switch (status) {
