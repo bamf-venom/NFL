@@ -217,6 +217,17 @@ function initializeFirebase() {
         app = firebase.apps[0];
       }
       auth = firebase.auth();
+
+      // Explizit LOCAL-Persistenz setzen (überlebt App-Neustarts, nicht nur
+      // Tab schließen) statt sich auf Firebases automatische Erkennung zu
+      // verlassen - in der installierten Android-App (TWA) kam es sonst zu
+      // wiederholten Ausloggern, vermutlich weil der zugrunde liegende
+      // Browser (abhängig vom Standard-Browser des Geräts, z.B. Samsung
+      // Internet statt Chrome) die Persistenz-Erkennung anders auflöst.
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+        debugLog('Auth-Persistenz konnte nicht gesetzt werden:', err.code);
+      });
+
       db = firebase.firestore();
       
       // Firestore Settings für bessere Performance
