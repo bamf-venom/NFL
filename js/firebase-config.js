@@ -191,6 +191,10 @@ function debugLog(...args) {
 let app, auth, db;
 let firebaseReady = false;
 let firebaseReadyCallbacks = [];
+// Promise, die auflöst sobald setPersistence() wirklich fertig ist - auth.js
+// wartet darauf, bevor onAuthStateChanged registriert wird (siehe Kommentar
+// bei setPersistence() unten für den Grund)
+let authPersistenceReady = null;
 
 function onFirebaseReady(callback) {
   if (firebaseReady) {
@@ -220,11 +224,15 @@ function initializeFirebase() {
 
       // Explizit LOCAL-Persistenz setzen (überlebt App-Neustarts, nicht nur
       // Tab schließen) statt sich auf Firebases automatische Erkennung zu
-      // verlassen - in der installierten Android-App (TWA) kam es sonst zu
-      // wiederholten Ausloggern, vermutlich weil der zugrunde liegende
-      // Browser (abhängig vom Standard-Browser des Geräts, z.B. Samsung
-      // Internet statt Chrome) die Persistenz-Erkennung anders auflöst.
-      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+      // verlassen. WICHTIG: das läuft async - wenn irgendwer (z.B.
+      // onAuthStateChanged in auth.js) den Auth-Status abfragt BEVOR dieses
+      // Promise aufgelöst hat, kann dieser allererste Check noch mit der
+      // SDK-Standardeinstellung statt LOCAL laufen. Deshalb wird die Promise
+      // selbst hier gespeichert (authPersistenceReady), damit auth.js
+      // explizit darauf warten kann statt nur zu prüfen ob `auth` existiert.
+      // Genau diese Race war vermutlich die Ursache für wiederholtes
+      // Ausloggen in der installierten Android-App (TWA).
+      authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
         debugLog('Auth-Persistenz konnte nicht gesetzt werden:', err.code);
       });
 
