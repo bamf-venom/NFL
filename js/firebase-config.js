@@ -220,6 +220,15 @@ function initializeFirebase() {
       } else {
         app = firebase.apps[0];
       }
+      // Räumt übermäßig angesammelte groupBets-Cache-Einträge auf (siehe
+      // pruneGroupBetsCacheIfNeeded weiter unten) - läuft bei JEDEM Start,
+      // nicht erst beim nächsten Schreibvorgang, damit bereits bestehender
+      // Speicher-Überschuss (der Firebase Auths eigene Sitzungsdaten beim
+      // Schreiben stören kann) auch ohne manuellen "Cache leeren"-Klick
+      // behoben wird. Läuft VOR setPersistence, damit Firebase Auth danach
+      // möglichst viel freien Speicher vorfindet.
+      pruneGroupBetsCacheIfNeeded();
+
       auth = firebase.auth();
 
       // WICHTIG (2026-09-23): firebase.auth.Auth.Persistence.LOCAL (Compat-
@@ -1474,6 +1483,41 @@ function invalidateGroupBetsCache(groupId) {
   lsRemovePrefix(`groupBets_${prefix}`);
 }
 
+// Ohne Obergrenze sammelt sich pro (Gruppe, Spiel)-Kombination, die je
+// abgefragt wurde, ein eigener localStorage-Eintrag an, der nur bei
+// Mitgliederänderungen der jeweiligen Gruppe gelöscht wird - über viele
+// Wochen/Gruppen hinweg wächst das unbegrenzt (in der Praxis auf über 300
+// Einträge beobachtet, siehe Obsidian: Caching-System.md). Das kann den
+// gesamten localStorage-Speicher des Ursprungs auffüllen und dadurch ANDERE
+// Schreibvorgänge (u.a. Firebase Auths eigene Sitzungsdaten) zum Scheitern
+// bringen - vermutlicher Mitverursacher des wiederholten Ausloggens in der
+// installierten App. Begrenzt die Anzahl der persistierten Einträge auf ein
+// Maximum, entfernt bei Überschreitung die ältesten zuerst.
+const GROUP_BETS_CACHE_MAX_ENTRIES = 80;
+
+function pruneGroupBetsCacheIfNeeded() {
+  try {
+    const prefix = LS_PREFIX + 'groupBets_';
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(prefix));
+    if (keys.length <= GROUP_BETS_CACHE_MAX_ENTRIES) return;
+
+    const entries = keys.map(k => {
+      let timestamp = 0;
+      try { timestamp = JSON.parse(localStorage.getItem(k)).timestamp || 0; } catch (e) {}
+      return { key: k, timestamp };
+    });
+    entries.sort((a, b) => a.timestamp - b.timestamp);
+
+    const excess = entries.length - GROUP_BETS_CACHE_MAX_ENTRIES;
+    for (let i = 0; i < excess; i++) {
+      localStorage.removeItem(entries[i].key);
+    }
+  } catch (e) {
+    // Aufräumen ist nur eine Vorsichtsmaßnahme, darf den eigentlichen Ablauf
+    // nie blockieren
+  }
+}
+
 async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
   // Ohne gültige gameId würde Query.where('game_id', '==', gameId) mit
   // "Unsupported field value: undefined" abstürzen und damit die komplette
@@ -1531,6 +1575,7 @@ async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
 
   const entry = { bets: allBets, timestamp: Date.now(), permanent: isGameFinished };
   groupBetsCache[cacheKey] = entry;
+  pruneGroupBetsCacheIfNeeded();
   lsWrite(storageKey, entry);
 
   return allBets;

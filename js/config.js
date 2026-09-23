@@ -122,4 +122,4 @@ const VAPID_PUBLIC_KEY = 'BP9m9K3SVLgugOANXXViTu2iQ_4oTTCRsNIwQIb5HTRcSuidTrvUEV
 // vergleicht diese Konstante mit einer frisch vom Server geholten Kopie
 // dieser Datei). WICHTIG: bei jedem sichtbaren Deploy hochzählen, sonst
 // zeigt die Update-Erkennung nichts an.
-const APP_VERSION = '2026.09.23.11';
+const APP_VERSION = '2026.09.23.12';
