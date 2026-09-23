@@ -3,27 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <script>
-    // TEMPORÄRE DIAGNOSE (2026-09-23, Runde 2) - localStorage an sich wurde
-    // bereits bestätigt als zuverlässig (übersteht App-Neustarts). Firebase
-    // Auth nutzte bisher aber IndexedDB statt localStorage für die Sitzung
-    // (siehe firebase-config.js) - das wurde jetzt umgestellt. Prüft hier
-    // gezielt, ob der Firebase-Auth-eigene localStorage-Schlüssel
-    // (firebase:authUser:...) das Schließen der App übersteht. Läuft als
-    // Allererstes, vor jedem anderen Script. Wieder entfernen sobald
+    // TEMPORÄRE DIAGNOSE (2026-09-23, Runde 4) - läuft als Allererstes, vor
+    // jedem anderen Script, und erstellt eine kurze Zusammenfassung statt
+    // aller einzelnen Key-Namen (war unübersichtlich). WICHTIG: dieser
+    // allererste Check läuft VOR Firebase/firebase-config.js - der dortige
+    // Aufräum-Code (pruneGroupBetsCacheIfNeeded) hat zu diesem Zeitpunkt noch
+    // NICHT gelaufen. window.__storageSummary() kann deshalb jederzeit erneut
+    // aufgerufen werden (z.B. nach ein paar Sekunden), um den Zustand NACH
+    // der Firebase-Initialisierung zu sehen. Wieder entfernen sobald
     // bestätigt ist, dass das Ausloggen-Problem behoben ist.
-    (function() {
+    window.__storageSummary = function() {
       try {
         var keys = Object.keys(localStorage);
+        var groupBetsCount = keys.filter(function(k) { return k.indexOf('nflp_cache_groupBets_') === 0; }).length;
         var authKey = keys.find(function(k) { return k.indexOf('firebase:authUser:') === 0; });
         var persistenceDebug = localStorage.getItem('nflp_persistence_debug') || '(kein Eintrag)';
-        var msg = (authKey ? 'AUTH KEY DA' : 'AUTH KEY WEG') + ' | ' +
-          'Persistenz-Umstellung letzten Lauf: ' + persistenceDebug + ' | ' +
-          'Alle localStorage-Keys (' + keys.length + '): ' + keys.join(', ');
-        window.__storageDebugMessage = msg;
+        return (authKey ? 'AUTH KEY DA' : 'AUTH KEY WEG') +
+          ' | Gesamt: ' + keys.length + ' Keys, davon groupBets-Cache: ' + groupBetsCount +
+          ' | Persistenz: ' + persistenceDebug;
       } catch (e) {
-        window.__storageDebugMessage = 'STORAGE ERROR: ' + e.message;
+        return 'STORAGE ERROR: ' + e.message;
       }
-    })();
+    };
+    window.__storageDebugMessage = 'Beim Laden: ' + window.__storageSummary();
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="manifest.json">
@@ -56,15 +58,28 @@
 </head>
 <body>
   <script>
-    // Sichtbares Diagnose-Banner statt alert() (siehe Script im <head>)
+    // Sichtbares Diagnose-Banner statt alert(). Aktualisiert sich nach 4
+    // Sekunden nochmal selbst, damit auch der Zustand NACH der Firebase-
+    // Initialisierung (inkl. pruneGroupBetsCacheIfNeeded) sichtbar wird,
+    // nicht nur der Zustand beim allerersten Laden.
     if (window.__storageDebugMessage) {
-      document.write(
-        '<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#ffcc00;color:#000;' +
-        'font-family:monospace;font-size:11px;padding:10px 12px;word-break:break-word;' +
-        'max-height:45vh;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,0.4);">' +
-        window.__storageDebugMessage.replace(/</g, '&lt;') +
-        '</div>'
-      );
+      document.write('<div id="storage-debug-banner" style="position:fixed;top:0;left:0;right:0;z-index:99999;' +
+        'background:#ffcc00;color:#000;font-family:monospace;font-size:12px;padding:10px 12px;' +
+        'word-break:break-word;box-shadow:0 2px 8px rgba(0,0,0,0.4);">' +
+        window.__storageDebugMessage.replace(/</g, '&lt;') + '</div>');
+      var pollCount = 0;
+      var pollForFirebaseReady = setInterval(function() {
+        pollCount++;
+        var ready = (typeof firebaseReady !== 'undefined' && firebaseReady === true);
+        if (ready || pollCount > 16) { // max ~8s (16 * 500ms)
+          clearInterval(pollForFirebaseReady);
+          var el = document.getElementById('storage-debug-banner');
+          if (el && window.__storageSummary) {
+            el.textContent = window.__storageDebugMessage +
+              ' || Nach Firebase-Init (' + (ready ? 'fertig' : 'Timeout nach 8s') + '): ' + window.__storageSummary();
+          }
+        }
+      }, 500);
     }
   </script>
   <div id="app" class="landing-page">
