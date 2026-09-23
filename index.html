@@ -2,31 +2,6 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <script>
-    // TEMPORÄRE DIAGNOSE (2026-09-23, Runde 4) - läuft als Allererstes, vor
-    // jedem anderen Script, und erstellt eine kurze Zusammenfassung statt
-    // aller einzelnen Key-Namen (war unübersichtlich). WICHTIG: dieser
-    // allererste Check läuft VOR Firebase/firebase-config.js - der dortige
-    // Aufräum-Code (pruneGroupBetsCacheIfNeeded) hat zu diesem Zeitpunkt noch
-    // NICHT gelaufen. window.__storageSummary() kann deshalb jederzeit erneut
-    // aufgerufen werden (z.B. nach ein paar Sekunden), um den Zustand NACH
-    // der Firebase-Initialisierung zu sehen. Wieder entfernen sobald
-    // bestätigt ist, dass das Ausloggen-Problem behoben ist.
-    window.__storageSummary = function() {
-      try {
-        var keys = Object.keys(localStorage);
-        var groupBetsCount = keys.filter(function(k) { return k.indexOf('nflp_cache_groupBets_') === 0; }).length;
-        var authKey = keys.find(function(k) { return k.indexOf('firebase:authUser:') === 0; });
-        var authLog = JSON.parse(localStorage.getItem('nflp_auth_debug_log') || '[]');
-        return (authKey ? 'AUTH KEY DA' : 'AUTH KEY WEG') +
-          ' | Gesamt: ' + keys.length + ' Keys, davon groupBets-Cache: ' + groupBetsCount +
-          ' | Auth-Log: [' + authLog.join(' ; ') + ']';
-      } catch (e) {
-        return 'STORAGE ERROR: ' + e.message;
-      }
-    };
-    window.__storageDebugMessage = 'Beim Laden: ' + window.__storageSummary();
-  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0a0a0a">
@@ -57,31 +32,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-  <script>
-    // Sichtbares Diagnose-Banner statt alert(). Aktualisiert sich nach 4
-    // Sekunden nochmal selbst, damit auch der Zustand NACH der Firebase-
-    // Initialisierung (inkl. pruneGroupBetsCacheIfNeeded) sichtbar wird,
-    // nicht nur der Zustand beim allerersten Laden.
-    if (window.__storageDebugMessage) {
-      document.write('<div id="storage-debug-banner" style="position:fixed;top:0;left:0;right:0;z-index:99999;' +
-        'background:#ffcc00;color:#000;font-family:monospace;font-size:12px;padding:10px 12px;' +
-        'word-break:break-word;box-shadow:0 2px 8px rgba(0,0,0,0.4);">' +
-        window.__storageDebugMessage.replace(/</g, '&lt;') + '</div>');
-      var pollCount = 0;
-      var pollForFirebaseReady = setInterval(function() {
-        pollCount++;
-        var ready = (typeof firebaseReady !== 'undefined' && firebaseReady === true);
-        if (ready || pollCount > 16) { // max ~8s (16 * 500ms)
-          clearInterval(pollForFirebaseReady);
-          var el = document.getElementById('storage-debug-banner');
-          if (el && window.__storageSummary) {
-            el.textContent = window.__storageDebugMessage +
-              ' || Nach Firebase-Init (' + (ready ? 'fertig' : 'Timeout nach 8s') + '): ' + window.__storageSummary();
-          }
-        }
-      }, 500);
-    }
-  </script>
   <div id="app" class="landing-page">
     <!-- Hero Section -->
     <div class="hero-section">
