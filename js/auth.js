@@ -131,8 +131,19 @@ async function checkAuth() {
   // Wait for Firebase auth
   await waitForAuth();
 
+  // WICHTIG (2026-09-23): war vorher `currentPath === '/' ||
+  // currentPath.endsWith('index.html')` - funktionierte lokal (Pfad `/`),
+  // aber NICHT auf der echten Seite unter github.io/NFL/, wo der Pfad
+  // `/NFL/` ist (kein "index.html" in der URL, da implizites Standard-
+  // dokument). isLandingPage wurde dadurch faelschlich `false`, was einen
+  // nicht angemeldeten Besucher der Startseite in eine Umleitungsschleife
+  // schickte (zurueck zu '../index.html', das wiederum zurueck zu /NFL/
+  // umleitet - siehe die Root-Redirect-Seite unter bamf-venom.github.io/).
+  // Jede Unterseite liegt unter /pages/ (siehe initPage() in main.js fuer
+  // dasselbe Muster) - alles ANDERE ist die Landing Page, unabhaengig vom
+  // Hosting-Pfad-Praefix.
   const currentPath = window.location.pathname;
-  const isLandingPage = currentPath === '/' || currentPath.endsWith('index.html');
+  const isLandingPage = !currentPath.includes('/pages/');
 
   if (currentUser) {
     // If on landing page, redirect to games
