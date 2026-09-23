@@ -6,7 +6,8 @@
   "main": "check-scores.js",
   "scripts": {
     "check-scores": "node check-scores.js",
-    "send-bet-reminders": "node send-bet-reminders.js"
+    "send-bet-reminders": "node send-bet-reminders.js",
+    "notify-new-version": "node notify-new-version.js"
   },
   "dependencies": {
     "firebase-admin": "^12.6.0",

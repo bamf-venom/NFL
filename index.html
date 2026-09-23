@@ -6,8 +6,11 @@
     // TEMPORÄRE DIAGNOSE (2026-09-23) - prüft ganz unabhängig von Firebase,
     // ob localStorage das Schließen/Wiederöffnen der installierten Android-
     // App überhaupt übersteht. Läuft als Allererstes, vor jedem anderen
-    // Script. Wieder entfernen sobald die Ursache fürs wiederholte Ausloggen
-    // gefunden ist.
+    // Script. alert() wird in manchen TWA/Android-App-Umgebungen gar nicht
+    // angezeigt - Ergebnis wird deshalb in window.__storageDebugMessage
+    // zwischengespeichert und gleich unten als sichtbares Banner eingeblendet
+    // statt als Pop-up. Wieder entfernen sobald die Ursache fürs
+    // wiederholte Ausloggen gefunden ist.
     (function() {
       try {
         var KEY = 'nflp_storage_persist_test';
@@ -16,14 +19,14 @@
         if (prevRaw) {
           var prev = JSON.parse(prevRaw);
           var secondsAgo = Math.round((now - prev.timestamp) / 1000);
-          alert('DEBUG STORAGE: localStorage hat überlebt. Letzter Eintrag vor ' + secondsAgo + ' Sekunden, Öffnung Nr. ' + prev.count + '.');
+          window.__storageDebugMessage = 'STORAGE OK: localStorage hat überlebt. Letzter Eintrag vor ' + secondsAgo + 's, Öffnung Nr. ' + (prev.count + 1) + '.';
           localStorage.setItem(KEY, JSON.stringify({ timestamp: now, count: prev.count + 1 }));
         } else {
-          alert('DEBUG STORAGE: KEIN vorheriger Eintrag gefunden - localStorage übersteht das Schließen der App NICHT (oder das ist der allererste Start). Wird jetzt neu gesetzt.');
+          window.__storageDebugMessage = 'STORAGE WEG: KEIN vorheriger Eintrag gefunden - localStorage übersteht das Schließen der App NICHT (oder allererster Start). Wird jetzt neu gesetzt.';
           localStorage.setItem(KEY, JSON.stringify({ timestamp: now, count: 1 }));
         }
       } catch (e) {
-        alert('DEBUG STORAGE ERROR: ' + e.message);
+        window.__storageDebugMessage = 'STORAGE ERROR: ' + e.message;
       }
     })();
   </script>
@@ -57,6 +60,18 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
+  <script>
+    // Sichtbares Diagnose-Banner statt alert() (siehe Script im <head>)
+    if (window.__storageDebugMessage) {
+      document.write(
+        '<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#ffcc00;color:#000;' +
+        'font-family:monospace;font-size:13px;padding:10px 12px;word-break:break-word;' +
+        'box-shadow:0 2px 8px rgba(0,0,0,0.4);">' +
+        window.__storageDebugMessage.replace(/</g, '&lt;') +
+        '</div>'
+      );
+    }
+  </script>
   <div id="app" class="landing-page">
     <!-- Hero Section -->
     <div class="hero-section">

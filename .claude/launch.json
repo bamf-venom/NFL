@@ -4,8 +4,8 @@
     {
       "name": "nfl-points-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8951"],
-      "port": 8951
+      "runtimeArgs": ["-m", "http.server", "8973"],
+      "port": 8973
     }
   ]
 }

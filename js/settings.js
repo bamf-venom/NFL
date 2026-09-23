@@ -58,9 +58,16 @@ function handleLanguageChange(value) {
 // Ein reines location.reload() reicht nicht zuverlässig aus, um auf die neue
 // Version zu wechseln - der alte Service Worker (samt seinem Cache, siehe
 // sw.js) kann noch aktiv sein und Dateien aus seinem Cache ausliefern statt
-// vom Netzwerk. Deregistriert deshalb explizit alle Service Worker und leert
-// alle Caches, bevor neu geladen wird - garantiert einen wirklich frischen
-// Start (der neue Service Worker installiert sich danach von selbst neu).
+// vom Netzwerk. Leert deshalb explizit alle Caches vor dem Neuladen.
+//
+// WICHTIG: registration.unregister() wird hier bewusst NICHT mehr aufgerufen
+// (war ein eigener Bug) - das Deregistrieren des Service Workers macht auch
+// die daran hängende Push-Subscription (Benachrichtigungen, siehe
+// firebase-config.js) ungültig, wodurch Nutzer nach jedem Update ihre
+// Erinnerungen erneut aktivieren mussten. caches.delete() + reload reicht:
+// der neue Service Worker (neuer CACHE_NAME durch APP_VERSION) übernimmt
+// beim Neuladen automatisch (self.skipWaiting()/clients.claim() in sw.js),
+// ohne die bestehende Push-Subscription zu zerstören.
 async function applyAppUpdate() {
   const btn = document.getElementById('apply-update-button');
   if (btn) {
@@ -69,13 +76,13 @@ async function applyAppUpdate() {
   }
 
   try {
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map(reg => reg.unregister()));
-    }
     if ('caches' in window) {
       const keys = await caches.keys();
       await Promise.all(keys.map(key => caches.delete(key)));
+    }
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) await registration.update();
     }
   } catch (error) {
     console.warn('Fehler beim Zurücksetzen von Service Worker/Cache:', error);

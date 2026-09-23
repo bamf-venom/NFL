@@ -1,6 +1,6 @@
-# Automatischer Ergebnis-Check + Wett-Erinnerungen
+# Automatischer Ergebnis-Check + Push-Benachrichtigungen
 
-Zwei Skripte laufen alle 15 Minuten über GitHub Actions (`.github/workflows/update-scores.yml`):
+Drei Skripte laufen alle 15 Minuten über GitHub Actions (`.github/workflows/update-scores.yml`):
 
 - **`check-scores.js`**: holt sich Ergebnisse von der kostenlosen ESPN-Schnittstelle und trägt sie
   in Firestore ein. Wird ein Spiel als beendet erkannt, werden automatisch auch die Punkte aller
@@ -9,6 +9,9 @@ Zwei Skripte laufen alle 15 Minuten über GitHub Actions (`.github/workflows/upd
   Spiel, das in ca. 1 Stunde beginnt, noch keine Wette platziert hat. Startet mehrere Spiele in
   etwa derselben Stunde, bekommt man trotzdem nur eine gebündelte Erinnerung statt mehrerer
   einzelner Nachrichten.
+- **`notify-new-version.js`**: vergleicht `APP_VERSION` (`js/config.js`) mit der zuletzt gemeldeten
+  Version (Firestore `meta/app_version`) - bei einem Unterschied bekommt jeder abonnierte Nutzer
+  einmalig eine Push-Benachrichtigung "Update verfügbar".
 
 ## Einmaliges Setup (musst du selbst machen)
 
@@ -50,6 +53,7 @@ export VAPID_PUBLIC_KEY="..."
 export VAPID_PRIVATE_KEY="..."
 node check-scores.js
 node send-bet-reminders.js
+node notify-new-version.js
 ```
 
 ## Was die Skripte machen
@@ -72,3 +76,10 @@ node send-bet-reminders.js
    Subscriptions auf, die der Browser als nicht mehr gültig meldet (404/410)
 5. Markiert die geprüften Spiele als `reminder_sent`, damit sie beim nächsten Lauf
    übersprungen werden
+
+**notify-new-version.js:**
+1. Liest die aktuelle `APP_VERSION` direkt aus `js/config.js` (lokal ausgecheckt im Workflow)
+2. Vergleicht sie mit `notified_version` in Firestore `meta/app_version`
+3. Unverändert → nichts tun. Beim allerersten Lauf überhaupt → nur vermerken, nicht benachrichtigen
+   (sonst würde die längst aktuelle Version fälschlich als "neu" gemeldet)
+4. Sonst: Push-Benachrichtigung an alle abonnierten Nutzer, `notified_version` aktualisieren
