@@ -637,22 +637,26 @@ function renderGames() {
           
           <!-- Game Header - klickbar -->
           <div class="game-card-header" onclick="openGameDetail('${game.id}')">
-            <!-- Top Row: Badge + eigene Wette (für Mobile) -->
+            <!-- Top Row: Badge links, Countdown mittig, eigene Wette + Pfeil rechts (für Mobile) -->
             <div class="game-card-top-row">
-              <div class="top-row-status">
+              <div class="top-row-left">
                 <div class="badge-lock-group">
                   <span class="badge ${badgeClass}">${badgeText}</span>
-                  ${getBettingCountdownHTML(game)}
                   ${lockIconHTML}
                 </div>
+              </div>
+              <div class="top-row-center">
+                ${getBettingCountdownHTML(game)}
+              </div>
+              <div class="top-row-right">
                 ${myBet ? `
                   <div class="my-bet-inline-mobile" data-testid="my-bet-mobile-${game.id}">
                     <span class="my-bet-inline-score">${myBet.home_score_prediction}:${myBet.away_score_prediction}</span>
                     ${game.status === 'finished' ? `<span class="my-bet-inline-pts ${myBet.points_earned > 0 ? 'earned' : ''}">${myBet.points_earned || 0}P</span>` : ''}
                   </div>
                 ` : ''}
+                <i class="fas fa-chevron-right game-arrow"></i>
               </div>
-              <i class="fas fa-chevron-right game-arrow"></i>
             </div>
             
             <!-- Desktop Badge (wird auf Mobile versteckt) -->

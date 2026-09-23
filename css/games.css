@@ -1019,8 +1019,6 @@
   padding: 4px 10px;
   background: rgba(var(--success-rgb), 0.15);
   border-radius: 6px;
-  margin-left: auto;
-  margin-right: 8px;
 }
 
 .my-bet-inline-score {

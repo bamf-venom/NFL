@@ -370,9 +370,13 @@
     flex-direction: column;
   }
   
-  /* Top Row: Badge + Arrow zusammen oben (nur auf Mobile sichtbar) */
+  /* Top Row: Badge links, Countdown mittig, eigene Wette + Pfeil rechts
+     (nur auf Mobile sichtbar). Grid statt Flex, damit die Mitte wirklich
+     über die ganze Zeile zentriert ist, unabhängig davon wie breit links/
+     rechts jeweils ist. */
   .game-card-top-row {
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 8px;
     width: 100%;
@@ -382,14 +386,26 @@
     border-bottom: 1px solid var(--border);
   }
 
-  /* Badge + Schloss + eigener Tipp zentriert als eine Gruppe */
-  .top-row-status {
-    flex: 1;
+  .top-row-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    justify-self: start;
+  }
+
+  .top-row-center {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+  }
+
+  .top-row-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     min-width: 0;
+    justify-self: end;
   }
 
   .game-card-top-row .badge {
