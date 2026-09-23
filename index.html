@@ -3,27 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <script>
-    // TEMPORÄRE DIAGNOSE (2026-09-23) - prüft ganz unabhängig von Firebase,
-    // ob localStorage das Schließen/Wiederöffnen der installierten Android-
-    // App überhaupt übersteht. Läuft als Allererstes, vor jedem anderen
-    // Script. alert() wird in manchen TWA/Android-App-Umgebungen gar nicht
-    // angezeigt - Ergebnis wird deshalb in window.__storageDebugMessage
-    // zwischengespeichert und gleich unten als sichtbares Banner eingeblendet
-    // statt als Pop-up. Wieder entfernen sobald die Ursache fürs
-    // wiederholte Ausloggen gefunden ist.
+    // TEMPORÄRE DIAGNOSE (2026-09-23, Runde 2) - localStorage an sich wurde
+    // bereits bestätigt als zuverlässig (übersteht App-Neustarts). Firebase
+    // Auth nutzte bisher aber IndexedDB statt localStorage für die Sitzung
+    // (siehe firebase-config.js) - das wurde jetzt umgestellt. Prüft hier
+    // gezielt, ob der Firebase-Auth-eigene localStorage-Schlüssel
+    // (firebase:authUser:...) das Schließen der App übersteht. Läuft als
+    // Allererstes, vor jedem anderen Script. Wieder entfernen sobald
+    // bestätigt ist, dass das Ausloggen-Problem behoben ist.
     (function() {
       try {
-        var KEY = 'nflp_storage_persist_test';
-        var now = Date.now();
-        var prevRaw = localStorage.getItem(KEY);
-        if (prevRaw) {
-          var prev = JSON.parse(prevRaw);
-          var secondsAgo = Math.round((now - prev.timestamp) / 1000);
-          window.__storageDebugMessage = 'STORAGE OK: localStorage hat überlebt. Letzter Eintrag vor ' + secondsAgo + 's, Öffnung Nr. ' + (prev.count + 1) + '.';
-          localStorage.setItem(KEY, JSON.stringify({ timestamp: now, count: prev.count + 1 }));
+        var authKey = Object.keys(localStorage).find(function(k) { return k.indexOf('firebase:authUser:') === 0; });
+        if (authKey) {
+          window.__storageDebugMessage = 'AUTH KEY DA: ' + authKey + ' ist noch in localStorage vorhanden - Sitzung sollte erhalten bleiben.';
         } else {
-          window.__storageDebugMessage = 'STORAGE WEG: KEIN vorheriger Eintrag gefunden - localStorage übersteht das Schließen der App NICHT (oder allererster Start). Wird jetzt neu gesetzt.';
-          localStorage.setItem(KEY, JSON.stringify({ timestamp: now, count: 1 }));
+          window.__storageDebugMessage = 'AUTH KEY WEG: Kein firebase:authUser:-Schlüssel in localStorage gefunden (entweder nie eingeloggt gewesen, oder die Sitzung ist trotzdem verloren gegangen).';
         }
       } catch (e) {
         window.__storageDebugMessage = 'STORAGE ERROR: ' + e.message;

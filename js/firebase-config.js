@@ -222,19 +222,31 @@ function initializeFirebase() {
       }
       auth = firebase.auth();
 
-      // Explizit LOCAL-Persistenz setzen (überlebt App-Neustarts, nicht nur
-      // Tab schließen) statt sich auf Firebases automatische Erkennung zu
-      // verlassen. WICHTIG: das läuft async - wenn irgendwer (z.B.
-      // onAuthStateChanged in auth.js) den Auth-Status abfragt BEVOR dieses
-      // Promise aufgelöst hat, kann dieser allererste Check noch mit der
-      // SDK-Standardeinstellung statt LOCAL laufen. Deshalb wird die Promise
-      // selbst hier gespeichert (authPersistenceReady), damit auth.js
-      // explizit darauf warten kann statt nur zu prüfen ob `auth` existiert.
-      // Genau diese Race war vermutlich die Ursache für wiederholtes
-      // Ausloggen in der installierten Android-App (TWA).
-      authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
-        debugLog('Auth-Persistenz konnte nicht gesetzt werden:', err.code);
-      });
+      // WICHTIG (2026-09-23): firebase.auth.Auth.Persistence.LOCAL (Compat-
+      // API) wählt intern IndexedDB (Datenbank "firebaseLocalStorageDb",
+      // irreführender Name - ist tatsächlich IndexedDB, kein localStorage!).
+      // Per Diagnose mit dem Nutzer bestätigt: in der installierten Android-
+      // App (TWA) übersteht schlichtes localStorage das Schließen der App
+      // zuverlässig, IndexedDB-Sessions von Firebase Auth aber nicht (führte
+      // zu wiederholtem Ausloggen). Die Compat-API bietet keinen direkten Weg,
+      // explizit localStorage statt IndexedDB zu erzwingen - deshalb per
+      // dynamic import() die MODULARE Firebase-Auth-SDK nachladen (funktioniert
+      // auf derselben Auth-Instanz, Compat und Modular teilen sich intern
+      // dieselbe App/Auth) und dort gezielt browserLocalPersistence setzen.
+      authPersistenceReady = import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js')
+        .then(({ getAuth, setPersistence, browserLocalPersistence }) => {
+          return setPersistence(getAuth(app), browserLocalPersistence);
+        })
+        .then(() => {
+          debugLog('✅ Auth-Persistenz auf browserLocalPersistence (localStorage) umgestellt');
+        })
+        .catch((err) => {
+          debugLog('Auth-Persistenz (browserLocalPersistence) konnte nicht gesetzt werden, Fallback auf Compat LOCAL:', err);
+          // Fallback auf die alte Compat-Persistenz, falls das Nachladen der
+          // modularen SDK fehlschlägt (z.B. Netzwerkproblem) - besser als gar
+          // keine Persistenz-Einstellung
+          return auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+        });
 
       db = firebase.firestore();
       
