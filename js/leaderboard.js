@@ -1,5 +1,20 @@
 // Leaderboard page logic
 
+Object.assign(TRANSLATIONS.de, {
+  leaderboard_title: 'Rangliste', leaderboard_subtitle: 'Die besten Tipper der Saison',
+  showing_leaderboard_for: 'Zeige Rangliste für:',
+  global: 'Global', error_loading_leaderboard: 'Die Rangliste konnte nicht geladen werden.',
+  no_data_yet: 'Noch keine Daten', no_data_global: 'Die Rangliste wird gefüllt sobald Wetten ausgewertet werden.',
+  no_data_group: 'Diese Gruppe hat noch keine ausgewerteten Wetten.'
+});
+Object.assign(TRANSLATIONS.en, {
+  leaderboard_title: 'Leaderboard', leaderboard_subtitle: 'The best predictors of the season',
+  showing_leaderboard_for: 'Showing leaderboard for:',
+  global: 'Global', error_loading_leaderboard: 'The leaderboard could not be loaded.',
+  no_data_yet: 'No data yet', no_data_global: 'The leaderboard will fill up once bets are scored.',
+  no_data_group: 'This group has no scored bets yet.'
+});
+
 let leaderboardData = [];
 let userGroups = [];
 let selectedGroup = 'global';
@@ -33,7 +48,7 @@ async function loadGroups() {
     
     // Populate filter
     const filter = document.getElementById('group-filter');
-    filter.innerHTML = '<option value="global">Global</option>';
+    filter.innerHTML = `<option value="global">${t('global')}</option>`;
     
     userGroups.forEach(group => {
       const option = document.createElement('option');
@@ -84,9 +99,9 @@ async function loadLeaderboard(forceRefresh = false) {
     document.getElementById('leaderboard-container').innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-exclamation-triangle fa-3x empty-icon" style="color: var(--error);"></i>
-        <h3 class="empty-title">Fehler beim Laden</h3>
-        <p class="empty-text">Die Rangliste konnte nicht geladen werden.</p>
-        <button class="btn btn-primary" onclick="loadLeaderboard()">Erneut versuchen</button>
+        <h3 class="empty-title">${t('error_loading_title')}</h3>
+        <p class="empty-text">${t('error_loading_leaderboard')}</p>
+        <button class="btn btn-primary" onclick="loadLeaderboard()">${t('btn_retry')}</button>
       </div>
     `;
   }
@@ -110,11 +125,9 @@ function renderLeaderboard() {
     container.innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-trophy fa-3x empty-icon"></i>
-        <h3 class="empty-title">Noch keine Daten</h3>
+        <h3 class="empty-title">${t('no_data_yet')}</h3>
         <p class="empty-text">
-          ${selectedGroup === 'global' 
-            ? 'Die Rangliste wird gefüllt sobald Wetten ausgewertet werden.'
-            : 'Diese Gruppe hat noch keine ausgewerteten Wetten.'}
+          ${selectedGroup === 'global' ? t('no_data_global') : t('no_data_group')}
         </p>
       </div>
     `;
@@ -144,23 +157,23 @@ function renderLeaderboard() {
         <div class="leaderboard-user">
           <div class="leaderboard-username">
             ${escapeHtml(entry.username)}
-            ${isOwn ? '<span class="leaderboard-you">Du</span>' : ''}
+            ${isOwn ? `<span class="leaderboard-you">${t('you')}</span>` : ''}
           </div>
           <div class="leaderboard-stats">
             <span class="leaderboard-stat">
               <i class="fas fa-bullseye"></i>
-              ${entry.total_bets} Wetten
+              ${entry.total_bets} ${t('stat_bets')}
             </span>
             <span class="leaderboard-stat">
               <i class="fas fa-chart-line"></i>
-              ${entry.correct_winners} Richtig
+              ${entry.correct_winners} ${t('stat_correct')}
             </span>
           </div>
         </div>
-        
+
         <div class="leaderboard-points">
           <div class="leaderboard-points-num">${entry.total_points}</div>
-          <div class="leaderboard-points-label">Punkte</div>
+          <div class="leaderboard-points-label">${t('stat_points')}</div>
         </div>
       </div>
     `;

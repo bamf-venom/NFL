@@ -402,6 +402,10 @@
     font-size: clamp(11px, 3vw, 14px);
   }
 
+  .game-card-top-row .countdown-lock {
+    font-size: clamp(10px, 2.5vw, 12px);
+  }
+
   .game-card-top-row .game-arrow {
     display: flex !important;
     font-size: clamp(10px, 2.5vw, 14px);

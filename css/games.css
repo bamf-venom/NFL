@@ -910,6 +910,15 @@
   color: var(--success);
 }
 
+/* Countdown bis zur Wett-Sperre, direkt neben dem "GEPLANT"-Badge */
+.countdown-lock {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
 /* Teams Container zentriert - WICHTIG für Desktop-Zentrierung */
 .game-card-header .game-teams {
   display: flex;

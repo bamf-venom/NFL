@@ -1,5 +1,54 @@
 // Admin page logic
 
+Object.assign(TRANSLATIONS.de, {
+  admin_subtitle: 'Verwalte Spiele und Benutzer',
+  tab_games: 'Spiele', tab_users: 'Benutzer',
+  btn_new_game: 'Neues Spiel',
+  error_loading_admin_data: 'Die Daten konnten nicht geladen werden.',
+  team_select_placeholder: 'Team wählen...',
+  admin_week_wildcard: 'Wild Card', admin_week_divisional: 'Divisional',
+  admin_week_conf: 'Conf. Championship', admin_week_superbowl: 'Super Bowl',
+  no_games_in_filter: 'Keine Spiele in dieser Saison/Woche gefunden',
+  creating_game: 'Wird erstellt...', error_creating_game: 'Fehler beim Erstellen des Spiels',
+  btn_create_game_admin: 'Spiel erstellen',
+  game_id_label: 'Spiel ID: {id}...', team_points_label: '{team} Punkte',
+  saving_ellipsis: 'Wird gespeichert...', error_updating_game: 'Fehler beim Aktualisieren des Spiels',
+  confirm_delete_game: 'Spiel wirklich löschen? Alle Wetten gehen verloren!',
+  error_deleting_game: 'Fehler beim Löschen des Spiels',
+  confirm_delete_user: 'Benutzer "{username}" wirklich löschen? Alle Daten werden gelöscht!',
+  error_deleting_user: 'Fehler beim Löschen des Benutzers',
+  status_option_scheduled: 'Geplant', status_option_live: 'Live', status_option_finished: 'Beendet',
+  create_game_modal_title: 'Neues Spiel erstellen', edit_game_modal_title: 'Spiel bearbeiten',
+  label_home_team: 'Heimteam', label_away_team: 'Gastteam',
+  label_date_time: 'Datum & Uhrzeit', label_week: 'Woche', label_season: 'Saison',
+  label_home_points_default: 'Heim Punkte', label_away_points_default: 'Gast Punkte',
+  label_status: 'Status'
+});
+Object.assign(TRANSLATIONS.en, {
+  admin_subtitle: 'Manage games and users',
+  tab_games: 'Games', tab_users: 'Users',
+  btn_new_game: 'New game',
+  error_loading_admin_data: 'The data could not be loaded.',
+  team_select_placeholder: 'Select team...',
+  admin_week_wildcard: 'Wild Card', admin_week_divisional: 'Divisional',
+  admin_week_conf: 'Conf. Championship', admin_week_superbowl: 'Super Bowl',
+  no_games_in_filter: 'No games found for this season/week',
+  creating_game: 'Creating...', error_creating_game: 'Error creating the game',
+  btn_create_game_admin: 'Create game',
+  game_id_label: 'Game ID: {id}...', team_points_label: '{team} points',
+  saving_ellipsis: 'Saving...', error_updating_game: 'Error updating the game',
+  confirm_delete_game: 'Really delete this game? All bets will be lost!',
+  error_deleting_game: 'Error deleting the game',
+  confirm_delete_user: 'Really delete user "{username}"? All their data will be deleted!',
+  error_deleting_user: 'Error deleting the user',
+  status_option_scheduled: 'Scheduled', status_option_live: 'Live', status_option_finished: 'Finished',
+  create_game_modal_title: 'Create new game', edit_game_modal_title: 'Edit game',
+  label_home_team: 'Home team', label_away_team: 'Away team',
+  label_date_time: 'Date & time', label_week: 'Week', label_season: 'Season',
+  label_home_points_default: 'Home points', label_away_points_default: 'Away points',
+  label_status: 'Status'
+});
+
 let adminGames = [];
 let adminUsers = [];
 let currentTab = 'games';
@@ -17,6 +66,7 @@ async function initAdminPage() {
   
   // Populate team selects first (before loading data)
   populateTeamSelects();
+  translateAdminStaticSelects();
   await loadAdminData();
   
   // Setup filter listeners
@@ -148,7 +198,7 @@ function populateAdminWeekFilter() {
   
   if (!filter) return;
   
-  filter.innerHTML = '<option value="">Alle Wochen</option>';
+  filter.innerHTML = `<option value="">${t('all_weeks')}</option>`;
   
   weeks.forEach(week => {
     const option = document.createElement('option');
@@ -203,9 +253,9 @@ async function loadAdminData() {
     document.getElementById('admin-games-container').innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-exclamation-triangle fa-3x empty-icon" style="color: var(--error);"></i>
-        <h3 class="empty-title">Fehler beim Laden</h3>
-        <p class="empty-text">Die Daten konnten nicht geladen werden.</p>
-        <button class="btn btn-primary" onclick="loadAdminData()">Erneut versuchen</button>
+        <h3 class="empty-title">${t('error_loading_title')}</h3>
+        <p class="empty-text">${t('error_loading_admin_data')}</p>
+        <button class="btn btn-primary" onclick="loadAdminData()">${t('btn_retry')}</button>
       </div>
     `;
   }
@@ -229,8 +279,8 @@ function populateTeamSelects() {
   }
   
   // Clear existing options
-  homeSelect.innerHTML = '<option value="">Team wählen...</option>';
-  awaySelect.innerHTML = '<option value="">Team wählen...</option>';
+  homeSelect.innerHTML = `<option value="">${t('team_select_placeholder')}</option>`;
+  awaySelect.innerHTML = `<option value="">${t('team_select_placeholder')}</option>`;
   
   console.log('Populating team selects with', NFL_TEAMS.length, 'teams');
   
@@ -249,6 +299,31 @@ function populateTeamSelects() {
   console.log('Team selects populated successfully');
 }
 
+// Translate the static week/status <option> text in the create/edit game modals
+function translateAdminStaticSelects() {
+  ['game-week-input', 'edit-game-week'].forEach(id => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    Array.from(select.options).forEach(option => {
+      const week = parseInt(option.value);
+      if (!week) return;
+      option.textContent = getWeekDisplayName(week);
+    });
+  });
+
+  const statusSelect = document.getElementById('edit-status');
+  if (statusSelect) {
+    const labels = {
+      scheduled: t('status_option_scheduled'),
+      live: t('status_option_live'),
+      finished: t('status_option_finished')
+    };
+    Array.from(statusSelect.options).forEach(option => {
+      if (labels[option.value]) option.textContent = labels[option.value];
+    });
+  }
+}
+
 // Switch tab
 function switchTab(tab) {
   currentTab = tab;
@@ -265,11 +340,11 @@ function switchTab(tab) {
 // Get display name for week (including playoffs)
 function getWeekDisplayName(week) {
   switch (week) {
-    case 19: return 'Wild Card';
-    case 20: return 'Divisional';
-    case 21: return 'Conf. Championship';
-    case 22: return 'Super Bowl';
-    default: return `Woche ${week}`;
+    case 19: return t('admin_week_wildcard');
+    case 20: return t('admin_week_divisional');
+    case 21: return t('admin_week_conf');
+    case 22: return t('admin_week_superbowl');
+    default: return t('week_n', { n: week });
   }
 }
 
@@ -299,7 +374,7 @@ function renderAdminGames() {
   if (filteredGames.length === 0) {
     container.innerHTML = `
       <div class="card empty-state">
-        <p style="color: var(--muted);">Keine Spiele in dieser Saison/Woche gefunden</p>
+        <p style="color: var(--muted);">${t('no_games_in_filter')}</p>
       </div>
     `;
     return;
@@ -327,7 +402,7 @@ function renderAdminGames() {
           </div>
           <div>
             <div class="admin-game-details">${game.home_team_abbr} vs ${game.away_team_abbr}</div>
-            <div class="admin-game-meta">${getWeekDisplayName(game.week)} • ${getSeasonDisplayName(game.season)} • ${new Date(game.game_date).toLocaleDateString('de-DE')}</div>
+            <div class="admin-game-meta">${getWeekDisplayName(game.week)} • ${getSeasonDisplayName(game.season)} • ${new Date(game.game_date).toLocaleDateString(getCurrentLocale())}</div>
           </div>
         </div>
         
@@ -368,13 +443,13 @@ function renderAdminUsers() {
           <div>
             <div class="user-card-name">
               ${escapeHtml(user.username)}
-              ${user.is_admin ? '<span class="badge badge-warning">Admin</span>' : ''}
+              ${user.is_admin ? `<span class="badge badge-warning">${t('admin_badge')}</span>` : ''}
             </div>
             <div class="user-card-email">${escapeHtml(user.email)}</div>
           </div>
         </div>
         <div class="user-card-actions">
-          <div class="user-card-points">${user.total_points || 0} Pkt</div>
+          <div class="user-card-points">${user.total_points || 0} ${t('pts_short')}</div>
           ${!user.is_admin && user.id !== currentUser.id ? `
             <button class="btn btn-danger btn-sm" onclick="handleDeleteUser('${user.id}', '${jsAttrSafe(user.username)}')" data-testid="delete-user-${user.id}">
               <i class="fas fa-trash"></i>
@@ -422,8 +497,8 @@ async function handleCreateGame(event) {
   
   const submitBtn = event.target.querySelector('button[type="submit"]');
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird erstellt...';
-  
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('creating_game')}`;
+
   try {
     await firebaseCreateGame({
       home_team: homeTeam?.name || homeTeamAbbr,
@@ -439,10 +514,10 @@ async function handleCreateGame(event) {
     await loadAdminData();
   } catch (error) {
     console.error('Error creating game:', error);
-    alert(error.message || 'Fehler beim Erstellen des Spiels');
+    alert(error.message || t('error_creating_game'));
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Spiel erstellen';
+    submitBtn.innerHTML = t('btn_create_game_admin');
   }
 }
 
@@ -463,8 +538,8 @@ function populateEditTeamSelects() {
   
   console.log('Populating edit team selects with', NFL_TEAMS.length, 'teams');
   
-  homeSelect.innerHTML = '<option value="">Team wählen...</option>';
-  awaySelect.innerHTML = '<option value="">Team wählen...</option>';
+  homeSelect.innerHTML = `<option value="">${t('team_select_placeholder')}</option>`;
+  awaySelect.innerHTML = `<option value="">${t('team_select_placeholder')}</option>`;
   
   NFL_TEAMS.forEach(team => {
     const homeOption = document.createElement('option');
@@ -550,7 +625,7 @@ function openEditScoreModal(gameId) {
   // Use setTimeout to ensure DOM is updated before setting values
   setTimeout(() => {
     // Set current values
-    document.getElementById('edit-game-title').textContent = `Spiel ID: ${editingGame.id.substring(0, 8)}...`;
+    document.getElementById('edit-game-title').textContent = t('game_id_label', { id: editingGame.id.substring(0, 8) });
     
     // Set team selections
     const homeTeamSelect = document.getElementById('edit-home-team');
@@ -585,8 +660,8 @@ function openEditScoreModal(gameId) {
     }
     
     // Set labels and scores
-    document.getElementById('edit-home-label').textContent = `${editingGame.home_team_abbr} Punkte`;
-    document.getElementById('edit-away-label').textContent = `${editingGame.away_team_abbr} Punkte`;
+    document.getElementById('edit-home-label').textContent = t('team_points_label', { team: editingGame.home_team_abbr });
+    document.getElementById('edit-away-label').textContent = t('team_points_label', { team: editingGame.away_team_abbr });
     document.getElementById('edit-home-score').value = editingGame.home_score ?? '';
     document.getElementById('edit-away-score').value = editingGame.away_score ?? '';
     
@@ -628,7 +703,7 @@ async function handleUpdateScore(event) {
   
   const submitBtn = event.target.querySelector('button[type="submit"]');
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird gespeichert...';
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('saving_ellipsis')}`;
   
   try {
     const updateData = {
@@ -656,37 +731,37 @@ async function handleUpdateScore(event) {
     await loadAdminData();
   } catch (error) {
     console.error('Error updating game:', error);
-    alert(error.message || 'Fehler beim Aktualisieren des Spiels');
+    alert(error.message || t('error_updating_game'));
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fas fa-check"></i> Speichern';
+    submitBtn.innerHTML = `<i class="fas fa-check"></i> ${t('btn_save')}`;
   }
 }
 
 // Handle delete game
 async function handleDeleteGame(gameId) {
-  if (!confirm('Spiel wirklich löschen? Alle Wetten gehen verloren!')) return;
-  
+  if (!confirm(t('confirm_delete_game'))) return;
+
   try {
     await firebaseDeleteGame(gameId);
     await loadAdminData();
   } catch (error) {
     console.error('Error deleting game:', error);
-    alert(error.message || 'Fehler beim Löschen des Spiels');
+    alert(error.message || t('error_deleting_game'));
   }
 }
 
 // Handle delete user
 async function handleDeleteUser(userId, username) {
   username = decodeURIComponent(username);
-  if (!confirm(`Benutzer "${username}" wirklich löschen? Alle Daten werden gelöscht!`)) return;
-  
+  if (!confirm(t('confirm_delete_user', { username }))) return;
+
   try {
     await firebaseDeleteUser(userId);
     await loadAdminData();
   } catch (error) {
     console.error('Error deleting user:', error);
-    alert(error.message || 'Fehler beim Löschen des Benutzers');
+    alert(error.message || t('error_deleting_user'));
   }
 }
 

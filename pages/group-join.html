@@ -29,7 +29,7 @@
       <div id="join-container">
         <div class="card" style="text-align: center; padding: 48px 24px;">
           <div class="spinner spinner-lg" style="margin: 0 auto 16px;"></div>
-          <p style="color: var(--muted);">Trete Gruppe bei...</p>
+          <p style="color: var(--muted);" data-i18n="joining_group">Trete Gruppe bei...</p>
         </div>
       </div>
     </div>
@@ -39,20 +39,32 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
   <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/main.js"></script>
   <script>
+    Object.assign(TRANSLATIONS.de, {
+      joining_group: 'Trete Gruppe bei...', error_no_invite_code: 'Kein Einladungscode angegeben',
+      join_success_title: 'Erfolgreich beigetreten!', join_success_text: 'Du bist jetzt Mitglied von "{name}"',
+      error_title: 'Fehler', back_to_groups_word: 'Zurück zu Gruppen'
+    });
+    Object.assign(TRANSLATIONS.en, {
+      joining_group: 'Joining group...', error_no_invite_code: 'No invite code provided',
+      join_success_title: 'Joined successfully!', join_success_text: 'You are now a member of "{name}"',
+      error_title: 'Error', back_to_groups_word: 'Back to groups'
+    });
+
     // Join group page logic - Now using Firebase
     async function initJoinPage() {
       const urlParams = new URLSearchParams(window.location.search);
       const inviteCode = urlParams.get('code');
-      
+
       if (!inviteCode) {
-        showError('Kein Einladungscode angegeben');
+        showError(t('error_no_invite_code'));
         return;
       }
-      
+
       try {
         // Use Firebase to join the group
         const group = await firebaseJoinGroup(inviteCode);
@@ -64,28 +76,28 @@
         showError(error.message);
       }
     }
-    
+
     function showSuccess(groupName) {
       document.getElementById('join-container').innerHTML = `
         <div class="card" style="text-align: center; padding: 48px 24px;">
           <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(34, 197, 94, 0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
             <i class="fas fa-check fa-2x" style="color: var(--success);"></i>
           </div>
-          <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Erfolgreich beigetreten!</h2>
-          <p style="color: var(--muted);">Du bist jetzt Mitglied von "${groupName}"</p>
+          <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">${t('join_success_title')}</h2>
+          <p style="color: var(--muted);">${t('join_success_text', { name: escapeHtml(groupName) })}</p>
         </div>
       `;
     }
-    
+
     function showError(message) {
       document.getElementById('join-container').innerHTML = `
         <div class="card" style="text-align: center; padding: 48px 24px;">
           <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
             <i class="fas fa-exclamation-circle fa-2x" style="color: var(--error);"></i>
           </div>
-          <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Fehler</h2>
+          <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">${t('error_title')}</h2>
           <p style="color: var(--muted); margin-bottom: 16px;">${message}</p>
-          <a href="groups.html" class="btn btn-primary">Zurück zu Gruppen</a>
+          <a href="groups.html" class="btn btn-primary">${t('back_to_groups_word')}</a>
         </div>
       `;
     }

@@ -40,8 +40,8 @@
       <div class="page-header">
         <div class="page-header-row">
           <div>
-            <h1 class="page-title" data-testid="games-title">Spiele</h1>
-            <p class="page-subtitle">Wähle ein Spiel und platziere deine Wette</p>
+            <h1 class="page-title" data-testid="games-title" data-i18n="games_title">Spiele</h1>
+            <p class="page-subtitle" data-i18n="games_subtitle">Wähle ein Spiel und platziere deine Wette</p>
           </div>
           <div class="filter-container">
             <i class="fas fa-filter text-muted"></i>
@@ -69,7 +69,7 @@
     <div class="container container-sm hidden" id="game-detail-view">
       <a href="#" class="back-link" data-testid="back-button" onclick="closeGameDetail(); return false;">
         <i class="fas fa-arrow-left"></i>
-        Zurück zu den Spielen
+        <span data-i18n="back_to_games">Zurück zu den Spielen</span>
       </a>
       <div id="game-detail-container">
         <div class="loading-container">
@@ -83,7 +83,7 @@
   <div id="edit-bet-modal" class="modal">
     <div class="modal-backdrop" onclick="closeEditBetModal()"></div>
     <div class="modal-content animate-scale-in">
-      <h2 class="modal-title">Wette bearbeiten</h2>
+      <h2 class="modal-title" data-i18n="edit_bet_title">Wette bearbeiten</h2>
       <p style="text-align: center; margin-bottom: 16px; color: var(--muted);" id="edit-bet-teams"></p>
       <form onsubmit="handleEditBet(event)">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -97,11 +97,11 @@
           </div>
         </div>
         <div id="edit-bet-error" class="error-message hidden"></div>
-        <div id="edit-bet-success" class="success-message hidden">Wette erfolgreich aktualisiert!</div>
-        <p style="font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 16px;">
+        <div id="edit-bet-success" class="success-message hidden" data-i18n="edit_bet_success">Wette erfolgreich aktualisiert!</div>
+        <p style="font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 16px;" data-i18n="edit_bet_hint">
           Du kannst deine Wette bis 24 Stunden vor Spielbeginn bearbeiten
         </p>
-        <button type="submit" class="btn btn-primary btn-full" data-testid="save-edit-bet-button">
+        <button type="submit" class="btn btn-primary btn-full" data-testid="save-edit-bet-button" data-i18n="btn_save_changes">
           Änderungen speichern
         </button>
       </form>
@@ -111,6 +111,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
   <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/main.js"></script>

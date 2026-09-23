@@ -5,9 +5,11 @@
   "description": "Automatischer Ergebnis-Check für NFL POINTS (via GitHub Actions)",
   "main": "check-scores.js",
   "scripts": {
-    "check-scores": "node check-scores.js"
+    "check-scores": "node check-scores.js",
+    "send-bet-reminders": "node send-bet-reminders.js"
   },
   "dependencies": {
-    "firebase-admin": "^12.6.0"
+    "firebase-admin": "^12.6.0",
+    "web-push": "^3.6.7"
   }
 }

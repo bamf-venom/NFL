@@ -34,18 +34,18 @@
           <div>
             <h1 class="page-title" style="display: flex; align-items: center; gap: 12px;" data-testid="groups-title">
               <i class="fas fa-users"></i>
-              Meine Gruppen
+              <span data-i18n="groups_title">Meine Gruppen</span>
             </h1>
-            <p class="page-subtitle">Wette mit deinen Freunden</p>
+            <p class="page-subtitle" data-i18n="groups_subtitle">Wette mit deinen Freunden</p>
           </div>
           <div class="groups-buttons">
             <button class="btn btn-secondary" onclick="openJoinModal()" data-testid="join-group-btn">
               <i class="fas fa-link"></i>
-              Beitreten
+              <span data-i18n="btn_join">Beitreten</span>
             </button>
             <button class="btn btn-primary" onclick="openCreateModal()" data-testid="create-group-btn">
               <i class="fas fa-plus"></i>
-              Neue Gruppe
+              <span data-i18n="new_group">Neue Gruppe</span>
             </button>
           </div>
         </div>
@@ -67,14 +67,14 @@
   <div id="create-modal" class="modal">
     <div class="modal-backdrop" onclick="closeCreateModal()"></div>
     <div class="modal-content animate-scale-in">
-      <h2 class="modal-title">Neue Gruppe erstellen</h2>
+      <h2 class="modal-title" data-i18n="create_group_title">Neue Gruppe erstellen</h2>
       <form onsubmit="handleCreateGroup(event)">
         <div class="form-group">
-          <label class="form-label">Gruppenname</label>
-          <input type="text" id="group-name-input" class="form-input" placeholder="z.B. NFL Experten" required maxlength="50" data-testid="group-name-input">
+          <label class="form-label" data-i18n="label_group_name">Gruppenname</label>
+          <input type="text" id="group-name-input" class="form-input" placeholder="z.B. NFL Experten" data-i18n-placeholder="placeholder_group_name" required maxlength="50" data-testid="group-name-input">
         </div>
         <div id="create-error" class="error-message hidden"></div>
-        <button type="submit" class="btn btn-primary btn-full">
+        <button type="submit" class="btn btn-primary btn-full" data-i18n="btn_create_group">
           Gruppe erstellen
         </button>
       </form>
@@ -84,17 +84,17 @@
   <div id="join-modal" class="modal">
     <div class="modal-backdrop" onclick="closeJoinModal()"></div>
     <div class="modal-content animate-scale-in">
-      <h2 class="modal-title">Gruppe beitreten</h2>
+      <h2 class="modal-title" data-i18n="join_group_title">Gruppe beitreten</h2>
       <form onsubmit="handleJoinGroup(event)">
         <div class="form-group">
-          <label class="form-label">Einladungscode</label>
-          <input type="text" id="invite-code-input" class="form-input" placeholder="z.B. ABC12345" required maxlength="8" style="text-transform: uppercase; letter-spacing: 2px; text-align: center; font-size: 18px;" data-testid="invite-code-input">
-          <p style="font-size: 12px; color: var(--muted); margin-top: 8px; text-align: center;">
+          <label class="form-label" data-i18n="label_invite_code">Einladungscode</label>
+          <input type="text" id="invite-code-input" class="form-input" placeholder="z.B. ABC12345" data-i18n-placeholder="placeholder_invite_code" required maxlength="8" style="text-transform: uppercase; letter-spacing: 2px; text-align: center; font-size: 18px;" data-testid="invite-code-input">
+          <p style="font-size: 12px; color: var(--muted); margin-top: 8px; text-align: center;" data-i18n="invite_code_hint">
             Frage einen Freund nach dem Einladungscode
           </p>
         </div>
         <div id="join-error" class="error-message hidden"></div>
-        <button type="submit" class="btn btn-primary btn-full">
+        <button type="submit" class="btn btn-primary btn-full" data-i18n="btn_join">
           Beitreten
         </button>
       </form>
@@ -104,6 +104,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
   <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/main.js"></script>

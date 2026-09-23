@@ -34,7 +34,7 @@
           <i class="fas fa-shield-halved admin-icon"></i>
           <div>
             <h1 class="page-title" data-testid="admin-title">Admin Panel</h1>
-            <p class="page-subtitle">Verwalte Spiele und Benutzer</p>
+            <p class="page-subtitle" data-i18n="admin_subtitle">Verwalte Spiele und Benutzer</p>
           </div>
         </div>
       </div>
@@ -42,11 +42,11 @@
       <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('games')" data-testid="tab-games">
           <i class="fas fa-calendar"></i>
-          Spiele (<span id="games-count">0</span>)
+          <span data-i18n="tab_games">Spiele</span> (<span id="games-count">0</span>)
         </button>
         <button class="tab-btn" onclick="switchTab('users')" data-testid="tab-users">
           <i class="fas fa-users"></i>
-          Benutzer (<span id="users-count">0</span>)
+          <span data-i18n="tab_users">Benutzer</span> (<span id="users-count">0</span>)
         </button>
       </div>
       <!-- Games Tab -->
@@ -54,14 +54,14 @@
         <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 24px; flex-wrap: wrap;">
           <button class="btn btn-primary" onclick="openCreateGameModal()" data-testid="create-game-button">
             <i class="fas fa-plus"></i>
-            Neues Spiel
+            <span data-i18n="btn_new_game">Neues Spiel</span>
           </button>
           <div class="filter-container" style="margin-left: auto;">
             <i class="fas fa-filter text-muted"></i>
             <select id="admin-season-filter" class="form-input" style="min-width: 140px;" data-testid="admin-season-filter">
             </select>
             <select id="admin-week-filter" class="form-input" style="min-width: 180px;" data-testid="admin-week-filter">
-              <option value="">Alle Wochen</option>
+              <option value="" data-i18n="all_weeks">Alle Wochen</option>
             </select>
           </div>
         </div>
@@ -85,29 +85,29 @@
   <div id="create-game-modal" class="modal">
     <div class="modal-backdrop" onclick="closeCreateGameModal()"></div>
     <div class="modal-content animate-scale-in">
-      <h2 class="modal-title">Neues Spiel erstellen</h2>
+      <h2 class="modal-title" data-i18n="create_game_modal_title">Neues Spiel erstellen</h2>
       <form onsubmit="handleCreateGame(event)">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="form-group">
-            <label class="form-label">Heimteam</label>
+            <label class="form-label" data-i18n="label_home_team">Heimteam</label>
             <select id="home-team-select" class="form-input" required data-testid="home-team-select">
-              <option value="">Wählen...</option>
+              <option value="" data-i18n="team_select_placeholder">Wählen...</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Gastteam</label>
+            <label class="form-label" data-i18n="label_away_team">Gastteam</label>
             <select id="away-team-select" class="form-input" required data-testid="away-team-select">
-              <option value="">Wählen...</option>
+              <option value="" data-i18n="team_select_placeholder">Wählen...</option>
             </select>
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Datum & Uhrzeit</label>
+          <label class="form-label" data-i18n="label_date_time">Datum & Uhrzeit</label>
           <input type="datetime-local" id="game-date-input" class="form-input" required data-testid="game-date-input">
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="form-group">
-            <label class="form-label">Woche</label>
+            <label class="form-label" data-i18n="label_week">Woche</label>
             <select id="game-week-input" class="form-input" required data-testid="game-week-input">
               <option value="1">Woche 1</option>
               <option value="2">Woche 2</option>
@@ -134,7 +134,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Saison</label>
+            <label class="form-label" data-i18n="label_season">Saison</label>
             <select id="game-season-input" class="form-input" required data-testid="game-season-input">
               <option value="2024">2024/2025</option>
               <option value="2025" selected>2025/2026</option>
@@ -142,7 +142,7 @@
             </select>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-full">
+        <button type="submit" class="btn btn-primary btn-full" data-i18n="btn_create_game_admin">
           Spiel erstellen
         </button>
       </form>
@@ -152,35 +152,35 @@
   <div id="edit-score-modal" class="modal">
     <div class="modal-backdrop" onclick="closeEditScoreModal()"></div>
     <div class="modal-content animate-scale-in" style="max-width: 500px;">
-      <h2 class="modal-title">Spiel bearbeiten</h2>
+      <h2 class="modal-title" data-i18n="edit_game_modal_title">Spiel bearbeiten</h2>
       <p style="text-align: center; margin-bottom: 16px; color: var(--muted);" id="edit-game-title"></p>
       <form onsubmit="handleUpdateScore(event)">
         <!-- Teams -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="form-group">
-            <label class="form-label">Heimteam</label>
+            <label class="form-label" data-i18n="label_home_team">Heimteam</label>
             <select id="edit-home-team" class="form-input" required data-testid="edit-home-team">
-              <option value="">Wählen...</option>
+              <option value="" data-i18n="team_select_placeholder">Wählen...</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Gastteam</label>
+            <label class="form-label" data-i18n="label_away_team">Gastteam</label>
             <select id="edit-away-team" class="form-input" required data-testid="edit-away-team">
-              <option value="">Wählen...</option>
+              <option value="" data-i18n="team_select_placeholder">Wählen...</option>
             </select>
           </div>
         </div>
-        
+
         <!-- Date & Time -->
         <div class="form-group">
-          <label class="form-label">Datum & Uhrzeit</label>
+          <label class="form-label" data-i18n="label_date_time">Datum & Uhrzeit</label>
           <input type="datetime-local" id="edit-game-date" class="form-input" required data-testid="edit-game-date">
         </div>
-        
+
         <!-- Week & Season -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="form-group">
-            <label class="form-label">Woche</label>
+            <label class="form-label" data-i18n="label_week">Woche</label>
             <select id="edit-game-week" class="form-input" required data-testid="edit-game-week">
               <option value="1">Woche 1</option>
               <option value="2">Woche 2</option>
@@ -207,7 +207,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Saison</label>
+            <label class="form-label" data-i18n="label_season">Saison</label>
             <select id="edit-game-season" class="form-input" required data-testid="edit-game-season">
               <option value="2022">2022/2023</option>
               <option value="2023">2023/2024</option>
@@ -217,37 +217,37 @@
             </select>
           </div>
         </div>
-        
+
         <!-- Score -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="form-group">
-            <label class="form-label" id="edit-home-label">Heim Punkte</label>
+            <label class="form-label" id="edit-home-label" data-i18n="label_home_points_default">Heim Punkte</label>
             <input type="number" id="edit-home-score" class="form-input" min="0" data-testid="edit-home-score" placeholder="—">
           </div>
           <div class="form-group">
-            <label class="form-label" id="edit-away-label">Gast Punkte</label>
+            <label class="form-label" id="edit-away-label" data-i18n="label_away_points_default">Gast Punkte</label>
             <input type="number" id="edit-away-score" class="form-input" min="0" data-testid="edit-away-score" placeholder="—">
           </div>
         </div>
-        
+
         <!-- Status -->
         <div class="form-group">
-          <label class="form-label">Status</label>
+          <label class="form-label" data-i18n="label_status">Status</label>
           <select id="edit-status" class="form-input" data-testid="edit-status">
             <option value="scheduled">Geplant</option>
             <option value="live">Live</option>
             <option value="finished">Beendet</option>
           </select>
         </div>
-        
+
         <div style="display: flex; gap: 8px;">
           <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeEditScoreModal()">
             <i class="fas fa-times"></i>
-            Abbrechen
+            <span data-i18n="btn_cancel">Abbrechen</span>
           </button>
           <button type="submit" class="btn btn-primary" style="flex: 1;">
             <i class="fas fa-check"></i>
-            Speichern
+            <span data-i18n="btn_save">Speichern</span>
           </button>
         </div>
       </form>
@@ -257,6 +257,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
   <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/main.js"></script>

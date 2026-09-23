@@ -43,16 +43,16 @@
         </div>
         
         <h1 class="hero-title">NFL POINTS</h1>
-        <p class="hero-subtitle">Wette mit Freunden auf NFL Spiele</p>
-        
+        <p class="hero-subtitle" data-i18n="hero_subtitle">Wette mit Freunden auf NFL Spiele</p>
+
         <div class="hero-buttons">
           <button class="btn btn-primary btn-lg hover-lift" data-testid="register-button" onclick="openModal('register')">
             <i class="fas fa-user-plus"></i>
-            Registrieren
+            <span data-i18n="btn_register">Registrieren</span>
           </button>
           <button class="btn btn-secondary btn-lg hover-lift" data-testid="login-button" onclick="openModal('login')">
             <i class="fas fa-sign-in-alt"></i>
-            Anmelden
+            <span data-i18n="btn_login">Anmelden</span>
           </button>
         </div>
       </div>
@@ -73,30 +73,32 @@
       <form id="auth-form" onsubmit="handleAuth(event)">
         <!-- Username Field (only for register) -->
         <div id="username-field" class="form-group hidden">
-          <label class="form-label">Benutzername</label>
-          <input 
-            type="text" 
+          <label class="form-label" data-i18n="label_username">Benutzername</label>
+          <input
+            type="text"
             id="username-input"
-            class="form-input" 
+            class="form-input"
             placeholder="Dein Benutzername"
+            data-i18n-placeholder="placeholder_username"
             data-testid="username-input"
           >
         </div>
-        
+
         <div class="form-group">
-          <label class="form-label">E-Mail</label>
-          <input 
-            type="email" 
+          <label class="form-label" data-i18n="label_email">E-Mail</label>
+          <input
+            type="email"
             id="email-input"
-            class="form-input" 
+            class="form-input"
             placeholder="deine@email.de"
+            data-i18n-placeholder="placeholder_email"
             required
             data-testid="email-input"
           >
         </div>
-        
+
         <div class="form-group">
-          <label class="form-label">Passwort</label>
+          <label class="form-label" data-i18n="label_password">Passwort</label>
           <input 
             type="password" 
             id="password-input"
@@ -131,6 +133,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
   
   <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/main.js"></script>

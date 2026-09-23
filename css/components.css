@@ -310,8 +310,8 @@ input[type='datetime-local']::-webkit-calendar-picker-indicator {
 }
 
 .custom-select-option.selected {
-  background: rgba(var(--accent-rgb), 0.15);
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--foreground);
 }
 
 .custom-select-option.selected::after {

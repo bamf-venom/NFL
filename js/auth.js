@@ -1,3 +1,32 @@
+Object.assign(TRANSLATIONS.de, {
+  hero_subtitle: 'Wette mit Freunden auf NFL Spiele',
+  btn_register: 'Registrieren', btn_login: 'Anmelden',
+  label_username: 'Benutzername', label_email: 'E-Mail', label_password: 'Passwort',
+  placeholder_username: 'Dein Benutzername', placeholder_email: 'deine@email.de',
+  modal_title_register: 'Registrieren', modal_title_login: 'Anmelden',
+  switch_have_account: 'Bereits registriert?', switch_no_account: 'Noch kein Konto?',
+  error_username_too_short: 'Benutzername muss mindestens 2 Zeichen haben',
+  error_email_in_use: 'Ein Benutzer mit dieser E-Mail existiert bereits',
+  error_invalid_email: 'Ungültige E-Mail-Adresse',
+  error_weak_password: 'Das Passwort muss mindestens 6 Zeichen haben',
+  error_invalid_credentials: 'Ungültige E-Mail oder Passwort',
+  error_too_many_requests: 'Zu viele Anmeldeversuche. Bitte versuche es später erneut.'
+});
+Object.assign(TRANSLATIONS.en, {
+  hero_subtitle: 'Bet with friends on NFL games',
+  btn_register: 'Register', btn_login: 'Log in',
+  label_username: 'Username', label_email: 'Email', label_password: 'Password',
+  placeholder_username: 'Your username', placeholder_email: 'your@email.com',
+  modal_title_register: 'Register', modal_title_login: 'Log in',
+  switch_have_account: 'Already have an account?', switch_no_account: "Don't have an account yet?",
+  error_username_too_short: 'Username must be at least 2 characters',
+  error_email_in_use: 'A user with this email already exists',
+  error_invalid_email: 'Invalid email address',
+  error_weak_password: 'Password must be at least 6 characters',
+  error_invalid_credentials: 'Invalid email or password',
+  error_too_many_requests: 'Too many login attempts. Please try again later.'
+});
+
 // ==================== AUTH STATE ====================
 let currentUser = null;
 let authInitialized = false;
@@ -90,20 +119,20 @@ function openModal(mode) {
   const switchBtn = document.getElementById('switch-btn');
   
   if (mode === 'register') {
-    modalTitle.textContent = 'Registrieren';
+    modalTitle.textContent = t('modal_title_register');
     usernameField.classList.remove('hidden');
     document.getElementById('username-input').required = true;
-    submitText.textContent = 'Registrieren';
-    switchText.textContent = 'Bereits registriert?';
-    switchBtn.textContent = 'Anmelden';
+    submitText.textContent = t('btn_register');
+    switchText.textContent = t('switch_have_account');
+    switchBtn.textContent = t('btn_login');
     switchBtn.setAttribute('data-testid', 'switch-to-login');
   } else {
-    modalTitle.textContent = 'Anmelden';
+    modalTitle.textContent = t('modal_title_login');
     usernameField.classList.add('hidden');
     document.getElementById('username-input').required = false;
-    submitText.textContent = 'Anmelden';
-    switchText.textContent = 'Noch kein Konto?';
-    switchBtn.textContent = 'Registrieren';
+    submitText.textContent = t('btn_login');
+    switchText.textContent = t('switch_no_account');
+    switchBtn.textContent = t('btn_register');
     switchBtn.setAttribute('data-testid', 'switch-to-register');
   }
   
@@ -160,7 +189,7 @@ async function handleAuth(event) {
     // Firebase Authentication
     if (authMode === 'register') {
       if (!username || username.trim().length < 2) {
-        throw new Error('Benutzername muss mindestens 2 Zeichen haben');
+        throw new Error(t('error_username_too_short'));
       }
       
       currentUser = await firebaseRegister(email, password, username.trim());
@@ -181,15 +210,15 @@ async function handleAuth(event) {
     let errorMessage = error.message;
     
     if (error.code === 'auth/email-already-in-use') {
-      errorMessage = 'Ein Benutzer mit dieser E-Mail existiert bereits';
+      errorMessage = t('error_email_in_use');
     } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Ungültige E-Mail-Adresse';
+      errorMessage = t('error_invalid_email');
     } else if (error.code === 'auth/weak-password') {
-      errorMessage = 'Das Passwort muss mindestens 6 Zeichen haben';
+      errorMessage = t('error_weak_password');
     } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-      errorMessage = 'Ungültige E-Mail oder Passwort';
+      errorMessage = t('error_invalid_credentials');
     } else if (error.code === 'auth/too-many-requests') {
-      errorMessage = 'Zu viele Anmeldeversuche. Bitte versuche es später erneut.';
+      errorMessage = t('error_too_many_requests');
     }
     
     showError(errorMessage);

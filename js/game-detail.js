@@ -6,6 +6,39 @@
 // Skripte laufen jetzt auf derselben Seite) würden sonst einen SyntaxError
 // werfen. Als netter Nebeneffekt bleibt die Gruppenauswahl so automatisch
 // zwischen Liste und Detail-Ansicht konsistent.
+Object.assign(TRANSLATIONS.de, {
+  game_not_found: 'Spiel nicht gefunden', back_to_games_btn: 'Zurück zu Spielen',
+  error_loading_game: 'Das Spiel konnte nicht geladen werden.',
+  vs: 'VS', betting_closed_title: 'Wetten geschlossen',
+  betting_closed_text: 'Das Spiel hat bereits begonnen. Wetten sind nicht mehr möglich.',
+  place_bet_title: 'Deine Wette platzieren', team_points: '{team} Punkte',
+  bet_placed_success: 'Wette erfolgreich platziert!', btn_place_bet: 'Wette platzieren',
+  bet_placing: 'Wird platziert...', points_info: '3 Punkte pro richtigem Team-Score • 1 Punkt für richtigen Gewinner',
+  my_bet_title: 'Deine Wette', btn_edit: 'Bearbeiten',
+  points_earned_label: 'Punkte erhalten', group_bets_title: 'Wetten in der Gruppe ({n})',
+  no_group_bets_for_game: 'Noch keine Wetten in dieser Gruppe für dieses Spiel',
+  error_placing_bet: 'Fehler beim Platzieren der Wette', edit_bet_title: 'Wette bearbeiten',
+  edit_bet_success: 'Wette erfolgreich aktualisiert!', edit_bet_hint: 'Du kannst deine Wette bis 24 Stunden vor Spielbeginn bearbeiten',
+  btn_save_changes: 'Änderungen speichern', bet_saving: 'Wird gespeichert...',
+  error_updating_bet: 'Fehler beim Aktualisieren der Wette', error_deleting_bet: 'Fehler beim Löschen der Wette'
+});
+Object.assign(TRANSLATIONS.en, {
+  game_not_found: 'Game not found', back_to_games_btn: 'Back to games',
+  error_loading_game: 'The game could not be loaded.',
+  vs: 'VS', betting_closed_title: 'Betting closed',
+  betting_closed_text: 'The game has already started. Bets are no longer possible.',
+  place_bet_title: 'Place your bet', team_points: '{team} points',
+  bet_placed_success: 'Bet placed successfully!', btn_place_bet: 'Place bet',
+  bet_placing: 'Placing...', points_info: '3 points for each correct team score • 1 point for the correct winner',
+  my_bet_title: 'Your bet', btn_edit: 'Edit',
+  points_earned_label: 'Points earned', group_bets_title: 'Group picks ({n})',
+  no_group_bets_for_game: 'No picks in this group for this game yet',
+  error_placing_bet: 'Error placing bet', edit_bet_title: 'Edit bet',
+  edit_bet_success: 'Bet updated successfully!', edit_bet_hint: 'You can edit your bet up to 24 hours before kickoff',
+  btn_save_changes: 'Save changes', bet_saving: 'Saving...',
+  error_updating_bet: 'Error updating bet', error_deleting_bet: 'Error deleting bet'
+});
+
 let currentGameData = null;
 let groupBetsData = []; // Wetten der Mitglieder der ausgewählten Gruppe (nicht mehr "alle Wetten global")
 let myBetData = null;
@@ -27,8 +60,8 @@ async function loadGameDetail(gameId) {
     if (!currentGameData) {
       document.getElementById('game-detail-container').innerHTML = `
         <div class="card empty-state">
-          <h3 class="empty-title">Spiel nicht gefunden</h3>
-          <a href="#" class="btn btn-primary" style="margin-top: 16px;" onclick="closeGameDetail(); return false;">Zurück zu Spielen</a>
+          <h3 class="empty-title">${t('game_not_found')}</h3>
+          <a href="#" class="btn btn-primary" style="margin-top: 16px;" onclick="closeGameDetail(); return false;">${t('back_to_games_btn')}</a>
         </div>
       `;
       return;
@@ -66,9 +99,9 @@ async function loadGameDetail(gameId) {
     document.getElementById('game-detail-container').innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-exclamation-triangle fa-3x empty-icon" style="color: var(--error);"></i>
-        <h3 class="empty-title">Fehler beim Laden</h3>
-        <p class="empty-text">Das Spiel konnte nicht geladen werden.</p>
-        <button class="btn btn-primary" onclick="location.reload()">Erneut versuchen</button>
+        <h3 class="empty-title">${t('error_loading_title')}</h3>
+        <p class="empty-text">${t('error_loading_game')}</p>
+        <button class="btn btn-primary" onclick="location.reload()">${t('btn_retry')}</button>
       </div>
     `;
   }
@@ -126,8 +159,8 @@ function renderGameDetail() {
   // Schloss-Icon: rot/geschlossen wenn Spiel vorbei/gestartet, grün/offen wenn noch tippbar
   const isLocked = isGameStarted || game.status === 'finished' || game.status === 'live';
   const lockIconHTML = isLocked
-    ? `<i class="fas fa-lock lock-icon locked" title="Tipp gesperrt - Spiel läuft/ist beendet"></i>`
-    : `<i class="fas fa-lock-open lock-icon open" title="Tipp noch möglich"></i>`;
+    ? `<i class="fas fa-lock lock-icon locked" title="${t('lock_title_locked')}"></i>`
+    : `<i class="fas fa-lock-open lock-icon open" title="${t('lock_title_open')}"></i>`;
 
   // Badge zeigt den tatsächlichen Status - aber wenn die Sperrfrist erreicht ist und die
   // DB das (noch) nicht mitbekommen hat ("scheduled"), zeigen wir "GESPERRT" in rot
@@ -135,7 +168,7 @@ function renderGameDetail() {
   let badgeText = status.text;
   if (isBettingClosed) {
     badgeClass = 'badge-error';
-    badgeText = 'GESPERRT';
+    badgeText = t('status_locked');
   }
 
   let html = `
@@ -145,6 +178,7 @@ function renderGameDetail() {
         <span class="badge ${badgeClass}">
           ${badgeText}
         </span>
+        ${getBettingCountdownHTML(game)}
         ${lockIconHTML}
       </div>
 
@@ -163,7 +197,7 @@ function renderGameDetail() {
             <span class="game-detail-score-num" data-testid="away-score">${game.away_score ?? '-'}</span>
           </div>
         ` : `
-          <div class="game-detail-vs">VS</div>
+          <div class="game-detail-vs">${t('vs')}</div>
         `}
         
         <!-- Away Team -->
@@ -175,7 +209,7 @@ function renderGameDetail() {
       
       <div class="game-detail-info">
         <i class="fas fa-clock"></i>
-        <span>Woche ${game.week} • ${formatDate(game.game_date)}</span>
+        <span>${t('week_n', { n: game.week })} • ${formatDate(game.game_date)}</span>
       </div>
     </div>
   `;
@@ -188,8 +222,8 @@ function renderGameDetail() {
         <div class="betting-closed-content">
           <i class="fas fa-clock fa-lg"></i>
           <div class="betting-closed-text">
-            <h3>Wetten geschlossen</h3>
-            <p>Das Spiel hat bereits begonnen. Wetten sind nicht mehr möglich.</p>
+            <h3>${t('betting_closed_title')}</h3>
+            <p>${t('betting_closed_text')}</p>
           </div>
         </div>
       </div>
@@ -202,30 +236,30 @@ function renderGameDetail() {
       <div class="card bet-form-card animate-fade-in" style="animation-delay: 0.1s;">
         <h3 class="bet-form-title">
           <i class="fas fa-trophy"></i>
-          Deine Wette platzieren
+          ${t('place_bet_title')}
         </h3>
-        
+
         <form onsubmit="handlePlaceBet(event)">
           <div class="bet-inputs">
             <div class="form-group">
-              <label class="form-label">${game.home_team_abbr} Punkte</label>
+              <label class="form-label">${t('team_points', { team: game.home_team_abbr })}</label>
               <input type="number" id="home-score-input" class="form-input" min="0" max="100" placeholder="0" required data-testid="home-score-input">
             </div>
             <div class="form-group">
-              <label class="form-label">${game.away_team_abbr} Punkte</label>
+              <label class="form-label">${t('team_points', { team: game.away_team_abbr })}</label>
               <input type="number" id="away-score-input" class="form-input" min="0" max="100" placeholder="0" required data-testid="away-score-input">
             </div>
           </div>
-          
+
           <div id="bet-error" class="error-message hidden"></div>
-          <div id="bet-success" class="success-message hidden">Wette erfolgreich platziert!</div>
-          
+          <div id="bet-success" class="success-message hidden">${t('bet_placed_success')}</div>
+
           <button type="submit" id="bet-submit-btn" class="btn btn-primary btn-full" style="margin-top: 16px;" data-testid="submit-bet-button">
-            Wette platzieren
+            ${t('btn_place_bet')}
           </button>
-          
+
           <p class="bet-points-info">
-            3 Punkte pro richtigem Team-Score • 1 Punkt für richtigen Gewinner
+            ${t('points_info')}
           </p>
         </form>
       </div>
@@ -242,19 +276,19 @@ function renderGameDetail() {
         <div class="my-bet-header">
           <h3 class="my-bet-title">
             <i class="fas fa-check"></i>
-            Deine Wette
+            ${t('my_bet_title')}
           </h3>
           <div style="display: flex; gap: 8px;">
             ${canEditBet ? `
               <button class="btn btn-secondary btn-sm" onclick="openEditBetModal()" data-testid="edit-bet-button">
                 <i class="fas fa-edit"></i>
-                Bearbeiten
+                ${t('btn_edit')}
               </button>
             ` : ''}
             ${canDeleteBet ? `
               <button class="btn btn-danger btn-sm" onclick="handleDeleteBet()" data-testid="delete-bet-button">
                 <i class="fas fa-trash"></i>
-                Löschen
+                ${t('btn_delete')}
               </button>
             ` : ''}
           </div>
@@ -274,7 +308,7 @@ function renderGameDetail() {
         
         ${game.status === 'finished' ? `
           <div class="my-bet-points">
-            <div class="my-bet-points-label">Punkte erhalten</div>
+            <div class="my-bet-points-label">${t('points_earned_label')}</div>
             <div class="my-bet-points-num">${myBetData.points_earned || 0}</div>
           </div>
         ` : ''}
@@ -297,7 +331,7 @@ function renderGameDetail() {
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
           <h3 style="font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0;">
             <i class="fas fa-users"></i>
-            Wetten in der Gruppe (${groupBetsData.length})
+            ${t('group_bets_title', { n: groupBetsData.length })}
           </h3>
           ${groupSelectorHTML}
         </div>
@@ -305,7 +339,7 @@ function renderGameDetail() {
         <div id="group-bets-section-content">
           ${groupBetsData.length === 0 ? `
             <p style="text-align: center; color: var(--muted); padding: 32px 0;">
-              Noch keine Wetten in dieser Gruppe für dieses Spiel
+              ${t('no_group_bets_for_game')}
             </p>
           ` : `
             <div class="bets-list">
@@ -317,7 +351,7 @@ function renderGameDetail() {
                     <div class="bet-avatar">${escapeHtml(bet.username.charAt(0).toUpperCase())}</div>
                     <div>
                       <div class="bet-username">${escapeHtml(bet.username)}</div>
-                      <div class="bet-date">${new Date(bet.created_at).toLocaleDateString('de-DE')}</div>
+                      <div class="bet-date">${new Date(bet.created_at).toLocaleDateString(getCurrentLocale())}</div>
                     </div>
                   </div>
 
@@ -325,7 +359,7 @@ function renderGameDetail() {
                     <span class="bet-prediction-score">${bet.home_score_prediction} : ${bet.away_score_prediction}</span>
                     ${game.status === 'finished' ? `
                       <span class="bet-earned ${bet.points_earned > 0 ? 'success' : 'none'}">
-                        ${bet.points_earned || 0} Pkt
+                        ${bet.points_earned || 0} ${t('pts_short')}
                       </span>
                     ` : ''}
                   </div>
@@ -355,15 +389,15 @@ async function handlePlaceBet(event) {
   successEl.classList.add('hidden');
   
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird platziert...';
-  
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('bet_placing')}`;
+
   try {
     const bet = await firebasePlaceBet({
       game_id: currentGameData.id,
       home_score_prediction: homeScore,
       away_score_prediction: awayScore
     });
-    
+
     myBetData = bet;
     await loadGroupBetsForCurrentGame();
 
@@ -374,10 +408,10 @@ async function handlePlaceBet(event) {
     }, 1500);
   } catch (error) {
     console.error('Error placing bet:', error);
-    errorEl.textContent = error.message || 'Fehler beim Platzieren der Wette';
+    errorEl.textContent = error.message || t('error_placing_bet');
     errorEl.classList.remove('hidden');
     submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Wette platzieren';
+    submitBtn.innerHTML = t('btn_place_bet');
   }
 }
 
@@ -386,8 +420,8 @@ function openEditBetModal() {
   if (!myBetData) return;
   
   document.getElementById('edit-bet-teams').textContent = `${currentGameData.home_team_abbr} vs ${currentGameData.away_team_abbr}`;
-  document.getElementById('edit-bet-home-label').textContent = `${currentGameData.home_team_abbr} Punkte`;
-  document.getElementById('edit-bet-away-label').textContent = `${currentGameData.away_team_abbr} Punkte`;
+  document.getElementById('edit-bet-home-label').textContent = t('team_points', { team: currentGameData.home_team_abbr });
+  document.getElementById('edit-bet-away-label').textContent = t('team_points', { team: currentGameData.away_team_abbr });
   document.getElementById('edit-bet-home-score').value = myBetData.home_score_prediction;
   document.getElementById('edit-bet-away-score').value = myBetData.away_score_prediction;
   
@@ -415,14 +449,14 @@ async function handleEditBet(event) {
   errorEl.classList.add('hidden');
   
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird gespeichert...';
-  
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('bet_saving')}`;
+
   try {
     const updatedBet = await firebaseUpdateBet(myBetData.id, {
       home_score_prediction: homeScore,
       away_score_prediction: awayScore
     });
-    
+
     myBetData = updatedBet;
 
     // Update in groupBetsData (eigener Eintrag in der Gruppen-Wetten-Liste)
@@ -432,18 +466,18 @@ async function handleEditBet(event) {
     }
 
     successEl.classList.remove('hidden');
-    
+
     setTimeout(() => {
       closeEditBetModal();
       renderGameDetail();
     }, 1500);
   } catch (error) {
     console.error('Error updating bet:', error);
-    errorEl.textContent = error.message || 'Fehler beim Aktualisieren der Wette';
+    errorEl.textContent = error.message || t('error_updating_bet');
     errorEl.classList.remove('hidden');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Änderungen speichern';
+    submitBtn.innerHTML = t('btn_save_changes');
   }
 }
 
@@ -462,7 +496,7 @@ async function handleDeleteBet() {
     renderGameDetail();
   } catch (error) {
     console.error('Error deleting bet:', error);
-    alert(error.message || 'Fehler beim Löschen der Wette');
+    alert(error.message || t('error_deleting_bet'));
   }
 }
 

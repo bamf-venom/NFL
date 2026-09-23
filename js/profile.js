@@ -1,5 +1,50 @@
 // Profile page logic
 
+Object.assign(TRANSLATIONS.de, {
+  crop_title: 'Bild anpassen', crop_subtitle: 'Verschiebe und zoome das Bild',
+  error_choose_image: 'Bitte wähle ein Bild aus (JPG, PNG, etc.)',
+  error_image_too_large: 'Das Bild ist zu groß. Maximale Größe: 10MB',
+  error_uploading_image: 'Fehler beim Hochladen des Bildes: {msg}',
+  confirm_remove_picture: 'Profilbild wirklich entfernen?',
+  error_removing_image: 'Fehler beim Entfernen des Bildes: {msg}',
+  error_saving: 'Fehler beim Speichern', title_change_username: 'Benutzernamen ändern',
+  title_remove_picture: 'Profilbild entfernen',
+  my_groups: 'Meine Gruppen ({n})', no_groups_yet: 'Du bist noch in keiner Gruppe',
+  btn_join_group: 'Gruppe beitreten',
+  open_bets: 'Offene Wetten ({n})', no_open_bets: 'Keine offenen Wetten vorhanden',
+  pick_label: 'Tipp: {home} : {away}', game_fallback: 'Spiel', status_live_short: 'Live', status_open: 'Offen',
+  btn_reset_password: 'Passwort zurücksetzen', btn_delete_account: 'Account löschen',
+  sending: 'Wird gesendet...', email_sent: 'E-Mail wurde an {email} gesendet. Prüfe dein Postfach.',
+  error_sending_email: 'Fehler beim Senden der E-Mail', btn_send_email: 'E-Mail senden',
+  delete_confirm_word: 'LÖSCHEN', error_confirm_delete: 'Bitte gib "{word}" ein um zu bestätigen',
+  deleting: 'Wird gelöscht...', error_deleting_account: 'Fehler beim Löschen des Accounts',
+  title_delete_account: 'Account löschen', delete_warning: 'Warnung: Diese Aktion kann nicht rückgängig gemacht werden. Alle deine Daten, Wetten und Gruppenmitgliedschaften werden gelöscht.',
+  delete_confirm_label: 'Gib <strong>{word}</strong> ein um zu bestätigen',
+  title_reset_password: 'Passwort zurücksetzen', reset_password_text: 'Wir senden dir eine E-Mail mit einem Link zum Zurücksetzen deines Passworts.'
+});
+Object.assign(TRANSLATIONS.en, {
+  crop_title: 'Adjust image', crop_subtitle: 'Move and zoom the image',
+  error_choose_image: 'Please choose an image (JPG, PNG, etc.)',
+  error_image_too_large: 'The image is too large. Maximum size: 10MB',
+  error_uploading_image: 'Error uploading the image: {msg}',
+  confirm_remove_picture: 'Really remove your profile picture?',
+  error_removing_image: 'Error removing the image: {msg}',
+  title_change_username: 'Change username',
+  title_remove_picture: 'Remove profile picture',
+  my_groups: 'My groups ({n})', no_groups_yet: "You're not in any group yet",
+  btn_join_group: 'Join group',
+  open_bets: 'Open bets ({n})', no_open_bets: 'No open bets',
+  pick_label: 'Pick: {home} : {away}', game_fallback: 'Game', status_live_short: 'Live', status_open: 'Open',
+  error_saving: 'Error saving', btn_reset_password: 'Reset password', btn_delete_account: 'Delete account',
+  sending: 'Sending...', email_sent: 'Email sent to {email}. Check your inbox.',
+  error_sending_email: 'Error sending the email', btn_send_email: 'Send email',
+  delete_confirm_word: 'DELETE', error_confirm_delete: 'Please type "{word}" to confirm',
+  deleting: 'Deleting...', error_deleting_account: 'Error deleting the account',
+  title_delete_account: 'Delete account', delete_warning: 'Warning: this action cannot be undone. All your data, bets, and group memberships will be deleted.',
+  delete_confirm_label: 'Type <strong>{word}</strong> to confirm',
+  title_reset_password: 'Reset password', reset_password_text: "We'll send you an email with a link to reset your password."
+});
+
 let myBets = [];
 let gamesData = [];
 let userGroups = [];
@@ -220,13 +265,13 @@ async function handleProfilePictureUpload(event) {
   
   // Validate file type
   if (!file.type.startsWith('image/')) {
-    alert('Bitte wähle ein Bild aus (JPG, PNG, etc.)');
+    alert(t('error_choose_image'));
     return;
   }
-  
+
   // Validate file size (max 10MB original)
   if (file.size > 10 * 1024 * 1024) {
-    alert('Das Bild ist zu groß. Maximale Größe: 10MB');
+    alert(t('error_image_too_large'));
     return;
   }
   
@@ -343,7 +388,7 @@ async function applyCrop() {
       
     } catch (error) {
       console.error('Error uploading profile picture:', error);
-      alert('Fehler beim Hochladen des Bildes: ' + error.message);
+      alert(t('error_uploading_image', { msg: error.message }));
       renderProfile();
     }
   };
@@ -352,7 +397,7 @@ async function applyCrop() {
 
 // Remove profile picture
 async function removeProfilePicture() {
-  if (!confirm('Profilbild wirklich entfernen?')) return;
+  if (!confirm(t('confirm_remove_picture'))) return;
   
   // Show loading state
   const avatarEl = document.querySelector('.profile-avatar');
@@ -374,7 +419,7 @@ async function removeProfilePicture() {
     
   } catch (error) {
     console.error('Error removing profile picture:', error);
-    alert('Fehler beim Entfernen des Bildes: ' + error.message);
+    alert(t('error_removing_image', { msg: error.message }));
     renderProfile();
   }
 }
@@ -414,7 +459,7 @@ async function saveUsername() {
   
   // Validate
   if (!newUsername || newUsername.length < 2) {
-    errorEl.textContent = 'Benutzername muss mindestens 2 Zeichen haben';
+    errorEl.textContent = t('error_username_too_short');
     errorEl.classList.remove('hidden');
     return;
   }
@@ -442,7 +487,7 @@ async function saveUsername() {
     renderProfile();
   } catch (error) {
     console.error('Error updating username:', error);
-    errorEl.textContent = error.message || 'Fehler beim Speichern';
+    errorEl.textContent = error.message || t('error_saving');
     errorEl.classList.remove('hidden');
     saveBtn.disabled = false;
     saveBtn.innerHTML = '<i class="fas fa-check"></i>';
@@ -492,7 +537,7 @@ function renderProfile() {
           data-testid="profile-picture-input"
         >
         ${hasProfilePicture ? `
-          <button class="profile-avatar-remove" onclick="removeProfilePicture()" title="Profilbild entfernen" data-testid="remove-avatar-btn">
+          <button class="profile-avatar-remove" onclick="removeProfilePicture()" title="${t('title_remove_picture')}" data-testid="remove-avatar-btn">
             <i class="fas fa-times"></i>
           </button>
         ` : ''}
@@ -513,10 +558,10 @@ function renderProfile() {
           <div id="username-error" class="error-message hidden"></div>
           <div class="username-edit-buttons">
             <button class="btn btn-secondary btn-sm" onclick="toggleUsernameEdit()" data-testid="cancel-username-btn">
-              <i class="fas fa-times"></i> Abbrechen
+              <i class="fas fa-times"></i> ${t('btn_cancel')}
             </button>
             <button id="save-username-btn" class="btn btn-primary btn-sm" onclick="saveUsername()" data-testid="save-username-btn">
-              <i class="fas fa-check"></i> Speichern
+              <i class="fas fa-check"></i> ${t('btn_save')}
             </button>
           </div>
         </div>
@@ -524,34 +569,34 @@ function renderProfile() {
         <!-- Username Display Mode -->
         <div class="username-display-container" data-testid="username-display-container">
           <h1 class="profile-username" data-testid="profile-username">${escapeHtml(user.username)}</h1>
-          <button class="btn-edit-username" onclick="toggleUsernameEdit()" data-testid="edit-username-btn" title="Benutzernamen ändern">
+          <button class="btn-edit-username" onclick="toggleUsernameEdit()" data-testid="edit-username-btn" title="${t('title_change_username')}">
             <i class="fas fa-pencil"></i>
           </button>
         </div>
       `}
       
       <p class="profile-email">${user.email}</p>
-      ${user.is_admin ? '<span class="profile-badge">Admin</span>' : ''}
+      ${user.is_admin ? `<span class="profile-badge">${t('admin_badge')}</span>` : ''}
     </div>
-    
+
     <!-- Stats -->
     <div class="stats-grid${shouldAnimate ? ' animate' : ''}">
       <div class="card stat-card">
         <i class="fas fa-trophy fa-lg stat-icon"></i>
         <div class="stat-value" data-testid="total-points">${totalPoints}</div>
-        <div class="stat-label">Punkte</div>
+        <div class="stat-label">${t('stat_points')}</div>
       </div>
-      
+
       <div class="card stat-card">
         <i class="fas fa-bullseye fa-lg stat-icon"></i>
         <div class="stat-value" data-testid="total-bets">${myBets.length}</div>
-        <div class="stat-label">Wetten</div>
+        <div class="stat-label">${t('stat_bets')}</div>
       </div>
-      
+
       <div class="card stat-card">
         <i class="fas fa-calendar-check fa-lg stat-icon"></i>
         <div class="stat-value" data-testid="correct-winners">${correctWinners}</div>
-        <div class="stat-label">Richtig</div>
+        <div class="stat-label">${t('stat_correct')}</div>
       </div>
     </div>
     
@@ -559,16 +604,16 @@ function renderProfile() {
     <div class="card${shouldAnimate ? ' animate-fade-in' : ''}" style="margin-top: 24px;${shouldAnimate ? ' animation-delay: 0.75s;' : ''}">
       <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">
         <i class="fas fa-users" style="margin-right: 8px; color: var(--accent);"></i>
-        Meine Gruppen (${userGroups.length})
+        ${t('my_groups', { n: userGroups.length })}
       </h3>
-      
+
       ${userGroups.length === 0 ? `
         <p style="text-align: center; color: var(--muted); padding: 24px 0;">
-          Du bist noch in keiner Gruppe
+          ${t('no_groups_yet')}
         </p>
         <div style="display: flex; justify-content: center;">
           <a href="groups.html" class="btn btn-secondary btn-sm">
-            <i class="fas fa-plus"></i> Gruppe beitreten
+            <i class="fas fa-plus"></i> ${t('btn_join_group')}
           </a>
         </div>
       ` : `
@@ -585,8 +630,8 @@ function renderProfile() {
                   <div>
                     <div style="font-weight: 600;">${escapeHtml(group.name)}</div>
                     <div style="font-size: 12px; color: var(--muted);">
-                      ${memberCount} Mitglied${memberCount !== 1 ? 'er' : ''}
-                      ${isAdmin ? ' • Admin' : ''}
+                      ${memberCount} ${memberCount !== 1 ? t('members') : t('member')}
+                      ${isAdmin ? ` • ${t('admin_badge')}` : ''}
                     </div>
                   </div>
                 </div>
@@ -602,12 +647,12 @@ function renderProfile() {
     <div class="card${shouldAnimate ? ' animate-fade-in' : ''}" style="margin-top: 24px;${shouldAnimate ? ' animation-delay: 0.85s;' : ''}">
       <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">
         <i class="fas fa-clock" style="margin-right: 8px; color: var(--warning);"></i>
-        Offene Wetten (${openBets.length})
+        ${t('open_bets', { n: openBets.length })}
       </h3>
-      
+
       ${openBets.length === 0 ? `
         <p style="text-align: center; color: var(--muted); padding: 32px 0;">
-          Keine offenen Wetten vorhanden
+          ${t('no_open_bets')}
         </p>
       ` : `
         <div class="bets-list">
@@ -621,10 +666,10 @@ function renderProfile() {
                    data-testid="my-bet-${bet.id}">
                 <div>
                   <div style="font-weight: 500;">
-                    ${game ? `${game.home_team_abbr} vs ${game.away_team_abbr}` : 'Spiel'}
+                    ${game ? `${game.home_team_abbr} vs ${game.away_team_abbr}` : t('game_fallback')}
                   </div>
                   <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-                    Tipp: ${bet.home_score_prediction} : ${bet.away_score_prediction}
+                    ${t('pick_label', { home: bet.home_score_prediction, away: bet.away_score_prediction })}
                   </div>
                   ${game ? `
                     <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
@@ -633,7 +678,7 @@ function renderProfile() {
                   ` : ''}
                 </div>
                 <div class="bet-earned" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);">
-                  ${game?.status === 'live' ? 'Live' : 'Offen'}
+                  ${game?.status === 'live' ? t('status_live_short') : t('status_open')}
                 </div>
               </div>
             `;
@@ -646,17 +691,17 @@ function renderProfile() {
     <div${shouldAnimate ? ' class="animate-fade-in"' : ''} style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;${shouldAnimate ? ' animation-delay: 0.95s;' : ''}">
       <button class="btn btn-secondary btn-full" onclick="openPasswordResetModal()" data-testid="reset-password-button">
         <i class="fas fa-key"></i>
-        Passwort zurücksetzen
+        ${t('btn_reset_password')}
       </button>
-      
+
       <button class="btn btn-secondary btn-full" onclick="logout()" data-testid="logout-button">
         <i class="fas fa-sign-out-alt"></i>
-        Abmelden
+        ${t('nav_logout')}
       </button>
-      
+
       <button class="btn btn-danger btn-full" onclick="openDeleteModal()" data-testid="delete-account-button">
         <i class="fas fa-trash"></i>
-        Account löschen
+        ${t('btn_delete_account')}
       </button>
     </div>
   `;
@@ -666,6 +711,9 @@ function renderProfile() {
 
 // Open delete modal
 function openDeleteModal() {
+  const confirmWord = t('delete_confirm_word');
+  document.getElementById('delete-confirm-label').innerHTML = t('delete_confirm_label', { word: confirmWord });
+  document.getElementById('delete-confirm-input').placeholder = confirmWord;
   document.getElementById('delete-modal').classList.add('active');
   document.getElementById('delete-confirm-input').value = '';
   document.getElementById('delete-error').classList.add('hidden');
@@ -695,26 +743,26 @@ async function sendPasswordReset() {
   const submitBtn = document.querySelector('#password-reset-modal .btn-primary');
   
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird gesendet...';
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('sending')}`;
   errorEl.classList.add('hidden');
   successEl.classList.add('hidden');
-  
+
   try {
     const email = await firebaseSendPasswordReset();
-    successEl.innerHTML = `<i class="fas fa-check-circle"></i> E-Mail wurde an <strong>${email}</strong> gesendet. Prüfe dein Postfach.`;
+    successEl.innerHTML = `<i class="fas fa-check-circle"></i> ${t('email_sent', { email: `<strong>${email}</strong>` })}`;
     successEl.classList.remove('hidden');
-    
+
     // Auto-close after 5 seconds
     setTimeout(() => {
       closePasswordResetModal();
     }, 5000);
   } catch (error) {
     console.error('Error sending password reset:', error);
-    errorEl.textContent = error.message || 'Fehler beim Senden der E-Mail';
+    errorEl.textContent = error.message || t('error_sending_email');
     errorEl.classList.remove('hidden');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> E-Mail senden';
+    submitBtn.innerHTML = `<i class="fas fa-paper-plane"></i> ${t('btn_send_email')}`;
   }
 }
 
@@ -724,24 +772,25 @@ async function confirmDeleteAccount() {
   const errorEl = document.getElementById('delete-error');
   const submitBtn = document.querySelector('#delete-modal button.btn-danger');
   
-  if (confirmInput !== 'LÖSCHEN') {
-    errorEl.textContent = 'Bitte gib "LÖSCHEN" ein um zu bestätigen';
+  const confirmWord = t('delete_confirm_word');
+  if (confirmInput !== confirmWord) {
+    errorEl.textContent = t('error_confirm_delete', { word: confirmWord });
     errorEl.classList.remove('hidden');
     return;
   }
-  
+
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird gelöscht...';
-  
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('deleting')}`;
+
   try {
     await firebaseDeleteAccount();
     logout();
   } catch (error) {
     console.error('Error deleting account:', error);
-    errorEl.textContent = error.message || 'Fehler beim Löschen des Accounts';
+    errorEl.textContent = error.message || t('error_deleting_account');
     errorEl.classList.remove('hidden');
     submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Account löschen';
+    submitBtn.innerHTML = t('btn_delete_account');
   }
 }
 

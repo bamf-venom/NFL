@@ -31,7 +31,7 @@
       <!-- Back Link -->
       <a href="groups.html" class="back-link" data-testid="back-button">
         <i class="fas fa-arrow-left"></i>
-        Zurück zu Gruppen
+        <span data-i18n="back_to_groups">Zurück zu Gruppen</span>
       </a>
       <div id="group-detail-container">
         <div class="loading-container">
@@ -44,13 +44,13 @@
   <div id="delete-group-modal" class="modal">
     <div class="modal-backdrop" onclick="closeDeleteGroupModal()"></div>
     <div class="modal-content animate-scale-in">
-      <h2 class="modal-title">Gruppe löschen</h2>
+      <h2 class="modal-title" data-i18n="btn_delete_group">Gruppe löschen</h2>
       <p style="color: var(--muted); margin-bottom: 16px;" id="delete-group-text"></p>
       <div style="display: flex; gap: 8px;">
-        <button class="btn btn-secondary" style="flex: 1;" onclick="closeDeleteGroupModal()">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="closeDeleteGroupModal()" data-i18n="btn_cancel">
           Abbrechen
         </button>
-        <button class="btn btn-danger" style="flex: 1;" onclick="confirmDeleteGroup()" data-testid="confirm-delete">
+        <button class="btn btn-danger" style="flex: 1;" onclick="confirmDeleteGroup()" data-testid="confirm-delete" data-i18n="btn_delete">
           Löschen
         </button>
       </div>
@@ -60,13 +60,13 @@
   <div id="leave-group-modal" class="modal">
     <div class="modal-backdrop" onclick="closeLeaveGroupModal()"></div>
     <div class="modal-content animate-scale-in">
-      <h2 class="modal-title">Gruppe verlassen</h2>
+      <h2 class="modal-title" data-i18n="btn_leave_group">Gruppe verlassen</h2>
       <p style="color: var(--muted); margin-bottom: 16px;" id="leave-group-text"></p>
       <div style="display: flex; gap: 8px;">
-        <button class="btn btn-secondary" style="flex: 1;" onclick="closeLeaveGroupModal()">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="closeLeaveGroupModal()" data-i18n="btn_cancel">
           Abbrechen
         </button>
-        <button class="btn btn-danger" style="flex: 1;" onclick="confirmLeaveGroup()" data-testid="confirm-leave">
+        <button class="btn btn-danger" style="flex: 1;" onclick="confirmLeaveGroup()" data-testid="confirm-leave" data-i18n="leave_word">
           Verlassen
         </button>
       </div>
@@ -76,25 +76,25 @@
   <div id="edit-name-modal" class="modal">
     <div class="modal-backdrop" onclick="closeEditNameModal()"></div>
     <div class="modal-content animate-scale-in">
-      <h2 class="modal-title">Gruppenname ändern</h2>
+      <h2 class="modal-title" data-i18n="title_change_name">Gruppenname ändern</h2>
       <form onsubmit="handleEditGroupName(event)">
         <div class="form-group">
-          <label class="form-label">Neuer Name</label>
-          <input type="text" id="edit-name-input" class="form-input" placeholder="Gruppenname" required maxlength="50" data-testid="edit-name-input">
+          <label class="form-label" data-i18n="new_name_label">Neuer Name</label>
+          <input type="text" id="edit-name-input" class="form-input" placeholder="Gruppenname" data-i18n-placeholder="label_group_name" required maxlength="50" data-testid="edit-name-input">
         </div>
         <div id="edit-name-error" class="error-message hidden"></div>
         <div style="display: flex; gap: 8px; margin-top: 16px;">
-          <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeEditNameModal()">
+          <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeEditNameModal()" data-i18n="btn_cancel">
             Abbrechen
           </button>
-          <button type="submit" class="btn btn-primary" style="flex: 1;" data-testid="save-name-btn">
+          <button type="submit" class="btn btn-primary" style="flex: 1;" data-testid="save-name-btn" data-i18n="btn_save">
             Speichern
           </button>
         </div>
       </form>
       <p style="font-size: 12px; color: var(--muted); margin-top: 16px; text-align: center;">
         <i class="fas fa-info-circle"></i>
-        Der Einladungscode bleibt unverändert
+        <span data-i18n="invite_code_unchanged">Der Einladungscode bleibt unverändert</span>
       </p>
     </div>
   </div>
@@ -102,6 +102,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
   <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/main.js"></script>

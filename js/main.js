@@ -1,5 +1,30 @@
 // Main application logic
 
+Object.assign(TRANSLATIONS.de, {
+  nav_games: 'Spiele', nav_groups: 'Gruppen', nav_leaderboard: 'Rangliste',
+  nav_admin: 'Admin', nav_profile: 'Profil', nav_settings: 'Einstellungen',
+  nav_my_profile: 'Mein Profil', nav_logout: 'Abmelden', nav_menu: 'Menü',
+  nav_menu_close: 'Menü schließen', nav_menu_open: 'Menü öffnen',
+  status_live: 'LIVE', status_finished: 'BEENDET', status_scheduled: 'GEPLANT',
+  error_loading_title: 'Fehler beim Laden', btn_retry: 'Erneut versuchen',
+  member: 'Mitglied', members: 'Mitglieder', admin_badge: 'Admin',
+  you: 'Du', pts_short: 'Pkt', stat_points: 'Punkte', stat_bets: 'Wetten', stat_correct: 'Richtig',
+  btn_save: 'Speichern', btn_cancel: 'Abbrechen', week_n: 'Woche {n}', btn_delete: 'Löschen',
+  label_group_name: 'Gruppenname', all_weeks: 'Alle Wochen'
+});
+Object.assign(TRANSLATIONS.en, {
+  nav_games: 'Games', nav_groups: 'Groups', nav_leaderboard: 'Leaderboard',
+  nav_admin: 'Admin', nav_profile: 'Profile', nav_settings: 'Settings',
+  nav_my_profile: 'My Profile', nav_logout: 'Log out', nav_menu: 'Menu',
+  nav_menu_close: 'Close menu', nav_menu_open: 'Open menu',
+  status_live: 'LIVE', status_finished: 'FINISHED', status_scheduled: 'SCHEDULED',
+  error_loading_title: 'Failed to load', btn_retry: 'Try again',
+  member: 'member', members: 'members', admin_badge: 'Admin',
+  you: 'You', pts_short: 'pts', stat_points: 'Points', stat_bets: 'Bets', stat_correct: 'Correct',
+  btn_save: 'Save', btn_cancel: 'Cancel', week_n: 'Week {n}', btn_delete: 'Delete',
+  label_group_name: 'Group name', all_weeks: 'All weeks'
+});
+
 // Escaped nutzerkontrollierten Text (Username, Gruppenname, ...) sicher in
 // HTML ein - schuetzt vor gespeichertem XSS, da diese Werte frei vom Nutzer
 // gesetzt werden koennen und an vielen Stellen ungeprueft angezeigt werden.
@@ -24,10 +49,15 @@ function jsAttrSafe(str) {
   return encodeURIComponent(str === null || str === undefined ? '' : String(str));
 }
 
-// Format date for German locale
+// Locale passend zur aktuell gewählten Sprache, für Date/Time-Formatierung
+function getCurrentLocale() {
+  return getCurrentLanguage() === 'en' ? 'en-US' : 'de-DE';
+}
+
+// Format date for the current language's locale
 function formatDate(dateString) {
   const date = new Date(dateString);
-  return date.toLocaleDateString('de-DE', {
+  return date.toLocaleDateString(getCurrentLocale(), {
     weekday: 'short',
     day: '2-digit',
     month: '2-digit',
@@ -39,7 +69,7 @@ function formatDate(dateString) {
 // Format date only
 function formatDateOnly(dateString) {
   const date = new Date(dateString);
-  return date.toLocaleDateString('de-DE', {
+  return date.toLocaleDateString(getCurrentLocale(), {
     weekday: 'long',
     day: '2-digit',
     month: 'long',
@@ -49,7 +79,7 @@ function formatDateOnly(dateString) {
 // Format time only
 function formatTime(dateString) {
   const date = new Date(dateString);
-  return date.toLocaleTimeString('de-DE', {
+  return date.toLocaleTimeString(getCurrentLocale(), {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -59,11 +89,74 @@ function formatTime(dateString) {
 function getStatusBadge(status) {
   switch (status) {
     case 'live':
-      return { text: 'LIVE', class: 'badge-live' };
+      return { text: t('status_live'), class: 'badge-live' };
     case 'finished':
-      return { text: 'BEENDET', class: 'badge-error' };
+      return { text: t('status_finished'), class: 'badge-error' };
     default:
-      return { text: 'GEPLANT', class: 'badge-success' };
+      return { text: t('status_scheduled'), class: 'badge-success' };
+  }
+}
+
+// ==================== WETT-SPERRE COUNTDOWN ====================
+// Sekunden bis zur Wett-Sperre eines Spiels, oder null wenn außerhalb des
+// Countdown-Fensters (Spiel nicht mehr "scheduled", oder die Sperrfrist ist
+// noch mehr als BETTING_LOCK_MINUTES_BEFORE_KICKOFF Minuten entfernt bzw.
+// schon erreicht/vorbei)
+function getSecondsUntilBettingLock(game) {
+  if (!game || game.status !== 'scheduled') return null;
+  const gameDate = new Date(game.game_date);
+  const bettingLockTime = new Date(gameDate.getTime() - BETTING_LOCK_MINUTES_BEFORE_KICKOFF * 60000);
+  const secondsLeft = Math.floor((bettingLockTime.getTime() - Date.now()) / 1000);
+  if (secondsLeft <= 0 || secondsLeft > BETTING_LOCK_MINUTES_BEFORE_KICKOFF * 60) return null;
+  return secondsLeft;
+}
+
+function formatCountdown(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// HTML-Snippet für den Countdown neben dem "GEPLANT"-Badge, leer wenn
+// außerhalb des Countdown-Fensters. data-countdown-game merkt sich die
+// Spiel-ID, damit startBettingCountdownTicker() den Text jede Sekunde
+// aktualisieren kann, ohne Liste/Detail-Ansicht komplett neu zu rendern.
+function getBettingCountdownHTML(game) {
+  const secondsLeft = getSecondsUntilBettingLock(game);
+  if (secondsLeft === null) return '';
+  return `<span class="countdown-lock" data-countdown-game="${game.id}">${formatCountdown(secondsLeft)}</span>`;
+}
+
+let bettingCountdownInterval = null;
+
+// Aktualisiert alle sichtbaren Countdown-Elemente jede Sekunde direkt im DOM,
+// statt die ganze Liste/Detail-Ansicht neu zu rendern (kein Flackern, keine
+// neu startenden Animationen). getGameById liefert das aktuelle Spiel-Objekt
+// zur ID im data-Attribut; onExpire wird aufgerufen sobald ein Countdown die
+// Sperrfrist erreicht, damit das Badge korrekt auf "GESPERRT" wechselt.
+function startBettingCountdownTicker(getGameById, onExpire) {
+  stopBettingCountdownTicker();
+  bettingCountdownInterval = setInterval(() => {
+    const elements = document.querySelectorAll('[data-countdown-game]');
+    if (elements.length === 0) return;
+    let anyExpired = false;
+    elements.forEach(el => {
+      const game = getGameById(el.dataset.countdownGame);
+      const secondsLeft = getSecondsUntilBettingLock(game);
+      if (secondsLeft === null) {
+        anyExpired = true;
+      } else {
+        el.textContent = formatCountdown(secondsLeft);
+      }
+    });
+    if (anyExpired) onExpire();
+  }, 1000);
+}
+
+function stopBettingCountdownTicker() {
+  if (bettingCountdownInterval) {
+    clearInterval(bettingCountdownInterval);
+    bettingCountdownInterval = null;
   }
 }
 
@@ -126,22 +219,22 @@ function renderNavbar() {
   const currentPage = window.location.pathname.split('/').pop().replace('.html', '');
   
   const navItems = [
-    { href: 'games.html', id: 'games', label: 'Spiele', icon: 'fa-calendar' },
-    { href: 'groups.html', id: 'groups', label: 'Gruppen', icon: 'fa-users' },
-    { href: 'leaderboard.html', id: 'leaderboard', label: 'Rangliste', icon: 'fa-trophy' },
+    { href: 'games.html', id: 'games', label: t('nav_games'), icon: 'fa-calendar' },
+    { href: 'groups.html', id: 'groups', label: t('nav_groups'), icon: 'fa-users' },
+    { href: 'leaderboard.html', id: 'leaderboard', label: t('nav_leaderboard'), icon: 'fa-trophy' },
   ];
-  
+
   if (user.is_admin) {
-    navItems.push({ href: 'admin.html', id: 'admin', label: 'Admin', icon: 'fa-shield' });
+    navItems.push({ href: 'admin.html', id: 'admin', label: t('nav_admin'), icon: 'fa-shield' });
   }
-  
+
   const navLinksHTML = navItems.map(item => `
-    <a href="${item.href}" class="nav-link ${currentPage === item.id ? 'active' : ''}" data-testid="nav-${item.label.toLowerCase()}">
+    <a href="${item.href}" class="nav-link ${currentPage === item.id ? 'active' : ''}" data-testid="nav-${item.id}">
       <i class="fas ${item.icon}"></i>
       ${item.label}
     </a>
   `).join('');
-  
+
   // Mobile menu links with larger touch targets
   const mobileLinksHTML = navItems.map(item => `
     <a href="${item.href}" class="mobile-nav-link ${currentPage === item.id ? 'active' : ''}" onclick="closeMobileMenu()">
@@ -153,12 +246,12 @@ function renderNavbar() {
   // Bottom tab bar items (mobile app style) - primary nav + Profil + Einstellungen
   const bottomNavItems = [
     ...navItems,
-    { href: 'profile.html', id: 'profile', label: 'Profil', icon: 'fa-user' },
-    { href: 'settings.html', id: 'settings', label: 'Einstellungen', icon: 'fa-cog' }
+    { href: 'profile.html', id: 'profile', label: t('nav_profile'), icon: 'fa-user' },
+    { href: 'settings.html', id: 'settings', label: t('nav_settings'), icon: 'fa-cog' }
   ];
 
   const bottomNavHTML = bottomNavItems.map(item => `
-    <a href="${item.href}" class="bottom-nav-link ${currentPage === item.id ? 'active' : ''}" data-testid="bottom-nav-${item.label.toLowerCase()}">
+    <a href="${item.href}" class="bottom-nav-link ${currentPage === item.id ? 'active' : ''}" data-testid="bottom-nav-${item.id}">
       <i class="fas ${item.icon}"></i>
       <span>${item.label}</span>
     </a>
@@ -204,21 +297,21 @@ function renderNavbar() {
             <div id="user-menu" class="user-menu">
               <a href="profile.html" class="user-menu-item" data-testid="profile-link">
                 <i class="fas fa-user"></i>
-                Mein Profil
+                ${t('nav_my_profile')}
               </a>
               <a href="settings.html" class="user-menu-item" data-testid="settings-link">
                 <i class="fas fa-cog"></i>
-                Einstellungen
+                ${t('nav_settings')}
               </a>
               <button onclick="logout()" class="user-menu-item danger" data-testid="logout-button">
                 <i class="fas fa-sign-out-alt"></i>
-                Abmelden
+                ${t('nav_logout')}
               </button>
             </div>
           </div>
-          
+
           <!-- Mobile: Hamburger Button -->
-          <button class="hamburger-btn" onclick="toggleMobileMenu()" data-testid="hamburger-menu-toggle" aria-label="Menü öffnen">
+          <button class="hamburger-btn" onclick="toggleMobileMenu()" data-testid="hamburger-menu-toggle" aria-label="${t('nav_menu_open')}">
             <div class="hamburger-icon">
               <span></span>
               <span></span>
@@ -235,28 +328,28 @@ function renderNavbar() {
     <!-- Mobile Slide-in Menu -->
     <div id="mobile-menu" class="mobile-slide-menu">
       <div class="mobile-menu-header">
-        <span class="mobile-menu-title">Menü</span>
-        <button class="mobile-menu-close" onclick="closeMobileMenu()" aria-label="Menü schließen">
+        <span class="mobile-menu-title">${t('nav_menu')}</span>
+        <button class="mobile-menu-close" onclick="closeMobileMenu()" aria-label="${t('nav_menu_close')}">
           <i class="fas fa-times"></i>
         </button>
       </div>
-      
+
       <div class="mobile-menu-nav">
         ${mobileLinksHTML}
       </div>
-      
+
       <div class="mobile-menu-footer">
         <a href="profile.html" class="mobile-nav-link" onclick="closeMobileMenu()">
           <i class="fas fa-user"></i>
-          <span>Mein Profil</span>
+          <span>${t('nav_my_profile')}</span>
         </a>
         <a href="settings.html" class="mobile-nav-link" onclick="closeMobileMenu()">
           <i class="fas fa-cog"></i>
-          <span>Einstellungen</span>
+          <span>${t('nav_settings')}</span>
         </a>
         <button onclick="logout(); closeMobileMenu();" class="mobile-nav-link logout-link">
           <i class="fas fa-sign-out-alt"></i>
-          <span>Abmelden</span>
+          <span>${t('nav_logout')}</span>
         </button>
       </div>
     </div>
@@ -270,6 +363,12 @@ function renderNavbar() {
 
 // Initialize page
 function initPage() {
+  // Sprache: einmal beim Laden auf echtes statisches HTML anwenden (Inhalte
+  // aus JS-Templates übersetzen sich durch ihre eigenen t()-Aufrufe bei
+  // jedem Render selbst, brauchen das hier nicht)
+  document.documentElement.lang = getCurrentLanguage();
+  applyStaticTranslations();
+
   // Check auth for protected pages
   const path = window.location.pathname;
   if (path.includes('/pages/')) {

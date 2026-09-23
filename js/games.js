@@ -1,5 +1,32 @@
 // Games page logic
 
+Object.assign(TRANSLATIONS.de, {
+  games_title: 'Spiele', games_subtitle: 'Wähle ein Spiel und platziere deine Wette',
+  no_group: 'Keine Gruppe',
+  week_wildcard: 'Wild Card Weekend', week_divisional: 'Divisional Playoffs',
+  week_conference: 'Conference Championships', week_superbowl: 'Super Bowl',
+  error_loading_games: 'Die Spiele konnten nicht geladen werden. Bitte versuche es erneut.',
+  no_games_found: 'Keine Spiele gefunden', no_games_admin: 'Als Admin kannst du neue Spiele hinzufügen.',
+  no_games_user: 'Es sind noch keine Spiele geplant.', btn_go_to_admin: 'Zum Admin Panel',
+  status_locked: 'GESPERRT', lock_title_locked: 'Tipp gesperrt - Spiel läuft/ist beendet',
+  lock_title_open: 'Tipp noch möglich', my_pick: 'Dein Tipp',
+  no_group_bets: 'Noch keine Wetten in der Gruppe',
+  back_to_games: 'Zurück zu den Spielen'
+});
+Object.assign(TRANSLATIONS.en, {
+  games_title: 'Games', games_subtitle: 'Choose a game and place your bet',
+  no_group: 'No group',
+  week_wildcard: 'Wild Card Weekend', week_divisional: 'Divisional Playoffs',
+  week_conference: 'Conference Championships', week_superbowl: 'Super Bowl',
+  error_loading_games: 'The games could not be loaded. Please try again.',
+  no_games_found: 'No games found', no_games_admin: 'As admin, you can add new games.',
+  no_games_user: 'No games have been scheduled yet.', btn_go_to_admin: 'Go to admin panel',
+  status_locked: 'LOCKED', lock_title_locked: 'Picks locked - game is live/finished',
+  lock_title_open: 'Picks still open', my_pick: 'Your pick',
+  no_group_bets: 'No picks in this group yet',
+  back_to_games: 'Back to games'
+});
+
 let gamesData = [];
 let userBetsMap = {}; // Map von game_id zu eigener Wette
 let userGroups = []; // Gruppen des Users
@@ -57,6 +84,14 @@ async function initGamesPage() {
 
   // Render games with filters applied
   renderGames();
+
+  // Live-Countdown bis zur Wett-Sperre neben dem "GEPLANT"-Badge - aktualisiert
+  // die Anzeige jede Sekunde ohne Re-Render, rendert Liste/Detail nur neu wenn
+  // ein Countdown abläuft (Badge muss dann auf "GESPERRT" wechseln)
+  startBettingCountdownTicker(
+    gameId => gamesData.find(g => g.id === gameId),
+    handleBettingCountdownExpired
+  );
 
   // Deep-Link/Reload während eine Spiel-Detail-Ansicht offen war - direkt
   // dorthin springen statt erst kurz die Liste zu zeigen
@@ -148,9 +183,9 @@ async function loadGames(seasonFilter = null) {
     document.getElementById('games-container').innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-exclamation-triangle fa-3x empty-icon" style="color: var(--error);"></i>
-        <h3 class="empty-title">Fehler beim Laden</h3>
-        <p class="empty-text">Die Spiele konnten nicht geladen werden. Bitte versuche es erneut.</p>
-        <button class="btn btn-primary" onclick="loadGames()">Erneut versuchen</button>
+        <h3 class="empty-title">${t('error_loading_title')}</h3>
+        <p class="empty-text">${t('error_loading_games')}</p>
+        <button class="btn btn-primary" onclick="loadGames()">${t('btn_retry')}</button>
       </div>
     `;
   }
@@ -196,7 +231,7 @@ function populateGroupFilter() {
   
   const groupFilterHTML = `
     <select id="group-filter" class="form-input" style="width: auto; min-width: 150px;" data-testid="group-filter">
-      <option value="none">Keine Gruppe</option>
+      <option value="none">${t('no_group')}</option>
       ${userGroups.map(g => `<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('')}
     </select>
   `;
@@ -421,11 +456,11 @@ function populateSeasonFilter() {
 // Get display name for week (including playoffs)
 function getWeekDisplayName(week) {
   switch (week) {
-    case 19: return 'Wild Card Weekend';
-    case 20: return 'Divisional Playoffs';
-    case 21: return 'Conference Championships';
-    case 22: return 'Super Bowl';
-    default: return `Woche ${week}`;
+    case 19: return t('week_wildcard');
+    case 20: return t('week_divisional');
+    case 21: return t('week_conference');
+    case 22: return t('week_superbowl');
+    default: return t('week_n', { n: week });
   }
 }
 
@@ -441,7 +476,7 @@ function populateWeekFilter() {
   const filter = document.getElementById('week-filter');
   
   // Clear existing options
-  filter.innerHTML = '<option value="">Alle Wochen</option>';
+  filter.innerHTML = `<option value="">${t('all_weeks')}</option>`;
   
   weeks.forEach(week => {
     const option = document.createElement('option');
@@ -473,6 +508,17 @@ function populateWeekFilter() {
   saveFilterState();
 }
 
+// Wird aufgerufen sobald ein Wett-Sperre-Countdown abläuft. Rendert die Liste
+// neu (Badge wechselt auf "GESPERRT") und, falls gerade eine Detail-Ansicht
+// offen ist, auch diese (currentGameData/renderGameDetail aus game-detail.js,
+// läuft auf derselben Seite und teilt sich den globalen Scope)
+function handleBettingCountdownExpired() {
+  renderGames();
+  if (typeof currentGameData !== 'undefined' && currentGameData) {
+    renderGameDetail();
+  }
+}
+
 // Render games list
 function renderGames() {
   const container = document.getElementById('games-container');
@@ -494,13 +540,13 @@ function renderGames() {
     container.innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-calendar fa-3x empty-icon"></i>
-        <h3 class="empty-title">Keine Spiele gefunden</h3>
+        <h3 class="empty-title">${t('no_games_found')}</h3>
         <p class="empty-text">
-          ${user?.is_admin ? 'Als Admin kannst du neue Spiele hinzufügen.' : 'Es sind noch keine Spiele geplant.'}
+          ${user?.is_admin ? t('no_games_admin') : t('no_games_user')}
         </p>
         ${user?.is_admin ? `
           <button class="btn btn-primary" onclick="window.location.href='admin.html'" data-testid="go-to-admin">
-            Zum Admin Panel
+            ${t('btn_go_to_admin')}
           </button>
         ` : ''}
       </div>
@@ -543,8 +589,8 @@ function renderGames() {
       // Schloss-Icon: rot/geschlossen ab Sperrfrist bzw. wenn Spiel läuft/beendet ist, grün/offen wenn noch tippbar
       const isLocked = isGameStarted || game.status === 'finished' || game.status === 'live';
       const lockIconHTML = isLocked
-        ? `<i class="fas fa-lock lock-icon locked" title="Tipp gesperrt - Spiel läuft/ist beendet"></i>`
-        : `<i class="fas fa-lock-open lock-icon open" title="Tipp noch möglich"></i>`;
+        ? `<i class="fas fa-lock lock-icon locked" title="${t('lock_title_locked')}"></i>`
+        : `<i class="fas fa-lock-open lock-icon open" title="${t('lock_title_open')}"></i>`;
 
       const myBet = userBetsMap[game.id];
       const groupBets = groupBetsMap[game.id] || [];
@@ -556,7 +602,7 @@ function renderGames() {
       let badgeText = status.text;
       if (isBettingClosed) {
         badgeClass = 'badge-error';
-        badgeText = 'GESPERRT';
+        badgeText = t('status_locked');
       }
       
       // Wenn Gruppe aktiv: eigene Wette in groupBets einfügen falls nicht schon drin
@@ -596,6 +642,7 @@ function renderGames() {
               <div class="top-row-status">
                 <div class="badge-lock-group">
                   <span class="badge ${badgeClass}">${badgeText}</span>
+                  ${getBettingCountdownHTML(game)}
                   ${lockIconHTML}
                 </div>
                 ${myBet ? `
@@ -611,6 +658,7 @@ function renderGames() {
             <!-- Desktop Badge (wird auf Mobile versteckt) -->
             <div class="desktop-only badge-lock-group">
               <span class="badge ${badgeClass}">${badgeText}</span>
+              ${getBettingCountdownHTML(game)}
               ${lockIconHTML}
             </div>
             
@@ -655,9 +703,9 @@ function renderGames() {
             <div class="game-card-right desktop-only">
               ${myBet ? `
                 <div class="my-bet-inline-desktop" data-testid="my-bet-desktop-${game.id}">
-                  <div class="my-bet-inline-label">Dein Tipp</div>
+                  <div class="my-bet-inline-label">${t('my_pick')}</div>
                   <div class="my-bet-inline-score-desktop">${myBet.home_score_prediction} : ${myBet.away_score_prediction}</div>
-                  ${game.status === 'finished' ? `<div class="my-bet-inline-pts-desktop ${myBet.points_earned > 0 ? 'earned' : ''}">${myBet.points_earned || 0} Pkt</div>` : ''}
+                  ${game.status === 'finished' ? `<div class="my-bet-inline-pts-desktop ${myBet.points_earned > 0 ? 'earned' : ''}">${myBet.points_earned || 0} ${t('pts_short')}</div>` : ''}
                 </div>
               ` : (!isBettingClosed && game.status === 'scheduled' ? `
                 <div class="my-bet-inline-desktop no-bet">
@@ -674,7 +722,7 @@ function renderGames() {
               ${displayGroupBets.length === 0 ? `
                 <div class="no-group-bets">
                   <i class="fas fa-users"></i>
-                  <span>Noch keine Wetten in der Gruppe</span>
+                  <span>${t('no_group_bets')}</span>
                 </div>
               ` : `
                 <div class="group-bets-list">
@@ -684,7 +732,7 @@ function renderGames() {
                         <div class="group-bet-avatar">
                           ${bet.profile_picture ? `<img src="${bet.profile_picture}" alt="${escapeHtml(bet.username)}" class="group-bet-avatar-img" data-fallback-letter="${escapeHtml(bet.username.charAt(0).toUpperCase())}" onerror="this.style.display='none'; this.parentElement.textContent=this.dataset.fallbackLetter;">` : escapeHtml(bet.username.charAt(0).toUpperCase())}
                         </div>
-                        <span class="group-bet-username">${bet.user_id === currentUser?.id ? 'Du' : escapeHtml(bet.username)}</span>
+                        <span class="group-bet-username">${bet.user_id === currentUser?.id ? t('you') : escapeHtml(bet.username)}</span>
                       </div>
                       <div class="group-bet-prediction">
                         ${bet.home_score_prediction} : ${bet.away_score_prediction}

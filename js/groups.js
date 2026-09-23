@@ -1,5 +1,38 @@
 // Groups page logic
 
+Object.assign(TRANSLATIONS.de, {
+  groups_title: 'Meine Gruppen', groups_subtitle: 'Wette mit deinen Freunden',
+  create_group_title: 'Neue Gruppe erstellen',
+  placeholder_group_name: 'z.B. NFL Experten',
+  new_group: 'Neue Gruppe',
+  join_group_title: 'Gruppe beitreten', label_invite_code: 'Einladungscode',
+  placeholder_invite_code: 'z.B. ABC12345', invite_code_hint: 'Frage einen Freund nach dem Einladungscode',
+  error_loading_groups: 'Die Gruppen konnten nicht geladen werden.',
+  no_groups_title: 'Keine Gruppen', no_groups_text: 'Erstelle eine Gruppe oder tritt einer bei, um mit Freunden zu wetten.',
+  btn_join_with_code: 'Mit Code beitreten', btn_create_group: 'Gruppe erstellen',
+  error_enter_group_name: 'Bitte gib einen Gruppennamen ein', creating: 'Erstellen...',
+  group_created: 'Gruppe "{name}" erstellt!', error_creating_group: 'Fehler beim Erstellen der Gruppe',
+  error_invite_code_length: 'Der Einladungscode muss 8 Zeichen haben', joining: 'Beitreten...',
+  group_joined: 'Gruppe "{name}" beigetreten!', error_joining_group: 'Fehler beim Beitreten',
+  btn_join: 'Beitreten'
+});
+Object.assign(TRANSLATIONS.en, {
+  groups_title: 'My groups', groups_subtitle: 'Bet with your friends',
+  create_group_title: 'Create new group',
+  placeholder_group_name: 'e.g. NFL Experts',
+  new_group: 'New group',
+  join_group_title: 'Join group', label_invite_code: 'Invite code',
+  placeholder_invite_code: 'e.g. ABC12345', invite_code_hint: 'Ask a friend for the invite code',
+  error_loading_groups: 'The groups could not be loaded.',
+  no_groups_title: 'No groups', no_groups_text: 'Create a group or join one to bet with friends.',
+  btn_join_with_code: 'Join with code', btn_create_group: 'Create group',
+  error_enter_group_name: 'Please enter a group name', creating: 'Creating...',
+  group_created: 'Group "{name}" created!', error_creating_group: 'Error creating the group',
+  error_invite_code_length: 'The invite code must be 8 characters', joining: 'Joining...',
+  group_joined: 'Joined group "{name}"!', error_joining_group: 'Error joining the group',
+  btn_join: 'Join'
+});
+
 let userGroups = [];
 
 // Initialize groups page
@@ -17,9 +50,9 @@ async function loadGroups() {
     document.getElementById('groups-container').innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-exclamation-triangle fa-3x empty-icon" style="color: var(--error);"></i>
-        <h3 class="empty-title">Fehler beim Laden</h3>
-        <p class="empty-text">Die Gruppen konnten nicht geladen werden.</p>
-        <button class="btn btn-primary" onclick="loadGroups()">Erneut versuchen</button>
+        <h3 class="empty-title">${t('error_loading_title')}</h3>
+        <p class="empty-text">${t('error_loading_groups')}</p>
+        <button class="btn btn-primary" onclick="loadGroups()">${t('btn_retry')}</button>
       </div>
     `;
   }
@@ -33,16 +66,16 @@ function renderGroups() {
     container.innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-users fa-3x empty-icon"></i>
-        <h3 class="empty-title">Keine Gruppen</h3>
-        <p class="empty-text">Erstelle eine Gruppe oder tritt einer bei, um mit Freunden zu wetten.</p>
+        <h3 class="empty-title">${t('no_groups_title')}</h3>
+        <p class="empty-text">${t('no_groups_text')}</p>
         <div style="display: flex; justify-content: center; gap: 8px; margin-top: 16px;">
           <button class="btn btn-secondary" onclick="openJoinModal()">
             <i class="fas fa-link"></i>
-            Mit Code beitreten
+            ${t('btn_join_with_code')}
           </button>
           <button class="btn btn-primary" onclick="openCreateModal()">
             <i class="fas fa-plus"></i>
-            Gruppe erstellen
+            ${t('btn_create_group')}
           </button>
         </div>
       </div>
@@ -68,8 +101,8 @@ function renderGroups() {
           <div>
             <div class="group-name">${escapeHtml(group.name)}</div>
             <div class="group-members">
-              ${memberCount} Mitglied${memberCount !== 1 ? 'er' : ''}
-              ${isAdmin ? '<span class="badge badge-default">Admin</span>' : ''}
+              ${memberCount} ${memberCount !== 1 ? t('members') : t('member')}
+              ${isAdmin ? `<span class="badge badge-default">${t('admin_badge')}</span>` : ''}
             </div>
           </div>
         </div>
@@ -103,26 +136,26 @@ async function handleCreateGroup(event) {
   const submitBtn = event.target.querySelector('button[type="submit"]');
   
   if (!name) {
-    errorEl.textContent = 'Bitte gib einen Gruppennamen ein';
+    errorEl.textContent = t('error_enter_group_name');
     errorEl.classList.remove('hidden');
     return;
   }
-  
+
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Erstellen...';
-  
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('creating')}`;
+
   try {
     const group = await firebaseCreateGroup(name);
     closeCreateModal();
-    showSuccess(`Gruppe "${name}" erstellt!`);
+    showSuccess(t('group_created', { name }));
     await loadGroups();
   } catch (error) {
     console.error('Error creating group:', error);
-    errorEl.textContent = error.message || 'Fehler beim Erstellen der Gruppe';
+    errorEl.textContent = error.message || t('error_creating_group');
     errorEl.classList.remove('hidden');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Gruppe erstellen';
+    submitBtn.innerHTML = t('btn_create_group');
   }
 }
 
@@ -147,26 +180,26 @@ async function handleJoinGroup(event) {
   const submitBtn = event.target.querySelector('button[type="submit"]');
   
   if (code.length !== 8) {
-    errorEl.textContent = 'Der Einladungscode muss 8 Zeichen haben';
+    errorEl.textContent = t('error_invite_code_length');
     errorEl.classList.remove('hidden');
     return;
   }
-  
+
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Beitreten...';
-  
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('joining')}`;
+
   try {
     const group = await firebaseJoinGroup(code);
     closeJoinModal();
-    showSuccess(`Gruppe "${group.name}" beigetreten!`);
+    showSuccess(t('group_joined', { name: group.name }));
     await loadGroups();
   } catch (error) {
     console.error('Error joining group:', error);
-    errorEl.textContent = error.message || 'Fehler beim Beitreten';
+    errorEl.textContent = error.message || t('error_joining_group');
     errorEl.classList.remove('hidden');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Beitreten';
+    submitBtn.innerHTML = t('btn_join');
   }
 }
 

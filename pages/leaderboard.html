@@ -36,8 +36,8 @@
               <i class="fas fa-trophy fa-lg"></i>
             </div>
             <div>
-              <h1 class="page-title" data-testid="leaderboard-title">Rangliste</h1>
-              <p class="page-subtitle">Die besten Tipper der Saison</p>
+              <h1 class="page-title" data-testid="leaderboard-title" data-i18n="leaderboard_title">Rangliste</h1>
+              <p class="page-subtitle" data-i18n="leaderboard_subtitle">Die besten Tipper der Saison</p>
             </div>
           </div>
           <div class="filter-container">
@@ -51,7 +51,7 @@
       <!-- Selected Group Info -->
       <div id="group-info" class="hidden" style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 8px; margin-bottom: 24px;">
         <i class="fas fa-users"></i>
-        <span>Zeige Rangliste für: <strong id="group-name" style="color: white;"></strong></span>
+        <span><span data-i18n="showing_leaderboard_for">Zeige Rangliste für:</span> <strong id="group-name" style="color: white;"></strong></span>
       </div>
       <!-- Leaderboard -->
       <div id="leaderboard-container">
@@ -65,6 +65,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
   <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/main.js"></script>

@@ -38,6 +38,46 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// ==================== PUSH-BENACHRICHTIGUNGEN ====================
+// Wett-Erinnerung 1h vor Anpfiff (siehe automation/send-bet-reminders.js) -
+// der Server schickt nur { title, body, url }, kein sensibler Payload.
+self.addEventListener('push', (event) => {
+  let data = { title: 'NFL POINTS', body: 'Du hast noch Zeit, deine Wette zu platzieren.' };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch (e) {
+    // Payload war kein JSON - Fallback-Text oben wird verwendet
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      data: { url: data.url || './pages/games.html' },
+    })
+  );
+});
+
+// Klick auf die Benachrichtigung öffnet die App (bzw. fokussiert einen schon
+// offenen Tab statt einen neuen zu öffnen)
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || './pages/games.html';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 

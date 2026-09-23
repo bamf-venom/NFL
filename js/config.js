@@ -110,10 +110,16 @@ function getTeamLogoHTML(abbr, size = 40) {
 const ADMIN_EMAIL = 'info@mbpvfx.com';
 
 // Wetten werden so viele Minuten vor Anpfiff gesperrt
-const BETTING_LOCK_MINUTES_BEFORE_KICKOFF = 60;
+const BETTING_LOCK_MINUTES_BEFORE_KICKOFF = 3;
+
+// Öffentlicher VAPID-Schlüssel für Web-Push-Benachrichtigungen (Wett-Erinnerung
+// 1h vor Anpfiff, siehe automation/send-bet-reminders.js). Unbedenklich im
+// Client-Code, da nur der private Schlüssel (GitHub Actions Secret
+// VAPID_PRIVATE_KEY, NICHT im Repo) tatsächlich Nachrichten signieren kann.
+const VAPID_PUBLIC_KEY = 'BP9m9K3SVLgugOANXXViTu2iQ_4oTTCRsNIwQIb5HTRcSuidTrvUEVNBwSHl-LCc4VHEBd5Dq9w6f-5R-bWR61U';
 
 // App-Version für die Update-Anzeige in den Einstellungen (settings.js
 // vergleicht diese Konstante mit einer frisch vom Server geholten Kopie
 // dieser Datei). WICHTIG: bei jedem sichtbaren Deploy hochzählen, sonst
 // zeigt die Update-Erkennung nichts an.
-const APP_VERSION = '2026.09.22.2';
+const APP_VERSION = '2026.09.23.1';

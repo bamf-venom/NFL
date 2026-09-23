@@ -1,5 +1,44 @@
 // Group detail page logic
 
+Object.assign(TRANSLATIONS.de, {
+  group_not_found: 'Gruppe nicht gefunden', back_to_groups: 'Zurück zu Gruppen',
+  error_loading_group: 'Die Gruppe konnte nicht geladen werden.',
+  title_change_name: 'Name ändern', invite_code_label: 'Einladungscode', btn_copy_link: 'Link kopieren',
+  tab_members: 'Mitglieder', tab_leaderboard: 'Rangliste', tab_bets: 'Wetten',
+  btn_delete_group: 'Gruppe löschen', btn_leave_group: 'Gruppe verlassen',
+  confirm_kick: '{username} wirklich aus der Gruppe entfernen?', error_kicking_member: 'Fehler beim Entfernen des Mitglieds',
+  confirm_delete_group: 'Bist du sicher, dass du die Gruppe "{name}" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.',
+  error_deleting_group: 'Fehler beim Löschen der Gruppe',
+  confirm_leave_group: 'Bist du sicher, dass du die Gruppe "{name}" verlassen möchtest?',
+  error_leaving_group: 'Fehler beim Verlassen der Gruppe',
+  error_name_too_short: 'Name muss mindestens 2 Zeichen haben', saving: 'Wird gespeichert...',
+  error_updating_name: 'Fehler beim Ändern des Namens',
+  joined_on: 'Beigetreten {date}', no_bets_evaluated: 'Noch keine Wetten ausgewertet',
+  your_position: 'Deine Position', of_n_players: 'von {n} Spielern',
+  no_games_available: 'Keine Spiele vorhanden', no_bets: 'Keine Wetten',
+  leave_word: 'Verlassen', new_name_label: 'Neuer Name',
+  invite_code_unchanged: 'Der Einladungscode bleibt unverändert'
+});
+Object.assign(TRANSLATIONS.en, {
+  group_not_found: 'Group not found', back_to_groups: 'Back to groups',
+  error_loading_group: 'The group could not be loaded.',
+  title_change_name: 'Change name', invite_code_label: 'Invite code', btn_copy_link: 'Copy link',
+  tab_members: 'Members', tab_leaderboard: 'Leaderboard', tab_bets: 'Bets',
+  btn_delete_group: 'Delete group', btn_leave_group: 'Leave group',
+  confirm_kick: 'Really remove {username} from the group?', error_kicking_member: 'Error removing the member',
+  confirm_delete_group: 'Are you sure you want to delete the group "{name}"? This action cannot be undone.',
+  error_deleting_group: 'Error deleting the group',
+  confirm_leave_group: 'Are you sure you want to leave the group "{name}"?',
+  error_leaving_group: 'Error leaving the group',
+  error_name_too_short: 'Name must be at least 2 characters', saving: 'Saving...',
+  error_updating_name: 'Error updating the name',
+  joined_on: 'Joined {date}', no_bets_evaluated: 'No bets evaluated yet',
+  your_position: 'Your position', of_n_players: 'of {n} players',
+  no_games_available: 'No games available', no_bets: 'No bets',
+  leave_word: 'Leave', new_name_label: 'New name',
+  invite_code_unchanged: 'The invite code stays the same'
+});
+
 let currentGroupData = null;
 let groupLeaderboardData = [];
 let groupBetsData = {};
@@ -34,8 +73,8 @@ async function loadGroupDetail(groupId) {
     if (!currentGroupData) {
       document.getElementById('group-detail-container').innerHTML = `
         <div class="card empty-state">
-          <h3 class="empty-title">Gruppe nicht gefunden</h3>
-          <a href="groups.html" class="btn btn-primary" style="margin-top: 16px;">Zurück zu Gruppen</a>
+          <h3 class="empty-title">${t('group_not_found')}</h3>
+          <a href="groups.html" class="btn btn-primary" style="margin-top: 16px;">${t('back_to_groups')}</a>
         </div>
       `;
       return;
@@ -53,9 +92,9 @@ async function loadGroupDetail(groupId) {
     document.getElementById('group-detail-container').innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-exclamation-triangle fa-3x empty-icon" style="color: var(--error);"></i>
-        <h3 class="empty-title">Fehler beim Laden</h3>
-        <p class="empty-text">Die Gruppe konnte nicht geladen werden.</p>
-        <button class="btn btn-primary" onclick="location.reload()">Erneut versuchen</button>
+        <h3 class="empty-title">${t('error_loading_title')}</h3>
+        <p class="empty-text">${t('error_loading_group')}</p>
+        <button class="btn btn-primary" onclick="location.reload()">${t('btn_retry')}</button>
       </div>
     `;
   }
@@ -128,25 +167,25 @@ function copyInviteLink() {
 // Kick member
 async function kickMember(userId, username) {
   username = decodeURIComponent(username);
-  if (!confirm(`${username} wirklich aus der Gruppe entfernen?`)) return;
-  
+  if (!confirm(t('confirm_kick', { username }))) return;
+
   try {
     await firebaseKickMember(currentGroupData.id, userId);
-    
+
     // Reload group data
     currentGroupData = await firebaseGetGroup(currentGroupData.id);
     await Promise.all([loadGroupLeaderboard(), loadGroupBets()]);
     renderGroupDetail();
   } catch (error) {
     console.error('Error kicking member:', error);
-    alert(error.message || 'Fehler beim Entfernen des Mitglieds');
+    alert(error.message || t('error_kicking_member'));
   }
 }
 
 // Open delete group modal
 function openDeleteGroupModal() {
-  document.getElementById('delete-group-text').textContent = 
-    `Bist du sicher, dass du die Gruppe "${currentGroupData.name}" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.`;
+  document.getElementById('delete-group-text').textContent =
+    t('confirm_delete_group', { name: currentGroupData.name });
   document.getElementById('delete-group-modal').classList.add('active');
 }
 
@@ -162,14 +201,14 @@ async function confirmDeleteGroup() {
     window.location.href = 'groups.html';
   } catch (error) {
     console.error('Error deleting group:', error);
-    alert(error.message || 'Fehler beim Löschen der Gruppe');
+    alert(error.message || t('error_deleting_group'));
   }
 }
 
 // Open leave group modal
 function openLeaveGroupModal() {
-  document.getElementById('leave-group-text').textContent = 
-    `Bist du sicher, dass du die Gruppe "${currentGroupData.name}" verlassen möchtest?`;
+  document.getElementById('leave-group-text').textContent =
+    t('confirm_leave_group', { name: currentGroupData.name });
   document.getElementById('leave-group-modal').classList.add('active');
 }
 
@@ -185,7 +224,7 @@ async function confirmLeaveGroup() {
     window.location.href = 'groups.html';
   } catch (error) {
     console.error('Error leaving group:', error);
-    alert(error.message || 'Fehler beim Verlassen der Gruppe');
+    alert(error.message || t('error_leaving_group'));
   }
 }
 
@@ -217,20 +256,20 @@ function renderGroupDetail() {
           <div style="display: flex; align-items: center; gap: 10px;">
             <h1 class="group-header-name" data-testid="group-name">${escapeHtml(group.name)}</h1>
             ${isAdmin ? `
-              <button class="btn btn-ghost btn-sm" onclick="openEditNameModal()" data-testid="edit-name-btn" title="Name ändern">
+              <button class="btn btn-ghost btn-sm" onclick="openEditNameModal()" data-testid="edit-name-btn" title="${t('title_change_name')}">
                 <i class="fas fa-edit"></i>
               </button>
             ` : ''}
           </div>
           <div class="group-header-meta">
-            ${memberCount} Mitglied${memberCount !== 1 ? 'er' : ''}
-            ${isAdmin ? '<span class="badge badge-warning">Admin</span>' : ''}
+            ${memberCount} ${memberCount !== 1 ? t('members') : t('member')}
+            ${isAdmin ? `<span class="badge badge-warning">${t('admin_badge')}</span>` : ''}
           </div>
         </div>
       </div>
-      
+
       <div class="group-invite">
-        <div class="group-invite-label">Einladungscode</div>
+        <div class="group-invite-label">${t('invite_code_label')}</div>
         <div class="group-invite-code">
           <span class="invite-code" data-testid="invite-code">${group.invite_code}</span>
           <button class="btn btn-ghost btn-sm" onclick="copyInviteCode()" data-testid="copy-code-btn">
@@ -239,41 +278,41 @@ function renderGroupDetail() {
         </div>
         <button class="btn btn-ghost btn-sm" onclick="copyInviteLink()" data-testid="copy-link-btn">
           <i class="fas fa-link"></i>
-          Link kopieren
+          ${t('btn_copy_link')}
         </button>
       </div>
     </div>
-    
+
     <!-- Tabs -->
     <div class="tabs" style="margin-top: 24px;">
       <button class="tab-btn ${currentTab === 'members' ? 'active' : ''}" onclick="switchGroupTab('members')" data-testid="tab-members">
         <i class="fas fa-users"></i>
-        Mitglieder
+        ${t('tab_members')}
       </button>
       <button class="tab-btn ${currentTab === 'leaderboard' ? 'active' : ''}" onclick="switchGroupTab('leaderboard')" data-testid="tab-leaderboard">
         <i class="fas fa-trophy"></i>
-        Rangliste
+        ${t('tab_leaderboard')}
       </button>
       <button class="tab-btn ${currentTab === 'bets' ? 'active' : ''}" onclick="switchGroupTab('bets')" data-testid="tab-bets">
         <i class="fas fa-bullseye"></i>
-        Wetten
+        ${t('tab_bets')}
       </button>
     </div>
-    
+
     <!-- Tab Content -->
     <div id="tab-content" style="margin-top: 24px;"></div>
-    
+
     <!-- Actions -->
     <div style="margin-top: 24px;">
       ${isAdmin ? `
         <button class="btn btn-danger btn-full" onclick="openDeleteGroupModal()" data-testid="delete-group-btn">
           <i class="fas fa-trash"></i>
-          Gruppe löschen
+          ${t('btn_delete_group')}
         </button>
       ` : `
         <button class="btn btn-danger btn-full" onclick="openLeaveGroupModal()" data-testid="leave-group-btn">
           <i class="fas fa-sign-out-alt"></i>
-          Gruppe verlassen
+          ${t('btn_leave_group')}
         </button>
       `}
     </div>
@@ -304,25 +343,25 @@ async function handleEditGroupName(event) {
   const submitBtn = event.target.querySelector('button[type="submit"]');
   
   if (newName.length < 2) {
-    errorEl.textContent = 'Name muss mindestens 2 Zeichen haben';
+    errorEl.textContent = t('error_name_too_short');
     errorEl.classList.remove('hidden');
     return;
   }
-  
+
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird gespeichert...';
-  
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('saving')}`;
+
   try {
     currentGroupData = await firebaseUpdateGroupName(currentGroupData.id, newName);
     closeEditNameModal();
     renderGroupDetail();
   } catch (error) {
     console.error('Error updating group name:', error);
-    errorEl.textContent = error.message || 'Fehler beim Ändern des Namens';
+    errorEl.textContent = error.message || t('error_updating_name');
     errorEl.classList.remove('hidden');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = 'Speichern';
+    submitBtn.innerHTML = t('btn_save');
   }
 }
 
@@ -353,10 +392,10 @@ function renderTabContent() {
             <div>
               <div class="member-name">
                 ${escapeHtml(member.username)}
-                ${isOwn ? '<span style="font-size: 12px; padding: 2px 8px; background: rgba(255,255,255,0.1); border-radius: 4px;">Du</span>' : ''}
+                ${isOwn ? `<span style="font-size: 12px; padding: 2px 8px; background: rgba(255,255,255,0.1); border-radius: 4px;">${t('you')}</span>` : ''}
                 ${isMemberAdmin ? '<i class="fas fa-crown" style="color: #fbbf24;"></i>' : ''}
               </div>
-              <div class="member-joined">Beigetreten ${new Date(member.joined_at).toLocaleDateString('de-DE')}</div>
+              <div class="member-joined">${t('joined_on', { date: new Date(member.joined_at).toLocaleDateString(getCurrentLocale()) })}</div>
             </div>
           </div>
           ${isAdmin && !isOwn ? `
@@ -377,7 +416,7 @@ function renderTabContent() {
       tabContent.innerHTML = `
         <div class="card empty-state">
           <i class="fas fa-trophy fa-2x" style="color: var(--muted); margin-bottom: 8px;"></i>
-          <p style="color: var(--muted);">Noch keine Wetten ausgewertet</p>
+          <p style="color: var(--muted);">${t('no_bets_evaluated')}</p>
         </div>
       `;
       return;
@@ -399,22 +438,22 @@ function renderTabContent() {
                 ${myRank}
               </div>
               <div>
-                <div style="font-weight: 600; font-size: 16px;">Deine Position</div>
-                <div style="font-size: 13px; color: var(--muted);">von ${groupLeaderboardData.length} Spielern</div>
+                <div style="font-weight: 600; font-size: 16px;">${t('your_position')}</div>
+                <div style="font-size: 13px; color: var(--muted);">${t('of_n_players', { n: groupLeaderboardData.length })}</div>
               </div>
             </div>
             <div style="display: flex; gap: 24px; flex-wrap: wrap;">
               <div style="text-align: center;">
                 <div style="font-size: 28px; font-weight: 800; color: var(--accent);">${myEntry.total_points}</div>
-                <div style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Punkte</div>
+                <div style="font-size: 11px; color: var(--muted); text-transform: uppercase;">${t('stat_points')}</div>
               </div>
               <div style="text-align: center;">
                 <div style="font-size: 28px; font-weight: 800;">${myEntry.total_bets}</div>
-                <div style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Wetten</div>
+                <div style="font-size: 11px; color: var(--muted); text-transform: uppercase;">${t('stat_bets')}</div>
               </div>
               <div style="text-align: center;">
                 <div style="font-size: 28px; font-weight: 800; color: var(--success);">${myEntry.correct_winners}</div>
-                <div style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Richtig</div>
+                <div style="font-size: 11px; color: var(--muted); text-transform: uppercase;">${t('stat_correct')}</div>
               </div>
             </div>
           </div>
@@ -445,23 +484,23 @@ function renderTabContent() {
           <div class="leaderboard-user">
             <div class="leaderboard-username">
               ${escapeHtml(entry.username)}
-              ${isOwn ? '<span class="leaderboard-you">Du</span>' : ''}
+              ${isOwn ? `<span class="leaderboard-you">${t('you')}</span>` : ''}
             </div>
             <div class="leaderboard-stats">
               <span class="leaderboard-stat">
                 <i class="fas fa-bullseye"></i>
-                ${entry.total_bets} Wetten
+                ${entry.total_bets} ${t('stat_bets')}
               </span>
               <span class="leaderboard-stat">
                 <i class="fas fa-chart-line"></i>
-                ${entry.correct_winners} Richtig
+                ${entry.correct_winners} ${t('stat_correct')}
               </span>
             </div>
           </div>
-          
+
           <div class="leaderboard-points">
             <div class="leaderboard-points-num">${entry.total_points}</div>
-            <div class="leaderboard-points-label">Punkte</div>
+            <div class="leaderboard-points-label">${t('stat_points')}</div>
           </div>
         </div>
       `;
@@ -475,7 +514,7 @@ function renderTabContent() {
     if (gamesData.length === 0) {
       tabContent.innerHTML = `
         <div class="card empty-state">
-          <p style="color: var(--muted);">Keine Spiele vorhanden</p>
+          <p style="color: var(--muted);">${t('no_games_available')}</p>
         </div>
       `;
       return;
@@ -491,15 +530,15 @@ function renderTabContent() {
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <div>
               <div style="font-weight: 600;">${game.home_team_abbr} vs ${game.away_team_abbr}</div>
-              <div style="font-size: 12px; color: var(--muted);">Woche ${game.week} • ${new Date(game.game_date).toLocaleDateString('de-DE')}</div>
+              <div style="font-size: 12px; color: var(--muted);">${t('week_n', { n: game.week })} • ${new Date(game.game_date).toLocaleDateString(getCurrentLocale())}</div>
             </div>
             ${game.status === 'finished' ? `
               <div style="font-size: 18px; font-weight: 700;">${game.home_score} : ${game.away_score}</div>
             ` : ''}
           </div>
-          
+
           ${bets.length === 0 ? `
-            <p style="font-size: 14px; color: var(--muted); text-align: center; padding: 8px 0;">Keine Wetten</p>
+            <p style="font-size: 14px; color: var(--muted); text-align: center; padding: 8px 0;">${t('no_bets')}</p>
           ` : `
             <div style="display: flex; flex-direction: column; gap: 8px;">
               ${bets.map(bet => `
@@ -509,7 +548,7 @@ function renderTabContent() {
                     <span style="font-weight: 500;">${bet.home_score_prediction} : ${bet.away_score_prediction}</span>
                     ${game.status === 'finished' ? `
                       <span style="font-size: 14px; color: ${bet.points_earned > 0 ? 'var(--success)' : 'var(--muted)'};">
-                        ${bet.points_earned || 0} Pkt
+                        ${bet.points_earned || 0} ${t('pts_short')}
                       </span>
                     ` : ''}
                   </div>

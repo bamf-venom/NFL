@@ -12,6 +12,49 @@ const firebaseConfig = {
   measurementId: "G-ZXV5PPJR04"
 };
 
+Object.assign(TRANSLATIONS.de, {
+  error_not_logged_in: 'Nicht angemeldet', error_user_data_not_found: 'Benutzerdaten nicht gefunden',
+  error_no_email_found: 'Keine E-Mail-Adresse gefunden',
+  error_username_min_length: 'Benutzername muss mindestens 2 Zeichen haben',
+  error_already_bet: 'Du hast bereits auf dieses Spiel gewettet', error_game_not_found: 'Spiel nicht gefunden',
+  error_betting_closed_place: 'Die Tipp-Sperrfrist ist erreicht. Wette kann nicht mehr platziert werden.',
+  error_bet_not_found: 'Wette nicht gefunden',
+  error_delete_own_bets_only: 'Du kannst nur deine eigenen Wetten löschen',
+  error_betting_closed_delete: 'Die Tipp-Sperrfrist ist erreicht. Wette kann nicht mehr gelöscht werden.',
+  error_invalid_invite_code: 'Ungültiger Einladungscode',
+  error_already_group_member: 'Du bist bereits Mitglied dieser Gruppe',
+  error_admin_cant_leave_group: 'Als Admin kannst du die Gruppe nicht verlassen. Lösche sie stattdessen.',
+  error_only_admin_remove_members: 'Nur der Admin kann Mitglieder entfernen',
+  error_cant_remove_self: 'Du kannst dich nicht selbst entfernen',
+  error_only_admin_delete_group: 'Nur der Admin kann die Gruppe löschen',
+  error_group_not_found: 'Gruppe nicht gefunden',
+  error_only_admin_rename_group: 'Nur der Admin kann den Gruppennamen ändern',
+  error_group_name_min_length: 'Gruppenname muss mindestens 2 Zeichen haben',
+  error_push_not_supported: 'Dein Browser unterstützt leider keine Push-Benachrichtigungen',
+  error_push_permission_denied: 'Benachrichtigungen wurden nicht erlaubt. Du kannst das in den Browser-/App-Einstellungen ändern.'
+});
+Object.assign(TRANSLATIONS.en, {
+  error_not_logged_in: 'Not logged in', error_user_data_not_found: 'User data not found',
+  error_no_email_found: 'No email address found',
+  error_username_min_length: 'Username must be at least 2 characters',
+  error_already_bet: 'You have already bet on this game', error_game_not_found: 'Game not found',
+  error_betting_closed_place: 'The betting deadline has passed. The bet can no longer be placed.',
+  error_bet_not_found: 'Bet not found',
+  error_delete_own_bets_only: 'You can only delete your own bets',
+  error_betting_closed_delete: 'The betting deadline has passed. The bet can no longer be deleted.',
+  error_invalid_invite_code: 'Invalid invite code',
+  error_already_group_member: 'You are already a member of this group',
+  error_admin_cant_leave_group: 'As admin you cannot leave the group. Delete it instead.',
+  error_only_admin_remove_members: 'Only the admin can remove members',
+  error_cant_remove_self: 'You cannot remove yourself',
+  error_only_admin_delete_group: 'Only the admin can delete the group',
+  error_group_not_found: 'Group not found',
+  error_only_admin_rename_group: 'Only the admin can change the group name',
+  error_group_name_min_length: 'Group name must be at least 2 characters',
+  error_push_not_supported: 'Your browser does not support push notifications',
+  error_push_permission_denied: 'Notifications were not allowed. You can change this in your browser/app settings.'
+});
+
 // ==================== PERFORMANCE CACHE ====================
 // Games-Caching läuft über eigene, saison-fähige Strukturen (siehe
 // finishedGamesCache/gamesCombinedCache weiter unten), nicht über dataCache.
@@ -233,6 +276,100 @@ const collections = {
   groups: () => db.collection('groups'),
 };
 
+// ==================== PUSH-BENACHRICHTIGUNGEN (Wett-Erinnerung) ====================
+// Speichert die Push-Subscription eines Geräts unter
+// users/{uid}/push_subscriptions/{hash der endpoint-URL} - der Hash sorgt
+// dafür, dass ein erneutes Abonnieren desselben Geräts den bestehenden
+// Eintrag überschreibt statt Duplikate anzulegen. Versand läuft serverseitig
+// über automation/send-bet-reminders.js (Firebase Admin SDK, GitHub Actions).
+async function hashPushEndpoint(endpoint) {
+  const data = new TextEncoder().encode(endpoint);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
+
+// navigator.serviceWorker.ready hängt sich für immer auf, wenn die
+// Registrierung (siehe main.js, läuft auf 'load') aus irgendeinem Grund nie
+// abschließt - Timeout verhindert, dass der Status-Check dann ewig lädt
+function getServiceWorkerRegistration(timeoutMs = 5000) {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Service Worker Timeout')), timeoutMs)),
+  ]);
+}
+
+// Fragt Benachrichtigungs-Erlaubnis an und abonniert Push-Erinnerungen für
+// dieses Gerät. Wirft eine sprechende Fehlermeldung, wenn der Nutzer ablehnt
+// oder der Browser Push nicht unterstützt (z.B. iOS Safari außerhalb der
+// installierten PWA).
+async function firebaseSubscribeToPush() {
+  const user = auth.currentUser;
+  if (!user) throw new Error(t('error_not_logged_in'));
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    throw new Error(t('error_push_not_supported'));
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    throw new Error(t('error_push_permission_denied'));
+  }
+
+  const registration = await getServiceWorkerRegistration();
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+  }
+
+  const subJson = subscription.toJSON();
+  const subId = await hashPushEndpoint(subJson.endpoint);
+
+  await db.collection('users').doc(user.uid).collection('push_subscriptions').doc(subId).set({
+    endpoint: subJson.endpoint,
+    keys: subJson.keys,
+    created_at: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+// Deabonniert Push für dieses Gerät und entfernt den Firestore-Eintrag
+async function firebaseUnsubscribeFromPush() {
+  const user = auth.currentUser;
+  if (!user) throw new Error(t('error_not_logged_in'));
+  if (!('serviceWorker' in navigator)) return;
+
+  const registration = await getServiceWorkerRegistration().catch(() => null);
+  if (!registration) return;
+
+  const subscription = await registration.pushManager.getSubscription();
+  if (!subscription) return;
+
+  const subJson = subscription.toJSON();
+  const subId = await hashPushEndpoint(subJson.endpoint);
+  await subscription.unsubscribe();
+  await db.collection('users').doc(user.uid).collection('push_subscriptions').doc(subId).delete().catch(() => {});
+}
+
+// Prüft ob dieses Gerät aktuell für Push-Erinnerungen abonniert ist (für den
+// Toggle-Zustand in den Einstellungen)
+async function firebaseGetPushSubscriptionStatus() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  if (Notification.permission !== 'granted') return false;
+  const registration = await getServiceWorkerRegistration().catch(() => null);
+  if (!registration) return false;
+  const subscription = await registration.pushManager.getSubscription();
+  return !!subscription;
+}
+
 // ==================== PROFILE PICTURE HELPERS ====================
 
 // Compress and convert image to base64
@@ -274,7 +411,7 @@ async function compressImageToBase64(file, maxWidth = 150, quality = 0.7) {
 // Update profile picture in Firestore
 async function firebaseUpdateProfilePicture(base64Image) {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   await collections.users().doc(user.uid).update({
     profile_picture: base64Image
@@ -286,7 +423,7 @@ async function firebaseUpdateProfilePicture(base64Image) {
 // Remove profile picture
 async function firebaseRemoveProfilePicture() {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   await collections.users().doc(user.uid).update({
     profile_picture: firebase.firestore.FieldValue.delete()
@@ -329,7 +466,7 @@ async function firebaseLogin(email, password) {
   const userDoc = await collections.users().doc(user.uid).get();
   
   if (!userDoc.exists) {
-    throw new Error('Benutzerdaten nicht gefunden');
+    throw new Error(t('error_user_data_not_found'));
   }
   
   const userData = userDoc.data();
@@ -366,7 +503,7 @@ async function firebaseGetCurrentUser(useCache = true) {
 
 async function firebaseDeleteAccount() {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   await collections.users().doc(user.uid).delete();
   
@@ -382,7 +519,7 @@ async function firebaseDeleteAccount() {
 async function firebaseSendPasswordReset(email) {
   if (!email) {
     const user = auth.currentUser;
-    if (!user || !user.email) throw new Error('Keine E-Mail-Adresse gefunden');
+    if (!user || !user.email) throw new Error(t('error_no_email_found'));
     email = user.email;
   }
   
@@ -393,10 +530,10 @@ async function firebaseSendPasswordReset(email) {
 // Update username
 async function firebaseUpdateUsername(newUsername) {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   if (!newUsername || newUsername.trim().length < 2) {
-    throw new Error('Benutzername muss mindestens 2 Zeichen haben');
+    throw new Error(t('error_username_min_length'));
   }
   
   const trimmedUsername = newUsername.trim();
@@ -678,7 +815,7 @@ async function firebaseGetUserBets(userId) {
 
 async function firebasePlaceBet(betData) {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   const existing = await collections.bets()
     .where('user_id', '==', user.uid)
@@ -686,7 +823,7 @@ async function firebasePlaceBet(betData) {
     .get();
   
   if (!existing.empty) {
-    throw new Error('Du hast bereits auf dieses Spiel gewettet');
+    throw new Error(t('error_already_bet'));
   }
   
   const userDoc = await collections.users().doc(user.uid).get();
@@ -700,13 +837,13 @@ async function firebasePlaceBet(betData) {
   // Wette statt einmal pro Änderung/Löschung.
   const gameDoc = await collections.games().doc(betData.game_id).get();
   if (!gameDoc.exists) {
-    throw new Error('Spiel nicht gefunden');
+    throw new Error(t('error_game_not_found'));
   }
   const gameData = gameDoc.data();
   const gameDate = gameData.game_date?.toDate?.() || new Date(gameData.game_date);
   const bettingLockTime = new Date(gameDate.getTime() - BETTING_LOCK_MINUTES_BEFORE_KICKOFF * 60000);
   if (new Date() >= bettingLockTime) {
-    throw new Error('Die Tipp-Sperrfrist ist erreicht. Wette kann nicht mehr platziert werden.');
+    throw new Error(t('error_betting_closed_place'));
   }
 
   const betId = db.collection('_').doc().id;
@@ -754,17 +891,17 @@ async function firebaseUpdateBet(betId, betData) {
 // Wette löschen
 async function firebaseDeleteBet(betId) {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
 
   // Prüfe ob es die eigene Wette ist
   const betDoc = await collections.bets().doc(betId).get();
   if (!betDoc.exists) {
-    throw new Error('Wette nicht gefunden');
+    throw new Error(t('error_bet_not_found'));
   }
 
   const betData = betDoc.data();
   if (betData.user_id !== user.uid) {
-    throw new Error('Du kannst nur deine eigenen Wetten löschen');
+    throw new Error(t('error_delete_own_bets_only'));
   }
 
   // Prüfe ob die Sperrfrist vor Anpfiff noch nicht erreicht ist. Sperrfrist
@@ -775,7 +912,7 @@ async function firebaseDeleteBet(betId) {
   if (betData.betting_lock_time) {
     const bettingLockTime = betData.betting_lock_time.toDate?.() || new Date(betData.betting_lock_time);
     if (new Date() >= bettingLockTime) {
-      throw new Error('Die Tipp-Sperrfrist ist erreicht. Wette kann nicht mehr gelöscht werden.');
+      throw new Error(t('error_betting_closed_delete'));
     }
   } else {
     const gameDoc = await collections.games().doc(betData.game_id).get();
@@ -784,7 +921,7 @@ async function firebaseDeleteBet(betId) {
       const gameDate = gameData.game_date?.toDate?.() || new Date(gameData.game_date);
       const bettingLockTime = new Date(gameDate.getTime() - BETTING_LOCK_MINUTES_BEFORE_KICKOFF * 60000);
       if (new Date() >= bettingLockTime) {
-        throw new Error('Die Tipp-Sperrfrist ist erreicht. Wette kann nicht mehr gelöscht werden.');
+        throw new Error(t('error_betting_closed_delete'));
       }
     }
   }
@@ -1017,7 +1154,7 @@ async function firebaseGetGroup(groupId) {
 
 async function firebaseCreateGroup(name) {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   const userDoc = await collections.users().doc(user.uid).get();
   const userData = userDoc.data();
@@ -1049,21 +1186,21 @@ async function firebaseCreateGroup(name) {
 
 async function firebaseJoinGroup(inviteCode) {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   const snapshot = await collections.groups()
     .where('invite_code', '==', inviteCode.toUpperCase())
     .get();
   
   if (snapshot.empty) {
-    throw new Error('Ungültiger Einladungscode');
+    throw new Error(t('error_invalid_invite_code'));
   }
   
   const groupDoc = snapshot.docs[0];
   const groupData = groupDoc.data();
   
   if (groupData.member_ids.includes(user.uid)) {
-    throw new Error('Du bist bereits Mitglied dieser Gruppe');
+    throw new Error(t('error_already_group_member'));
   }
   
   const userDoc = await collections.users().doc(user.uid).get();
@@ -1089,13 +1226,13 @@ async function firebaseJoinGroup(inviteCode) {
 
 async function firebaseLeaveGroup(groupId) {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   const groupDoc = await collections.groups().doc(groupId).get();
   const groupData = groupDoc.data();
   
   if (groupData.admin_id === user.uid) {
-    throw new Error('Als Admin kannst du die Gruppe nicht verlassen. Lösche sie stattdessen.');
+    throw new Error(t('error_admin_cant_leave_group'));
   }
   
   const updatedMembers = groupData.members.filter(m => m.user_id !== user.uid);
@@ -1115,17 +1252,17 @@ async function firebaseLeaveGroup(groupId) {
 
 async function firebaseKickMember(groupId, userId) {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   const groupDoc = await collections.groups().doc(groupId).get();
   const groupData = groupDoc.data();
   
   if (groupData.admin_id !== user.uid) {
-    throw new Error('Nur der Admin kann Mitglieder entfernen');
+    throw new Error(t('error_only_admin_remove_members'));
   }
   
   if (userId === groupData.admin_id) {
-    throw new Error('Du kannst dich nicht selbst entfernen');
+    throw new Error(t('error_cant_remove_self'));
   }
   
   const updatedMembers = groupData.members.filter(m => m.user_id !== userId);
@@ -1143,13 +1280,13 @@ async function firebaseKickMember(groupId, userId) {
 
 async function firebaseDeleteGroup(groupId) {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   const groupDoc = await collections.groups().doc(groupId).get();
   const groupData = groupDoc.data();
   
   if (groupData.admin_id !== user.uid) {
-    throw new Error('Nur der Admin kann die Gruppe löschen');
+    throw new Error(t('error_only_admin_delete_group'));
   }
   
   await groupDoc.ref.delete();
@@ -1161,21 +1298,21 @@ async function firebaseDeleteGroup(groupId) {
 // Gruppenname ändern (nur Admin)
 async function firebaseUpdateGroupName(groupId, newName) {
   const user = auth.currentUser;
-  if (!user) throw new Error('Nicht angemeldet');
+  if (!user) throw new Error(t('error_not_logged_in'));
   
   const groupDoc = await collections.groups().doc(groupId).get();
   if (!groupDoc.exists) {
-    throw new Error('Gruppe nicht gefunden');
+    throw new Error(t('error_group_not_found'));
   }
   
   const groupData = groupDoc.data();
   
   if (groupData.admin_id !== user.uid) {
-    throw new Error('Nur der Admin kann den Gruppennamen ändern');
+    throw new Error(t('error_only_admin_rename_group'));
   }
   
   if (!newName || newName.trim().length < 2) {
-    throw new Error('Gruppenname muss mindestens 2 Zeichen haben');
+    throw new Error(t('error_group_name_min_length'));
   }
   
   await groupDoc.ref.update({
