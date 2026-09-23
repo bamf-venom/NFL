@@ -10,7 +10,15 @@
 // online ist, bekommt also immer die aktuelle Version; nur ganz ohne
 // Verbindung greift der Cache als Fallback.
 
-const CACHE_NAME = 'nflpoints-v1';
+// CACHE_NAME an APP_VERSION gekoppelt statt einer festen Zahl - vorher blieb
+// der Name über Updates hinweg immer 'nflpoints-v1', wodurch der
+// activate-Handler unten (löscht alle Caches AUSSER dem aktuellen Namen) nie
+// wirklich etwas zu tun hatte und alte, bereits gecachte Dateien liegen
+// bleiben konnten. Jetzt erzwingt jeder APP_VERSION-Bump (ohnehin Konvention
+// bei jedem sichtbaren Deploy, siehe js/config.js) automatisch einen
+// komplett frischen Cache.
+importScripts('./js/config.js');
+const CACHE_NAME = 'nflpoints-' + APP_VERSION;
 
 const PRECACHE_URLS = [
   'index.html',

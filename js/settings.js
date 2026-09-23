@@ -55,6 +55,35 @@ function handleLanguageChange(value) {
   location.reload();
 }
 
+// Ein reines location.reload() reicht nicht zuverlässig aus, um auf die neue
+// Version zu wechseln - der alte Service Worker (samt seinem Cache, siehe
+// sw.js) kann noch aktiv sein und Dateien aus seinem Cache ausliefern statt
+// vom Netzwerk. Deregistriert deshalb explizit alle Service Worker und leert
+// alle Caches, bevor neu geladen wird - garantiert einen wirklich frischen
+// Start (der neue Service Worker installiert sich danach von selbst neu).
+async function applyAppUpdate() {
+  const btn = document.getElementById('apply-update-button');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('btn_update_now')}`;
+  }
+
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(reg => reg.unregister()));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(key => caches.delete(key)));
+    }
+  } catch (error) {
+    console.warn('Fehler beim Zurücksetzen von Service Worker/Cache:', error);
+  } finally {
+    location.reload();
+  }
+}
+
 // Vergleicht die aktuell geladene APP_VERSION (aus config.js) mit einer
 // frisch vom Server geholten Kopie derselben Datei (cache: 'no-store', damit
 // hier garantiert nicht der Service-Worker-Cache oder Browser-Cache
@@ -84,7 +113,7 @@ async function checkForAppUpdate() {
       statusEl.innerHTML = `
         <span style="color: var(--warning);"><i class="fas fa-arrow-circle-up"></i> ${t('update_available', { v: escapeHtml(remoteVersion) })}</span>
         <span style="color: var(--muted); font-size: 13px; display: block; margin: 4px 0 12px;">${t('current_version', { v: escapeHtml(APP_VERSION) })}</span>
-        <button class="btn btn-primary" onclick="location.reload()" data-testid="apply-update-button">
+        <button class="btn btn-primary" id="apply-update-button" onclick="applyAppUpdate()" data-testid="apply-update-button">
           <i class="fas fa-rotate"></i> ${t('btn_update_now')}
         </button>
       `;
