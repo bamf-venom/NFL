@@ -1,6 +1,6 @@
 # Automatischer Ergebnis-Check + Push-Benachrichtigungen
 
-Drei Skripte laufen alle 15 Minuten über GitHub Actions (`.github/workflows/update-scores.yml`):
+Zwei Skripte laufen alle 15 Minuten über GitHub Actions (`.github/workflows/update-scores.yml`):
 
 - **`check-scores.js`**: holt sich Ergebnisse von der kostenlosen ESPN-Schnittstelle und trägt sie
   in Firestore ein. Wird ein Spiel als beendet erkannt, werden automatisch auch die Punkte aller
@@ -9,9 +9,15 @@ Drei Skripte laufen alle 15 Minuten über GitHub Actions (`.github/workflows/upd
   Spiel, das in ca. 1 Stunde beginnt, noch keine Wette platziert hat. Startet mehrere Spiele in
   etwa derselben Stunde, bekommt man trotzdem nur eine gebündelte Erinnerung statt mehrerer
   einzelner Nachrichten.
+
+Ein drittes Skript läuft bewusst NICHT automatisch, sondern nur auf manuellen Wunsch (eigener
+Workflow `.github/workflows/notify-new-version.yml`):
+
 - **`notify-new-version.js`**: vergleicht `APP_VERSION` (`js/config.js`) mit der zuletzt gemeldeten
   Version (Firestore `meta/app_version`) - bei einem Unterschied bekommt jeder abonnierte Nutzer
-  einmalig eine Push-Benachrichtigung "Update verfügbar".
+  einmalig eine Push-Benachrichtigung "Update verfügbar". Auslösen: GitHub-Repo → Tab **Actions**
+  → **Neue-Version-Benachrichtigung senden** → **Run workflow** (erst NACHDEM der eigentliche
+  Deploy/Commit mit der neuen `APP_VERSION` schon live ist).
 
 ## Einmaliges Setup (musst du selbst machen)
 

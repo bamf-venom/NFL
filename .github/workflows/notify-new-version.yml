@@ -1,13 +1,14 @@
-name: NFL Ergebnisse automatisch eintragen
+name: Neue-Version-Benachrichtigung senden
 
+# Bewusst NUR manuell auslösbar (kein schedule) - der Nutzer will selbst
+# entscheiden, wann ein Deploy tatsächlich eine "Update verfügbar"-Push-
+# Benachrichtigung an alle abonnierten Nutzer wert ist, statt das automatisch
+# bei jedem Commit/alle 15 Minuten zu prüfen.
 on:
-  schedule:
-    # Alle 15 Minuten, rund um die Uhr. GitHub Actions cron läuft in UTC.
-    - cron: '*/15 * * * *'
-  workflow_dispatch: {} # erlaubt manuelles Auslösen über den "Actions" Tab
+  workflow_dispatch: {}
 
 jobs:
-  check-scores:
+  notify:
     runs-on: ubuntu-latest
     steps:
       - name: Code auschecken
@@ -22,16 +23,10 @@ jobs:
         working-directory: automation
         run: npm install
 
-      - name: Ergebnisse prüfen und eintragen
-        working-directory: automation
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: node check-scores.js
-
-      - name: Wett-Erinnerungen versenden
+      - name: Neue-Version-Benachrichtigung
         working-directory: automation
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-        run: node send-bet-reminders.js
+        run: node notify-new-version.js
