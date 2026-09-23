@@ -51,6 +51,18 @@ function waitForAuth() {
           auth.onAuthStateChanged(async (user) => {
             if (user) {
               try {
+                // WICHTIG (2026-09-23): Firebase kann `user` hier schon als
+                // eingeloggt melden, bevor der interne Zugriffstoken für
+                // Firestore-Anfragen vollständig bereit ist - besonders kurz
+                // nach einer Sitzungs-Wiederherstellung (nicht bei einem
+                // frischen, interaktiven Login). Ein sofortiger Firestore-Read
+                // (firebaseGetCurrentUser() unten) kann dadurch mit einem
+                // Berechtigungsfehler fehlschlagen, obwohl die Sitzung
+                // eigentlich gültig ist - auf einem frischen Gerät ohne
+                // lokalen Fallback (siehe catch unten) führte das zu einem
+                // fälschlichen Logout. getIdToken() erzwingt, dass der Token
+                // wirklich bereit ist, bevor der Firestore-Zugriff versucht wird.
+                await user.getIdToken();
                 currentUser = await firebaseGetCurrentUser();
                 localStorage.setItem('user', JSON.stringify(currentUser));
               } catch (error) {
