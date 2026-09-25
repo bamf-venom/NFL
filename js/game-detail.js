@@ -399,6 +399,15 @@ async function handlePlaceBet(event) {
     });
 
     myBetData = bet;
+
+    // userBetsMap gehört games.js (siehe Kommentar oben in dieser Datei) und
+    // wird für die "Mein Tipp"-Anzeige in der Spielübersicht genutzt -
+    // closeGameDetail() ist ein reiner DOM-Wechsel ohne Neu-Rendern, ohne
+    // dieses Update hier würde die Übersicht bis zum nächsten vollen Reload
+    // weiter den alten Stand (keinen/den vorherigen Tipp) zeigen.
+    userBetsMap[currentGameData.id] = bet;
+    if (typeof renderGames === 'function') renderGames();
+
     await loadGroupBetsForCurrentGame();
 
     successEl.classList.remove('hidden');
@@ -465,6 +474,10 @@ async function handleEditBet(event) {
       groupBetsData[groupBetIndex] = { ...groupBetsData[groupBetIndex], ...myBetData };
     }
 
+    // Siehe gleicher Kommentar in handlePlaceBet() weiter oben
+    userBetsMap[currentGameData.id] = updatedBet;
+    if (typeof renderGames === 'function') renderGames();
+
     successEl.classList.remove('hidden');
 
     setTimeout(() => {
@@ -490,8 +503,13 @@ async function handleDeleteBet() {
 
     // Entferne aus groupBetsData
     groupBetsData = groupBetsData.filter(b => b.id !== myBetData.id);
+
+    // Siehe gleicher Kommentar in handlePlaceBet() weiter oben
+    delete userBetsMap[currentGameData.id];
+    if (typeof renderGames === 'function') renderGames();
+
     myBetData = null;
-    
+
     // Lade Seite neu
     renderGameDetail();
   } catch (error) {

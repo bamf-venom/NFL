@@ -932,6 +932,11 @@ async function firebaseUpdateBet(betId, betData) {
     away_score_prediction: betData.away_score_prediction
   });
 
+  // Fehlte bisher (anders als bei firebasePlaceBet/firebaseDeleteBet) - ohne
+  // das zeigte die Spielübersicht nach einer Tipp-Änderung bis zu 60s lang
+  // (userBets-Cache-TTL) noch den alten Tipp, auch nach einem Reload.
+  invalidateCache('userBets');
+
   const doc = await collections.bets().doc(betId).get();
   return {
     ...doc.data(),
