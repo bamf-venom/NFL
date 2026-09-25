@@ -1041,6 +1041,15 @@ async function calculatePointsForGame(gameId, homeScore, awayScore) {
 
   betsSnapshot.docs.forEach(doc => {
     const bet = doc.data();
+    // WICHTIG: Differenz zur zuletzt gespeicherten points_earned dieser Wette
+    // verrechnen, nicht den absoluten neuen Wert - total_points am
+    // Nutzer-Konto wird unten per FieldValue.increment() aktualisiert, kein
+    // set(). Ohne das wuerde eine spaetere Korrektur eines bereits
+    // beendeten Spiels (Admin tippt sich beim Endstand vertan, editiert ihn
+    // nochmal) die Punkte ein zweites Mal draufaddieren statt sie zu
+    // ersetzen - macht die Funktion sicher mehrfach fuer dasselbe Spiel
+    // aufrufbar (2026-09-25).
+    const oldPoints = bet.points_earned || 0;
     let points = 0;
 
     if (bet.home_score_prediction === homeScore) points += 3;
@@ -1058,14 +1067,15 @@ async function calculatePointsForGame(gameId, homeScore, awayScore) {
     if (!userStatsMap[bet.user_id]) {
       userStatsMap[bet.user_id] = { points: 0, correctWinners: 0, correctScores: 0 };
     }
-    userStatsMap[bet.user_id].points += points;
-    if (points > 0) userStatsMap[bet.user_id].correctWinners += 1;
-    if (points >= 3) userStatsMap[bet.user_id].correctScores += 1;
+    userStatsMap[bet.user_id].points += (points - oldPoints);
+    userStatsMap[bet.user_id].correctWinners += (points > 0 ? 1 : 0) - (oldPoints > 0 ? 1 : 0);
+    userStatsMap[bet.user_id].correctScores += (points >= 3 ? 1 : 0) - (oldPoints >= 3 ? 1 : 0);
   });
 
   await batch.commit();
 
   for (const [userId, stats] of Object.entries(userStatsMap)) {
+    if (stats.points === 0 && stats.correctWinners === 0 && stats.correctScores === 0) continue;
     await collections.users().doc(userId).update({
       total_points: firebase.firestore.FieldValue.increment(stats.points),
       correct_winners: firebase.firestore.FieldValue.increment(stats.correctWinners),

@@ -695,7 +695,19 @@ async function handleUpdateScore(event) {
   const season = document.getElementById('edit-game-season').value;
   const homeScoreVal = document.getElementById('edit-home-score').value;
   const awayScoreVal = document.getElementById('edit-away-score').value;
-  const status = document.getElementById('edit-status').value;
+  let status = document.getElementById('edit-status').value;
+
+  // Beide Endstände eingetragen, aber Status-Dropdown noch auf "Geplant"/"Live"
+  // stehen gelassen (zeigt einfach den bisherigen Spielstatus, wird beim
+  // Öffnen des Modals nicht automatisch umgestellt) - dann wuerde
+  // calculatePointsForGame() (siehe firebaseUpdateGame() in
+  // firebase-config.js, laeuft NUR bei status === 'finished') still
+  // uebersprungen: Endstand ist gespeichert, aber niemand bekommt dafuer
+  // Punkte, ohne dass das im UI auffaellt. Wer beide Endstaende eintraegt,
+  // meint damit praktisch immer "Spiel ist vorbei".
+  if (homeScoreVal !== '' && awayScoreVal !== '') {
+    status = 'finished';
+  }
   
   // Get team names
   const homeTeam = NFL_TEAMS.find(t => t.abbr === homeTeamAbbr);

@@ -163,14 +163,38 @@
     // mussten - unabhängig davon, ob ihre Sitzung im Hintergrund eigentlich
     // noch gültig war. Vermutlich die eigentliche, vollständige Ursache
     // fürs wiederholt gemeldete Ausloggen-Problem.
-    waitForFirebaseSDK().then(async () => {
-      if (typeof initializeFirebase === 'function') {
-        initializeFirebase();
-      }
-      if (typeof checkAuth === 'function') {
-        await checkAuth();
-      }
-    });
+    //
+    // WICHTIG (2026-09-25): checkAuth() selbst leitet zwar korrekt weiter,
+    // tut das aber erst NACHDEM (1) waitForFirebaseSDK() auf die drei
+    // Google-CDN-Skripte gewartet hat, (2) initializeFirebase() durchgelaufen
+    // ist, UND (3) waitForAuth() den kompletten Firebase-Zyklus (Persistenz,
+    // onAuthStateChanged, getIdToken(), ein Firestore-Read fürs Nutzerprofil)
+    // abgewartet hat - mehrere Netzwerk-Roundtrips nur um zu entscheiden, ob
+    // weitergeleitet wird. Auf einer langsamen Verbindung (typisch beim
+    // App-Start der installierten Android-App) macht sich das als spürbare
+    // Verzögerung auf dem Startbildschirm bemerkbar. localStorage kennt die
+    // Antwort aber schon sofort und synchron, ganz ohne Firebase - also
+    // optimistisch SOFORT weiterleiten, wenn dort ein Nutzer aus der letzten
+    // Sitzung hinterlegt ist. Die eigentliche Verifizierung (ist die Sitzung
+    // WIRKLICH noch gültig?) läuft danach ganz normal auf games.html selbst
+    // ab (ruft in seinem eigenen DOMContentLoaded-Handler ebenfalls
+    // checkAuth() auf) - stellt sich die Sitzung dort als ungültig heraus,
+    // wird von dort wieder hierher zurückgeleitet (bestehendes Verhalten,
+    // siehe checkAuth() in auth.js). Im Normalfall (Sitzung noch gültig, die
+    // riesige Mehrheit der Fälle) spart das den kompletten Firebase-Roundtrip
+    // auf dem Startbildschirm.
+    if (localStorage.getItem('user')) {
+      window.location.href = 'pages/games.html';
+    } else {
+      waitForFirebaseSDK().then(async () => {
+        if (typeof initializeFirebase === 'function') {
+          initializeFirebase();
+        }
+        if (typeof checkAuth === 'function') {
+          await checkAuth();
+        }
+      });
+    }
   </script>
 </body>
 </html>
