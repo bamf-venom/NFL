@@ -651,7 +651,7 @@ function renderGames() {
               <div class="top-row-right">
                 ${myBet ? `
                   <div class="my-bet-inline-mobile" data-testid="my-bet-mobile-${game.id}">
-                    <span class="my-bet-inline-score">${myBet.home_score_prediction}:${myBet.away_score_prediction}</span>
+                    <span class="my-bet-inline-score">${myBet.away_score_prediction}:${myBet.home_score_prediction}</span>
                     ${game.status === 'finished' ? `<span class="my-bet-inline-pts ${myBet.points_earned > 0 ? 'earned' : ''}">${myBet.points_earned || 0}P</span>` : ''}
                   </div>
                 ` : ''}
@@ -666,39 +666,45 @@ function renderGames() {
               ${lockIconHTML}
             </div>
             
+            <!-- NFL-Konvention "Away at Home" (z.B. "Ravens at Cowboys"): das
+                 Auswärtsteam steht links, das Heimteam rechts. .home/.away
+                 an den beiden game-team-Boxen sind reine Positions-Klassen
+                 (linke/rechte Box-Ausrichtung in games.css/mobile.css),
+                 keine Team-Rollen-Markierung - deshalb hier bewusst die
+                 away-Daten in der "home"-Box (=linke Box) und umgekehrt. -->
             <div class="game-teams">
               <div class="game-team home">
                 <div class="team-info left">
-                  <div class="team-abbr">${game.home_team_abbr}</div>
-                  <div class="team-name">${game.home_team}</div>
+                  <div class="team-abbr">${game.away_team_abbr}</div>
+                  <div class="team-name">${game.away_team}</div>
                 </div>
               </div>
-              
+
               ${game.status === 'finished' || game.status === 'live' ? `
                 <div class="game-score-with-logos">
-                  ${getTeamLogoHTML(game.home_team_abbr, 48)}
-                  <div class="game-score">
-                    <span class="game-score-num">${game.home_score ?? '-'}</span>
-                    <span class="game-score-sep">:</span>
-                    <span class="game-score-num">${game.away_score ?? '-'}</span>
-                  </div>
                   ${getTeamLogoHTML(game.away_team_abbr, 48)}
+                  <div class="game-score">
+                    <span class="game-score-num">${game.away_score ?? '-'}</span>
+                    <span class="game-score-sep">:</span>
+                    <span class="game-score-num">${game.home_score ?? '-'}</span>
+                  </div>
+                  ${getTeamLogoHTML(game.home_team_abbr, 48)}
                 </div>
               ` : `
                 <div class="game-score-with-logos">
-                  ${getTeamLogoHTML(game.home_team_abbr, 48)}
+                  ${getTeamLogoHTML(game.away_team_abbr, 48)}
                   <div class="game-time">
                     <i class="fas fa-clock"></i>
                     <span>${formatTime(game.game_date)}</span>
                   </div>
-                  ${getTeamLogoHTML(game.away_team_abbr, 48)}
+                  ${getTeamLogoHTML(game.home_team_abbr, 48)}
                 </div>
               `}
-              
+
               <div class="game-team away">
                 <div class="team-info right">
-                  <div class="team-abbr">${game.away_team_abbr}</div>
-                  <div class="team-name">${game.away_team}</div>
+                  <div class="team-abbr">${game.home_team_abbr}</div>
+                  <div class="team-name">${game.home_team}</div>
                 </div>
               </div>
             </div>
@@ -708,7 +714,7 @@ function renderGames() {
               ${myBet ? `
                 <div class="my-bet-inline-desktop" data-testid="my-bet-desktop-${game.id}">
                   <div class="my-bet-inline-label">${t('my_pick')}</div>
-                  <div class="my-bet-inline-score-desktop">${myBet.home_score_prediction} : ${myBet.away_score_prediction}</div>
+                  <div class="my-bet-inline-score-desktop">${myBet.away_score_prediction} : ${myBet.home_score_prediction}</div>
                   ${game.status === 'finished' ? `<div class="my-bet-inline-pts-desktop ${myBet.points_earned > 0 ? 'earned' : ''}">${myBet.points_earned || 0} ${t('pts_short')}</div>` : ''}
                 </div>
               ` : (!isBettingClosed && game.status === 'scheduled' ? `
@@ -739,7 +745,7 @@ function renderGames() {
                         <span class="group-bet-username">${bet.user_id === currentUser?.id ? t('you') : escapeHtml(bet.username)}</span>
                       </div>
                       <div class="group-bet-prediction">
-                        ${bet.home_score_prediction} : ${bet.away_score_prediction}
+                        ${bet.away_score_prediction} : ${bet.home_score_prediction}
                       </div>
                       ${game.status === 'finished' ? `
                         <div class="group-bet-points ${bet.points_earned > 0 ? 'earned' : ''}">
@@ -770,6 +776,13 @@ function renderGames() {
 // Firebase-Initialisierung, was der Hauptgrund für die lange Ladezeit war.
 // loadGameDetail() (in game-detail.js) nutzt gamesData/userBetsMap, die hier
 // schon im Speicher sind, statt sie erneut von Firestore zu laden.
+// Scroll-Position der Liste, gemerkt beim Öffnen eines Spiels - da Liste und
+// Detail-Ansicht dieselbe Seite/denselben Fenster-Scroll teilen (kein
+// eigener overflow-Container), würde ein reiner DOM-Wechsel allein die
+// Position NICHT automatisch erhalten: window.scrollTo(0,0) beim Öffnen
+// verschiebt den einzigen, gemeinsamen Scroll ohne ihn irgendwo zu merken.
+let savedListScrollY = 0;
+
 async function openGameDetail(gameId, { pushState = true } = {}) {
   const listView = document.getElementById('games-list-view');
   const detailView = document.getElementById('game-detail-view');
@@ -778,6 +791,8 @@ async function openGameDetail(gameId, { pushState = true } = {}) {
   if (pushState) {
     history.pushState({ gameId }, '', `games.html?game=${encodeURIComponent(gameId)}`);
   }
+
+  savedListScrollY = window.scrollY;
 
   listView.classList.add('hidden');
   detailView.classList.remove('hidden');
@@ -791,8 +806,8 @@ async function openGameDetail(gameId, { pushState = true } = {}) {
 }
 
 // Zurück zur Spiele-Liste - reiner DOM-Wechsel, kein Reload. Die Liste
-// selbst wurde nie zerstört, Scroll-Position bleibt dadurch automatisch
-// erhalten.
+// selbst wurde nie zerstört (Inhalt bleibt erhalten), die Scroll-Position
+// muss aber explizit wiederhergestellt werden (siehe savedListScrollY oben).
 function closeGameDetail({ pushState = true } = {}) {
   const listView = document.getElementById('games-list-view');
   const detailView = document.getElementById('game-detail-view');
@@ -804,6 +819,7 @@ function closeGameDetail({ pushState = true } = {}) {
 
   detailView.classList.add('hidden');
   listView.classList.remove('hidden');
+  window.scrollTo(0, savedListScrollY);
 }
 
 // Reagiert auf Browser-/Android-Hardware-Zurück-Taste, wenn eine

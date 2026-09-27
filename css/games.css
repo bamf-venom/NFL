@@ -693,7 +693,9 @@
   position: relative;
 }
 
-/* Team-color matchup bar (NFL-app style) */
+/* Team-color matchup bar (NFL-app style) - Auswärtsteam links, Heimteam
+   rechts (siehe Kommentar bei .game-teams in games.js), Farbreihenfolge
+   hier entsprechend gespiegelt */
 .game-card-expanded::before {
   content: '';
   position: absolute;
@@ -701,7 +703,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--home-color, var(--accent)) 0%, var(--home-color, var(--accent)) 50%, var(--away-color, var(--accent)) 50%, var(--away-color, var(--accent)) 100%);
+  background: linear-gradient(90deg, var(--away-color, var(--accent)) 0%, var(--away-color, var(--accent)) 50%, var(--home-color, var(--accent)) 50%, var(--home-color, var(--accent)) 100%);
 }
 
 .game-detail-header {

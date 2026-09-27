@@ -634,12 +634,20 @@ function mapGameDoc(doc) {
 // Dynamischer Cache für (ggf. saison-gefilterte) Spiele-Kombi-Abfragen.
 // Key: Saison-String oder 'all' für unfilterte Abfragen.
 const finishedGamesCache = {};
-// Beendete Spiele ändern sich nie von selbst - lange TTL ist sicher, jede
-// nachträgliche Korrektur (Admin ändert Endstand) ruft ohnehin
-// invalidateGamesCaches() auf. War 3 Minuten, was in Kombination mit der
-// localStorage-Persistenz kaum noch Vorteile brachte, da der Cache trotzdem
-// ständig neu ablief.
-const FINISHED_GAMES_TTL = 21600000; // 6 Stunden (vorher 3 Minuten)
+// Beendete Spiele ändern sich selbst nie mehr - ABER ein Spiel, das gerade
+// erst von 'live' auf 'finished' gewechselt ist (automatisch durch
+// automation/check-scores.js, alle 15 Minuten), war zum Zeitpunkt des
+// letzten Cache-Schreibens noch nicht in dieser Liste und taucht deshalb bis
+// zum TTL-Ablauf gar nicht erst auf - anders als bei geplanten/laufenden
+// Spielen (getActiveGamesFresh(), IMMER frisch) gibt es hier keinen
+// Mechanismus, der das mitbekommt. War testweise auf 6 Stunden gesetzt
+// (Begründung: "ändert sich nie mehr"), das galt aber nur für schon LANGE
+// beendete Spiele, nicht für frisch beendete - Nutzer sah dadurch bis zu 6h
+// lang noch "Live" für ein Spiel, das längst vorbei war. 20 Minuten statt
+// dessen: etwas mehr als der 15-Minuten-Takt der Automatik selbst, also
+// nicht "frischer als die eigentliche Datenquelle", aber deutlich enger
+// begrenzt als vorher.
+const FINISHED_GAMES_TTL = 1200000; // 20 Minuten (vorher 6 Stunden, davor 3 Minuten)
 const gamesCombinedCache = {};
 // War 30s - zu kurz für den häufigsten Ablauf (Spiele-Liste -> Spiel öffnen,
 // tippen, zurück): das dauert oft länger als 30s, wodurch der Cache beim
