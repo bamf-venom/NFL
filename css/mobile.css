@@ -772,6 +772,12 @@
   
   /* ==================== Leaderboard - Zentriert ==================== */
   .leaderboard-header {
+    /* .page-header-row setzt hier drüber align-items:flex-start !important
+       (für die meisten anderen Seiten gedacht), wodurch dieser Flex-Item auf
+       seine Inhaltsbreite schrumpft - justify-content:center hätte dadurch
+       nichts zum Zentrieren, da kein Platz übrig bleibt. align-self hebt das
+       gezielt nur für diesen einen Header wieder auf. */
+    align-self: stretch;
     justify-content: center;
     text-align: center;
   }
