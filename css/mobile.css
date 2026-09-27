@@ -853,11 +853,6 @@
     font-size: 10px;
   }
   
-  /* Leaderboard Header zentriert */
-  .leaderboard-icon {
-    margin: 0 auto 12px;
-  }
-  
   /* Page header für Leaderboard */
   #leaderboard-container .leaderboard-list,
   .leaderboard-list {

@@ -349,7 +349,7 @@ function renderGameDetail() {
                      data-testid="bet-${bet.id}">
                   <div class="bet-user">
                     <div class="bet-avatar">${escapeHtml(bet.username.charAt(0).toUpperCase())}</div>
-                    <div>
+                    <div class="bet-user-info">
                       <div class="bet-username">${escapeHtml(bet.username)}</div>
                       <div class="bet-date">${new Date(bet.created_at).toLocaleDateString(getCurrentLocale())}</div>
                     </div>

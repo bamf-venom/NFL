@@ -470,6 +470,15 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  /* Ohne min-width:0 wuerde ein Flex-Item nie unter seine Inhaltsbreite
+     schrumpfen - ein langer Username haette dadurch .bet-prediction aus der
+     Zeile gedrueckt statt selbst zu kuerzen (siehe .bet-username unten) */
+  min-width: 0;
+  flex: 1;
+}
+
+.bet-user-info {
+  min-width: 0;
 }
 
 .bet-avatar {
@@ -487,6 +496,9 @@
 
 .bet-username {
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bet-date {
@@ -498,6 +510,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  flex-shrink: 0;
 }
 
 .bet-prediction-score {
