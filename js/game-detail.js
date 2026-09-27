@@ -173,6 +173,8 @@ function renderGameDetail() {
 
   let html = `
     <!-- Game Header -->
+    <!-- NFL-Konvention "Away at Home" (z.B. "Ravens at Cowboys") - Auswärtsteam
+         links, Heimteam rechts, konsistent mit der Spieleliste (games.js) -->
     <div class="card game-detail-header animate-fade-in" style="--home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};">
       <div class="badge-lock-group" style="justify-content: center; margin-bottom: 16px;">
         <span class="badge ${badgeClass}">
@@ -183,27 +185,27 @@ function renderGameDetail() {
       </div>
 
       <div class="game-detail-teams">
-        <!-- Home Team -->
-        <div class="game-detail-team">
-          ${getTeamLogoHTML(game.home_team_abbr, 80)}
-          <h3 data-testid="home-team-name">${game.home_team}</h3>
-        </div>
-        
-        <!-- Score or VS -->
-        ${game.status === 'finished' || game.status === 'live' ? `
-          <div class="game-detail-score">
-            <span class="game-detail-score-num" data-testid="home-score">${game.home_score ?? '-'}</span>
-            <span class="game-detail-score-sep">:</span>
-            <span class="game-detail-score-num" data-testid="away-score">${game.away_score ?? '-'}</span>
-          </div>
-        ` : `
-          <div class="game-detail-vs">${t('vs')}</div>
-        `}
-        
         <!-- Away Team -->
         <div class="game-detail-team">
           ${getTeamLogoHTML(game.away_team_abbr, 80)}
           <h3 data-testid="away-team-name">${game.away_team}</h3>
+        </div>
+
+        <!-- Score or VS -->
+        ${game.status === 'finished' || game.status === 'live' ? `
+          <div class="game-detail-score">
+            <span class="game-detail-score-num" data-testid="away-score">${game.away_score ?? '-'}</span>
+            <span class="game-detail-score-sep">:</span>
+            <span class="game-detail-score-num" data-testid="home-score">${game.home_score ?? '-'}</span>
+          </div>
+        ` : `
+          <div class="game-detail-vs">${t('vs')}</div>
+        `}
+
+        <!-- Home Team -->
+        <div class="game-detail-team">
+          ${getTeamLogoHTML(game.home_team_abbr, 80)}
+          <h3 data-testid="home-team-name">${game.home_team}</h3>
         </div>
       </div>
       
@@ -242,12 +244,12 @@ function renderGameDetail() {
         <form onsubmit="handlePlaceBet(event)">
           <div class="bet-inputs">
             <div class="form-group">
-              <label class="form-label">${t('team_points', { team: game.home_team_abbr })}</label>
-              <input type="number" id="home-score-input" class="form-input" min="0" max="100" placeholder="0" required data-testid="home-score-input">
-            </div>
-            <div class="form-group">
               <label class="form-label">${t('team_points', { team: game.away_team_abbr })}</label>
               <input type="number" id="away-score-input" class="form-input" min="0" max="100" placeholder="0" required data-testid="away-score-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">${t('team_points', { team: game.home_team_abbr })}</label>
+              <input type="number" id="home-score-input" class="form-input" min="0" max="100" placeholder="0" required data-testid="home-score-input">
             </div>
           </div>
 
@@ -296,13 +298,13 @@ function renderGameDetail() {
         
         <div class="my-bet-scores">
           <div class="my-bet-score">
-            <div class="my-bet-score-num" data-testid="my-bet-home">${myBetData.home_score_prediction}</div>
-            <div class="my-bet-score-team">${game.home_team_abbr}</div>
+            <div class="my-bet-score-num" data-testid="my-bet-away">${myBetData.away_score_prediction}</div>
+            <div class="my-bet-score-team">${game.away_team_abbr}</div>
           </div>
           <div style="font-size: 24px; color: var(--muted);">:</div>
           <div class="my-bet-score">
-            <div class="my-bet-score-num" data-testid="my-bet-away">${myBetData.away_score_prediction}</div>
-            <div class="my-bet-score-team">${game.away_team_abbr}</div>
+            <div class="my-bet-score-num" data-testid="my-bet-home">${myBetData.home_score_prediction}</div>
+            <div class="my-bet-score-team">${game.home_team_abbr}</div>
           </div>
         </div>
         
@@ -356,7 +358,7 @@ function renderGameDetail() {
                   </div>
 
                   <div class="bet-prediction">
-                    <span class="bet-prediction-score">${bet.home_score_prediction} : ${bet.away_score_prediction}</span>
+                    <span class="bet-prediction-score">${bet.away_score_prediction} : ${bet.home_score_prediction}</span>
                     ${game.status === 'finished' ? `
                       <span class="bet-earned ${bet.points_earned > 0 ? 'success' : 'none'}">
                         ${bet.points_earned || 0} ${t('pts_short')}
@@ -428,7 +430,7 @@ async function handlePlaceBet(event) {
 function openEditBetModal() {
   if (!myBetData) return;
   
-  document.getElementById('edit-bet-teams').textContent = `${currentGameData.home_team_abbr} vs ${currentGameData.away_team_abbr}`;
+  document.getElementById('edit-bet-teams').textContent = `${currentGameData.away_team_abbr} vs ${currentGameData.home_team_abbr}`;
   document.getElementById('edit-bet-home-label').textContent = t('team_points', { team: currentGameData.home_team_abbr });
   document.getElementById('edit-bet-away-label').textContent = t('team_points', { team: currentGameData.away_team_abbr });
   document.getElementById('edit-bet-home-score').value = myBetData.home_score_prediction;

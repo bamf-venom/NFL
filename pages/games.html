@@ -88,12 +88,12 @@
       <form onsubmit="handleEditBet(event)">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="form-group">
-            <label class="form-label" id="edit-bet-home-label">Heim Punkte</label>
-            <input type="number" id="edit-bet-home-score" class="form-input" min="0" max="100" required data-testid="edit-home-score-input">
-          </div>
-          <div class="form-group">
             <label class="form-label" id="edit-bet-away-label">Gast Punkte</label>
             <input type="number" id="edit-bet-away-score" class="form-input" min="0" max="100" required data-testid="edit-away-score-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="edit-bet-home-label">Heim Punkte</label>
+            <input type="number" id="edit-bet-home-score" class="form-input" min="0" max="100" required data-testid="edit-home-score-input">
           </div>
         </div>
         <div id="edit-bet-error" class="error-message hidden"></div>

@@ -718,7 +718,9 @@
   right: 0;
   height: 4px;
   border-radius: 16px 16px 0 0;
-  background: linear-gradient(90deg, var(--home-color, var(--accent)) 0%, var(--home-color, var(--accent)) 50%, var(--away-color, var(--accent)) 50%, var(--away-color, var(--accent)) 100%);
+  /* Auswärtsteam links, Heimteam rechts (siehe game-detail.js) - Farben
+     entsprechend gespiegelt */
+  background: linear-gradient(90deg, var(--away-color, var(--accent)) 0%, var(--away-color, var(--accent)) 50%, var(--home-color, var(--accent)) 50%, var(--home-color, var(--accent)) 100%);
 }
 
 /* Überschreibe game-card-header für expanded cards */

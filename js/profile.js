@@ -12,7 +12,7 @@ Object.assign(TRANSLATIONS.de, {
   my_groups: 'Meine Gruppen ({n})', no_groups_yet: 'Du bist noch in keiner Gruppe',
   btn_join_group: 'Gruppe beitreten',
   open_bets: 'Offene Wetten ({n})', no_open_bets: 'Keine offenen Wetten vorhanden',
-  pick_label: 'Tipp: {home} : {away}', game_fallback: 'Spiel', status_live_short: 'Live', status_open: 'Offen',
+  pick_label: 'Tipp: {away} : {home}', game_fallback: 'Spiel', status_live_short: 'Live', status_open: 'Offen',
   btn_reset_password: 'Passwort zurücksetzen', btn_delete_account: 'Account löschen',
   sending: 'Wird gesendet...', email_sent: 'E-Mail wurde an {email} gesendet. Prüfe dein Postfach.',
   error_sending_email: 'Fehler beim Senden der E-Mail', btn_send_email: 'E-Mail senden',
@@ -34,7 +34,7 @@ Object.assign(TRANSLATIONS.en, {
   my_groups: 'My groups ({n})', no_groups_yet: "You're not in any group yet",
   btn_join_group: 'Join group',
   open_bets: 'Open bets ({n})', no_open_bets: 'No open bets',
-  pick_label: 'Pick: {home} : {away}', game_fallback: 'Game', status_live_short: 'Live', status_open: 'Open',
+  pick_label: 'Pick: {away} : {home}', game_fallback: 'Game', status_live_short: 'Live', status_open: 'Open',
   error_saving: 'Error saving', btn_reset_password: 'Reset password', btn_delete_account: 'Delete account',
   sending: 'Sending...', email_sent: 'Email sent to {email}. Check your inbox.',
   error_sending_email: 'Error sending the email', btn_send_email: 'Send email',
@@ -666,7 +666,7 @@ function renderProfile() {
                    data-testid="my-bet-${bet.id}">
                 <div>
                   <div style="font-weight: 500;">
-                    ${game ? `${game.home_team_abbr} vs ${game.away_team_abbr}` : t('game_fallback')}
+                    ${game ? `${game.away_team_abbr} vs ${game.home_team_abbr}` : t('game_fallback')}
                   </div>
                   <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
                     ${t('pick_label', { home: bet.home_score_prediction, away: bet.away_score_prediction })}

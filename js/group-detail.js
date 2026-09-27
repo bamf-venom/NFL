@@ -529,11 +529,11 @@ function renderTabContent() {
         <div class="card" data-testid="game-bets-${game.id}">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <div>
-              <div style="font-weight: 600;">${game.home_team_abbr} vs ${game.away_team_abbr}</div>
+              <div style="font-weight: 600;">${game.away_team_abbr} vs ${game.home_team_abbr}</div>
               <div style="font-size: 12px; color: var(--muted);">${t('week_n', { n: game.week })} • ${new Date(game.game_date).toLocaleDateString(getCurrentLocale())}</div>
             </div>
             ${game.status === 'finished' ? `
-              <div style="font-size: 18px; font-weight: 700;">${game.home_score} : ${game.away_score}</div>
+              <div style="font-size: 18px; font-weight: 700;">${game.away_score} : ${game.home_score}</div>
             ` : ''}
           </div>
 
@@ -545,7 +545,7 @@ function renderTabContent() {
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-radius: 8px; background: ${bet.user_id === currentUser.id ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)'};">
                   <span style="font-size: 14px;">${escapeHtml(bet.username)}</span>
                   <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="font-weight: 500;">${bet.home_score_prediction} : ${bet.away_score_prediction}</span>
+                    <span style="font-weight: 500;">${bet.away_score_prediction} : ${bet.home_score_prediction}</span>
                     ${game.status === 'finished' ? `
                       <span style="font-size: 14px; color: ${bet.points_earned > 0 ? 'var(--success)' : 'var(--muted)'};">
                         ${bet.points_earned || 0} ${t('pts_short')}
