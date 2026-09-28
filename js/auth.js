@@ -10,7 +10,14 @@ Object.assign(TRANSLATIONS.de, {
   error_invalid_email: 'Ungültige E-Mail-Adresse',
   error_weak_password: 'Das Passwort muss mindestens 6 Zeichen haben',
   error_invalid_credentials: 'Ungültige E-Mail oder Passwort',
-  error_too_many_requests: 'Zu viele Anmeldeversuche. Bitte versuche es später erneut.'
+  error_too_many_requests: 'Zu viele Anmeldeversuche. Bitte versuche es später erneut.',
+  forgot_password_link: 'Passwort vergessen?',
+  title_reset_password: 'Passwort zurücksetzen',
+  reset_password_text: 'Wir senden dir eine E-Mail mit einem Link zum Zurücksetzen deines Passworts.',
+  btn_send_email: 'E-Mail senden', sending: 'Wird gesendet...',
+  email_sent: 'E-Mail wurde an {email} gesendet. Prüfe dein Postfach.',
+  error_sending_email: 'Fehler beim Senden der E-Mail',
+  error_email_required: 'Bitte gib deine E-Mail-Adresse ein'
 });
 Object.assign(TRANSLATIONS.en, {
   hero_subtitle: 'Bet with friends on NFL games',
@@ -24,7 +31,14 @@ Object.assign(TRANSLATIONS.en, {
   error_invalid_email: 'Invalid email address',
   error_weak_password: 'Password must be at least 6 characters',
   error_invalid_credentials: 'Invalid email or password',
-  error_too_many_requests: 'Too many login attempts. Please try again later.'
+  error_too_many_requests: 'Too many login attempts. Please try again later.',
+  forgot_password_link: 'Forgot your password?',
+  title_reset_password: 'Reset password',
+  reset_password_text: "We'll send you an email with a link to reset your password.",
+  btn_send_email: 'Send email', sending: 'Sending...',
+  email_sent: 'Email sent to {email}. Check your inbox.',
+  error_sending_email: 'Error sending the email',
+  error_email_required: 'Please enter your email address'
 });
 
 // ==================== AUTH STATE ====================
@@ -147,7 +161,8 @@ function openModal(mode) {
   const submitText = document.getElementById('submit-text');
   const switchText = document.getElementById('switch-text');
   const switchBtn = document.getElementById('switch-btn');
-  
+  const forgotPasswordRow = document.getElementById('forgot-password-row');
+
   if (mode === 'register') {
     modalTitle.textContent = t('modal_title_register');
     usernameField.classList.remove('hidden');
@@ -156,6 +171,7 @@ function openModal(mode) {
     switchText.textContent = t('switch_have_account');
     switchBtn.textContent = t('btn_login');
     switchBtn.setAttribute('data-testid', 'switch-to-login');
+    forgotPasswordRow.classList.add('hidden');
   } else {
     modalTitle.textContent = t('modal_title_login');
     usernameField.classList.add('hidden');
@@ -164,6 +180,7 @@ function openModal(mode) {
     switchText.textContent = t('switch_no_account');
     switchBtn.textContent = t('btn_register');
     switchBtn.setAttribute('data-testid', 'switch-to-register');
+    forgotPasswordRow.classList.remove('hidden');
   }
   
   // Clear form and errors
@@ -277,6 +294,60 @@ async function logout() {
     window.location.href = '../index.html';
   } else {
     window.location.href = 'index.html';
+  }
+}
+
+// Open forgot-password modal - übernimmt die E-Mail aus dem Login-Formular,
+// falls dort schon etwas eingetragen wurde
+function openForgotPasswordModal() {
+  const loginEmail = document.getElementById('email-input')?.value || '';
+  document.getElementById('forgot-password-email').value = loginEmail;
+  document.getElementById('forgot-password-error').classList.add('hidden');
+  document.getElementById('forgot-password-success').classList.add('hidden');
+  document.getElementById('forgot-password-modal').classList.add('active');
+}
+
+function closeForgotPasswordModal() {
+  document.getElementById('forgot-password-modal').classList.remove('active');
+}
+
+async function sendForgotPasswordEmail() {
+  const email = document.getElementById('forgot-password-email').value.trim();
+  const errorEl = document.getElementById('forgot-password-error');
+  const successEl = document.getElementById('forgot-password-success');
+  const submitBtn = document.querySelector('#forgot-password-modal .btn-primary');
+
+  errorEl.classList.add('hidden');
+  successEl.classList.add('hidden');
+
+  if (!email) {
+    errorEl.textContent = t('error_email_required');
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('sending')}`;
+
+  try {
+    await firebaseSendPasswordReset(email);
+    successEl.innerHTML = `<i class="fas fa-check-circle"></i> ${t('email_sent', { email: `<strong>${escapeHtml(email)}</strong>` })}`;
+    successEl.classList.remove('hidden');
+
+    setTimeout(() => {
+      closeForgotPasswordModal();
+    }, 5000);
+  } catch (error) {
+    console.error('Error sending password reset:', error);
+    let errorMessage = error.message || t('error_sending_email');
+    if (error.code === 'auth/invalid-email') {
+      errorMessage = t('error_invalid_email');
+    }
+    errorEl.textContent = errorMessage;
+    errorEl.classList.remove('hidden');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = `<i class="fas fa-paper-plane"></i> ${t('btn_send_email')}`;
   }
 }
 

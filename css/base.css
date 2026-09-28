@@ -7,6 +7,12 @@
 
 html {
   scroll-behavior: smooth;
+  /* Reserviert den Platz für die vertikale Scrollbar dauerhaft, statt ihn
+     erst einzublenden sobald Inhalt hoch genug ist (z.B. Ladezustand kurz
+     -> nach dem Laden der echten Daten plötzlich hoch) - ohne das "poppt"
+     die Scrollbar beim Seitenwechsel sichtbar rein/raus und verschiebt den
+     Inhalt kurz seitlich. */
+  scrollbar-gutter: stable;
 }
 
 body {

@@ -135,6 +135,40 @@
     </div>
   </div>
 
+  <!-- Change Email Modal -->
+  <div id="change-email-modal" class="modal">
+    <div class="modal-backdrop" onclick="closeChangeEmailModal()"></div>
+    <div class="modal-content animate-scale-in">
+      <h2 class="modal-title" data-i18n="title_change_email">E-Mail-Adresse ändern</h2>
+
+      <p style="color: var(--muted); margin-bottom: 20px; text-align: center;" data-i18n="change_email_text">
+        Wir senden einen Bestätigungslink an die neue Adresse. Deine E-Mail ändert sich erst, wenn du dort klickst.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_new_email">Neue E-Mail-Adresse</label>
+        <input type="email" id="change-email-new" class="form-input" placeholder="neue@email.de" required data-testid="change-email-new">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_current_password">Aktuelles Passwort</label>
+        <input type="password" id="change-email-password" class="form-input" placeholder="••••••••" required data-testid="change-email-password">
+      </div>
+
+      <div id="change-email-error" class="error-message hidden"></div>
+      <div id="change-email-success" class="success-message hidden" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); color: var(--success); padding: 12px; border-radius: 8px; margin-bottom: 16px;"></div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="closeChangeEmailModal()" data-i18n="btn_cancel">
+          Abbrechen
+        </button>
+        <button class="btn btn-primary" style="flex: 1;" onclick="submitChangeEmail()" data-testid="submit-change-email">
+          <i class="fas fa-paper-plane"></i> <span data-i18n="btn_send_confirmation">Bestätigungslink senden</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" async></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>

@@ -560,6 +560,27 @@ async function firebaseSendPasswordReset(email) {
   return email;
 }
 
+// E-Mail-Adresse ändern. Sensible Operation - Firebase verlangt eine
+// "frische" Anmeldung, sonst schlägt der eigentliche Schreibvorgang mit
+// auth/requires-recent-login fehl (gleiches Verhalten wie bei
+// firebaseDeleteAccount, dort aber bisher nicht abgefangen) - deshalb hier
+// vorab explizit mit dem aktuellen Passwort reauthentifizieren, statt erst
+// auf den Fehler zu warten und den Nutzer dann nochmal von vorne starten zu
+// lassen. verifyBeforeUpdateEmail() statt des älteren updateEmail(): schickt
+// einen Bestätigungslink an die NEUE Adresse, die E-Mail ändert sich also
+// erst, wenn der Nutzer dort klickt - ein Tippfehler in der neuen Adresse
+// sperrt damit nicht sofort und unwiderruflich den eigenen Account.
+async function firebaseChangeEmail(newEmail, currentPassword) {
+  const user = auth.currentUser;
+  if (!user) throw new Error(t('error_not_logged_in'));
+  if (!newEmail) throw new Error(t('error_invalid_email'));
+
+  const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+  await user.reauthenticateWithCredential(credential);
+
+  await user.verifyBeforeUpdateEmail(newEmail);
+}
+
 // Speichert die gewählte Sprache zusätzlich am Nutzer-Dokument (nicht nur
 // localStorage) - der Sprachwahl-Schalter selbst bleibt rein clientseitig,
 // aber die Push-Benachrichtigungen werden serverseitig verschickt

@@ -99,24 +99,30 @@
 
         <div class="form-group">
           <label class="form-label" data-i18n="label_password">Passwort</label>
-          <input 
-            type="password" 
+          <input
+            type="password"
             id="password-input"
-            class="form-input" 
+            class="form-input"
             placeholder="••••••••"
             required
             minlength="6"
             data-testid="password-input"
           >
         </div>
-        
+
+        <p id="forgot-password-row" class="auth-switch" style="margin-top: -8px; margin-bottom: 16px; text-align: right;">
+          <button type="button" class="text-link" onclick="openForgotPasswordModal()" data-testid="forgot-password-link" data-i18n="forgot_password_link">
+            Passwort vergessen?
+          </button>
+        </p>
+
         <div id="auth-error" class="error-message hidden" data-testid="auth-error"></div>
-        
+
         <button type="submit" class="btn btn-accent btn-full" data-testid="submit-auth">
           <span id="submit-text">Anmelden</span>
           <i id="submit-spinner" class="fas fa-spinner fa-spin hidden"></i>
         </button>
-        
+
         <p class="auth-switch">
           <span id="switch-text">Noch kein Konto?</span>
           <button type="button" id="switch-btn" class="text-link" onclick="switchAuthMode()" data-testid="switch-to-register">
@@ -124,6 +130,43 @@
           </button>
         </p>
       </form>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div id="forgot-password-modal" class="modal">
+    <div class="modal-backdrop" onclick="closeForgotPasswordModal()"></div>
+    <div class="modal-content animate-scale-in">
+      <h2 class="modal-title" data-i18n="title_reset_password">Passwort zurücksetzen</h2>
+
+      <p style="color: var(--muted); margin-bottom: 20px; text-align: center;" data-i18n="reset_password_text">
+        Wir senden dir eine E-Mail mit einem Link zum Zurücksetzen deines Passworts.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_email">E-Mail</label>
+        <input
+          type="email"
+          id="forgot-password-email"
+          class="form-input"
+          placeholder="deine@email.de"
+          data-i18n-placeholder="placeholder_email"
+          required
+          data-testid="forgot-password-email"
+        >
+      </div>
+
+      <div id="forgot-password-error" class="error-message hidden"></div>
+      <div id="forgot-password-success" class="success-message hidden" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); color: var(--success); padding: 12px; border-radius: 8px; margin-bottom: 16px;"></div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="closeForgotPasswordModal()" data-i18n="btn_cancel">
+          Abbrechen
+        </button>
+        <button class="btn btn-primary" style="flex: 1;" onclick="sendForgotPasswordEmail()" data-testid="send-forgot-password">
+          <i class="fas fa-paper-plane"></i> <span data-i18n="btn_send_email">E-Mail senden</span>
+        </button>
+      </div>
     </div>
   </div>
 

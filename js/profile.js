@@ -20,7 +20,14 @@ Object.assign(TRANSLATIONS.de, {
   deleting: 'Wird gelöscht...', error_deleting_account: 'Fehler beim Löschen des Accounts',
   title_delete_account: 'Account löschen', delete_warning: 'Warnung: Diese Aktion kann nicht rückgängig gemacht werden. Alle deine Daten, Wetten und Gruppenmitgliedschaften werden gelöscht.',
   delete_confirm_label: 'Gib <strong>{word}</strong> ein um zu bestätigen',
-  title_reset_password: 'Passwort zurücksetzen', reset_password_text: 'Wir senden dir eine E-Mail mit einem Link zum Zurücksetzen deines Passworts.'
+  title_reset_password: 'Passwort zurücksetzen', reset_password_text: 'Wir senden dir eine E-Mail mit einem Link zum Zurücksetzen deines Passworts.',
+  btn_change_email: 'E-Mail-Adresse ändern', title_change_email: 'E-Mail-Adresse ändern',
+  change_email_text: 'Wir senden einen Bestätigungslink an die neue Adresse. Deine E-Mail ändert sich erst, wenn du dort klickst.',
+  label_new_email: 'Neue E-Mail-Adresse', label_current_password: 'Aktuelles Passwort',
+  btn_send_confirmation: 'Bestätigungslink senden',
+  change_email_sent: 'Bestätigungslink an {email} gesendet. Prüfe dein Postfach, um die Änderung abzuschließen.',
+  error_changing_email: 'Fehler beim Ändern der E-Mail-Adresse',
+  error_wrong_password: 'Falsches Passwort'
 });
 Object.assign(TRANSLATIONS.en, {
   crop_title: 'Adjust image', crop_subtitle: 'Move and zoom the image',
@@ -42,7 +49,14 @@ Object.assign(TRANSLATIONS.en, {
   deleting: 'Deleting...', error_deleting_account: 'Error deleting the account',
   title_delete_account: 'Delete account', delete_warning: 'Warning: this action cannot be undone. All your data, bets, and group memberships will be deleted.',
   delete_confirm_label: 'Type <strong>{word}</strong> to confirm',
-  title_reset_password: 'Reset password', reset_password_text: "We'll send you an email with a link to reset your password."
+  title_reset_password: 'Reset password', reset_password_text: "We'll send you an email with a link to reset your password.",
+  btn_change_email: 'Change email address', title_change_email: 'Change email address',
+  change_email_text: "We'll send a confirmation link to the new address. Your email only changes once you click it.",
+  label_new_email: 'New email address', label_current_password: 'Current password',
+  btn_send_confirmation: 'Send confirmation link',
+  change_email_sent: 'Confirmation link sent to {email}. Check your inbox to complete the change.',
+  error_changing_email: 'Error changing the email address',
+  error_wrong_password: 'Incorrect password'
 });
 
 let myBets = [];
@@ -689,6 +703,11 @@ function renderProfile() {
     
     <!-- Action Buttons -->
     <div${shouldAnimate ? ' class="animate-fade-in"' : ''} style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;${shouldAnimate ? ' animation-delay: 0.95s;' : ''}">
+      <button class="btn btn-secondary btn-full" onclick="openChangeEmailModal()" data-testid="change-email-button">
+        <i class="fas fa-envelope"></i>
+        ${t('btn_change_email')}
+      </button>
+
       <button class="btn btn-secondary btn-full" onclick="openPasswordResetModal()" data-testid="reset-password-button">
         <i class="fas fa-key"></i>
         ${t('btn_reset_password')}
@@ -722,6 +741,67 @@ function openDeleteModal() {
 // Close delete modal
 function closeDeleteModal() {
   document.getElementById('delete-modal').classList.remove('active');
+}
+
+// Open change-email modal
+function openChangeEmailModal() {
+  document.getElementById('change-email-modal').classList.add('active');
+  document.getElementById('change-email-new').value = '';
+  document.getElementById('change-email-password').value = '';
+  document.getElementById('change-email-error').classList.add('hidden');
+  document.getElementById('change-email-success').classList.add('hidden');
+}
+
+// Close change-email modal
+function closeChangeEmailModal() {
+  document.getElementById('change-email-modal').classList.remove('active');
+}
+
+// Send email change confirmation link
+async function submitChangeEmail() {
+  const newEmail = document.getElementById('change-email-new').value.trim();
+  const currentPassword = document.getElementById('change-email-password').value;
+  const errorEl = document.getElementById('change-email-error');
+  const successEl = document.getElementById('change-email-success');
+  const submitBtn = document.querySelector('#change-email-modal .btn-primary');
+
+  errorEl.classList.add('hidden');
+  successEl.classList.add('hidden');
+
+  if (!newEmail || !currentPassword) {
+    errorEl.textContent = t('error_saving');
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${t('sending')}`;
+
+  try {
+    await firebaseChangeEmail(newEmail, currentPassword);
+    successEl.innerHTML = `<i class="fas fa-check-circle"></i> ${t('change_email_sent', { email: `<strong>${escapeHtml(newEmail)}</strong>` })}`;
+    successEl.classList.remove('hidden');
+    document.getElementById('change-email-password').value = '';
+
+    setTimeout(() => {
+      closeChangeEmailModal();
+    }, 6000);
+  } catch (error) {
+    console.error('Error changing email:', error);
+    let errorMessage = error.message || t('error_changing_email');
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      errorMessage = t('error_wrong_password');
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = t('error_invalid_email');
+    } else if (error.code === 'auth/email-already-in-use') {
+      errorMessage = t('error_email_in_use');
+    }
+    errorEl.textContent = errorMessage;
+    errorEl.classList.remove('hidden');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = `<i class="fas fa-paper-plane"></i> ${t('btn_send_confirmation')}`;
+  }
 }
 
 // Open password reset modal
