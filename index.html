@@ -99,15 +99,20 @@
 
         <div class="form-group">
           <label class="form-label" data-i18n="label_password">Passwort</label>
-          <input
-            type="password"
-            id="password-input"
-            class="form-input"
-            placeholder="••••••••"
-            required
-            minlength="6"
-            data-testid="password-input"
-          >
+          <div class="password-input-wrapper">
+            <input
+              type="password"
+              id="password-input"
+              class="form-input"
+              placeholder="••••••••"
+              required
+              minlength="6"
+              data-testid="password-input"
+            >
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password-input', this)" tabindex="-1" aria-label="Passwort anzeigen" data-testid="toggle-password-visibility">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
         </div>
 
         <p id="forgot-password-row" class="auth-switch" style="margin-top: -8px; margin-bottom: 16px; text-align: right;">

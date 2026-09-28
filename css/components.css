@@ -166,6 +166,45 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
 }
 
+/* ==================== Password Visibility Toggle ==================== */
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper .form-input {
+  padding-right: 46px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+  color: var(--foreground);
+}
+
+/* Chrome/Edge zeigen bei type="password" sonst zusätzlich ihr eigenes
+   Augen-Icon fürs zuletzt getippte Zeichen ("reveal button") - würde sich
+   mit unserem eigenen überlappen */
+.password-input-wrapper .form-input::-ms-reveal,
+.password-input-wrapper .form-input::-ms-clear {
+  display: none;
+}
+
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;

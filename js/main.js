@@ -10,7 +10,8 @@ Object.assign(TRANSLATIONS.de, {
   member: 'Mitglied', members: 'Mitglieder', admin_badge: 'Admin',
   you: 'Du', pts_short: 'Pkt', stat_points: 'Punkte', stat_bets: 'Wetten', stat_correct: 'Richtig',
   btn_save: 'Speichern', btn_cancel: 'Abbrechen', week_n: 'Woche {n}', btn_delete: 'Löschen',
-  label_group_name: 'Gruppenname', all_weeks: 'Alle Wochen'
+  label_group_name: 'Gruppenname', all_weeks: 'Alle Wochen',
+  show_password: 'Passwort anzeigen', hide_password: 'Passwort verbergen'
 });
 Object.assign(TRANSLATIONS.en, {
   nav_games: 'Games', nav_groups: 'Groups', nav_leaderboard: 'Leaderboard',
@@ -22,7 +23,8 @@ Object.assign(TRANSLATIONS.en, {
   member: 'member', members: 'members', admin_badge: 'Admin',
   you: 'You', pts_short: 'pts', stat_points: 'Points', stat_bets: 'Bets', stat_correct: 'Correct',
   btn_save: 'Save', btn_cancel: 'Cancel', week_n: 'Week {n}', btn_delete: 'Delete',
-  label_group_name: 'Group name', all_weeks: 'All weeks'
+  label_group_name: 'Group name', all_weeks: 'All weeks',
+  show_password: 'Show password', hide_password: 'Hide password'
 });
 
 // Escaped nutzerkontrollierten Text (Username, Gruppenname, ...) sicher in
@@ -47,6 +49,21 @@ function escapeHtml(str) {
 // der Handler muss den Wert dann mit decodeURIComponent() zuruecklesen.
 function jsAttrSafe(str) {
   return encodeURIComponent(str === null || str === undefined ? '' : String(str));
+}
+
+// Augen-Icon in Passwort-Feldern (Login/Registrieren, E-Mail ändern, ...) -
+// schaltet zwischen verdecktem und Klartext-Passwort um. Geteilt statt pro
+// Formular einzeln, da das gleiche .password-toggle-btn-Markup an mehreren
+// Stellen verwendet wird (siehe components.css).
+function togglePasswordVisibility(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const icon = btnEl.querySelector('i');
+  const nowVisible = input.type === 'password';
+  input.type = nowVisible ? 'text' : 'password';
+  icon.classList.toggle('fa-eye', !nowVisible);
+  icon.classList.toggle('fa-eye-slash', nowVisible);
+  btnEl.setAttribute('aria-label', nowVisible ? t('hide_password') : t('show_password'));
 }
 
 // Locale passend zur aktuell gewählten Sprache, für Date/Time-Formatierung
