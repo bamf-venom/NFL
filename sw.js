@@ -100,12 +100,23 @@ self.addEventListener('fetch', (event) => {
   // lang aus seinem EIGENEN HTTP-Cache beantwortet, komplett unabhängig vom
   // Service Worker/CacheStorage oben. Der "Jetzt aktualisieren"-Button hat
   // dadurch bei einem Nutzer nichts bewirkt, obwohl Caches/Service-Worker
-  // korrekt zurückgesetzt wurden. { cache: 'no-store' } erzwingt einen
-  // echten Netzwerk-Request, der den Browser-HTTP-Cache umgeht - nur so
-  // kommt bei einem neuen Deploy auch wirklich sofort die neue Version an,
-  // nicht erst nach bis zu 10 Minuten.
+  // korrekt zurückgesetzt wurden.
+  //
+  // WICHTIG (2026-09-28): { cache: 'no-store' } (wie bisher hier) erzwingt
+  // zwar einen echten Netzwerk-Request, aber jedes Mal den KOMPLETTEN
+  // Datei-Inhalt neu - beim Wechsel zwischen den Seiten (Spiele -> Gruppen
+  // -> Rangliste -> ...) wurden dadurch bei JEDEM Seitenaufruf ALLE
+  // JS/CSS-Dateien komplett neu heruntergeladen, obwohl sie sich so gut wie
+  // nie geändert haben. { cache: 'no-cache' } erzwingt stattdessen nur eine
+  // Rückfrage beim Server (schlanker If-None-Match/ETag-Request, umgeht die
+  // gleiche max-age-Regel wie oben) - hat sich nichts geändert, antwortet
+  // der Server mit "304 Not Modified" und der Browser nutzt seine bereits
+  // vorhandene Kopie, ohne die Datei erneut zu übertragen. Deckt denselben
+  // Fall ab (neues Deploy kommt sofort an, nie bis zu 10 Minuten Verzögerung)
+  // bei spürbar schnelleren Seitenwechseln für den (weit häufigeren) Fall,
+  // dass sich nichts geändert hat.
   event.respondWith(
-    fetch(event.request.url, { cache: 'no-store' })
+    fetch(event.request.url, { cache: 'no-cache' })
       .then((response) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));

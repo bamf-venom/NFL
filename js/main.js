@@ -373,6 +373,37 @@ function renderNavbar() {
   `;
 }
 
+// Wartet, bis die drei asynchron geladenen Firebase-CDN-Skripte (siehe
+// <script ... async> in jeder page.html) wirklich verfügbar sind, bevor
+// initializeFirebase() aufgerufen wird. Jede Unterseite (games.js, groups.js,
+// leaderboard.js, admin.js, settings.js, profile.js, group-detail.js) rief
+// initializeFirebase() bisher direkt in ihrem DOMContentLoaded-Handler auf -
+// war die SDK zu diesem Zeitpunkt noch nicht geladen (async, kein Timing-
+// Garantie), scheiterte der Aufruf lautlos (kein Retry) und `auth`/`db`
+// blieben undefiniert, bis ein Zufall (z.B. Cache-Warmup) es beim nächsten
+// Seitenaufruf besser laufen ließ - reproduzierbar beobachtet. Gleiche
+// Wartefunktion wie index.html, nur hier geteilt nutzbar; prüft zuerst
+// synchron (kein unnötiger Poll-Tick, falls die SDK schon bereit ist - der
+// Normalfall bei jedem Seitenwechsel nach dem ersten Laden).
+function waitForFirebaseSDK() {
+  return new Promise((resolve) => {
+    const isReady = () => typeof firebase !== 'undefined' && firebase.app && firebase.auth && firebase.firestore;
+    if (isReady()) {
+      resolve();
+      return;
+    }
+    const check = setInterval(() => {
+      if (isReady()) {
+        clearInterval(check);
+        resolve();
+      }
+    }, 50);
+    // Timeout nach 10 Sekunden, damit eine Seite bei einem echten Ladefehler
+    // nicht für immer hängen bleibt
+    setTimeout(() => { clearInterval(check); resolve(); }, 10000);
+  });
+}
+
 // Initialize page
 function initPage() {
   // Sprache: einmal beim Laden auf echtes statisches HTML anwenden (Inhalte
