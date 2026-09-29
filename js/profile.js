@@ -876,17 +876,5 @@ async function confirmDeleteAccount() {
 
 // Run on page load
 document.addEventListener('DOMContentLoaded', async function() {
-  // Initialize Firebase first (erst wenn die SDK-Skripte wirklich geladen
-  // sind, siehe waitForFirebaseSDK() in main.js)
-  if (typeof waitForFirebaseSDK === 'function') {
-    await waitForFirebaseSDK();
-  }
-  if (typeof initializeFirebase === 'function') {
-    initializeFirebase();
-  }
-  
-  const isAuthed = await checkAuth();
-  if (isAuthed) {
-    initProfilePage();
-  }
+  await initPageWithLoader(initProfilePage);
 });

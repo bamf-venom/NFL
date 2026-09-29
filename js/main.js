@@ -421,6 +421,41 @@ function waitForFirebaseSDK() {
   });
 }
 
+// Zeigt den Vollbild-Ladebildschirm (Football-Loader, NFL-App-Variante,
+// siehe football-loader.js/.css) für die gesamte Dauer des Seitenaufbaus -
+// von "Firebase/Auth noch nicht bereit" bis "eigene Daten geladen und
+// gerendert" - statt dass kurz eine leere oder erst halb aufgebaute Seite
+// aufblitzt. Ersetzt den bisherigen direkten
+// initializeFirebase()/checkAuth()-Block in jeder Unterseite (games.js,
+// groups.js, leaderboard.js, admin.js, settings.js, profile.js,
+// group-detail.js) - pageInitFn ist deren jeweilige async-Funktion, die die
+// Seite mit echten Daten füllt (z.B. initGamesPage), wird nur bei
+// bestätigter Anmeldung aufgerufen. try/finally stellt sicher, dass der
+// Loader auch bei einem Fehler in pageInitFn() wieder verschwindet, statt
+// für immer sichtbar hängen zu bleiben.
+async function initPageWithLoader(pageInitFn) {
+  const hasLoader = typeof FootballLoader !== 'undefined';
+  if (hasLoader) {
+    FootballLoader.show({ variant: 'nfl', title: 'NFL POINTS' });
+  }
+  try {
+    if (typeof waitForFirebaseSDK === 'function') {
+      await waitForFirebaseSDK();
+    }
+    if (typeof initializeFirebase === 'function') {
+      initializeFirebase();
+    }
+    const isAuthed = await checkAuth();
+    if (isAuthed && pageInitFn) {
+      await pageInitFn();
+    }
+  } finally {
+    if (hasLoader) {
+      FootballLoader.hide();
+    }
+  }
+}
+
 // Initialize page
 function initPage() {
   // Sprache: einmal beim Laden auf echtes statisches HTML anwenden (Inhalte

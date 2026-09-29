@@ -1,0 +1,718 @@
+/* ==================== FOOTBALL LOADER ==================== */
+/* Ladeanimation im NFL-Stil: ein Ball fliegt als Spiral-Pass über das
+   Spielfeld. Optional zeigt ein "Drive"-Balken den Fortschritt an, der
+   bei 100 % mit einem Touchdown endet.
+   Nutzt die Farb-Variablen der NFL-POINTS-App (css/colors.css), wenn sie
+   vorhanden sind, und fällt sonst auf dieselben Werte zurück.
+   Alle Größen sind in em – über font-size lässt sich der Loader skalieren. */
+
+.fbl {
+  --fbl-fg: var(--foreground, #fafafa);
+  --fbl-muted: var(--muted-light, #a3a3a3);
+  --fbl-accent: var(--accent, #013369);
+  --fbl-gold: var(--gold, #ffd700);
+  --fbl-red: var(--error, #ef4444);
+  --fbl-grass: 34, 197, 94;
+  --fbl-spin: 0.7s;     /* eine Umdrehung der Spirale */
+  --fbl-flight: 1.8s;   /* Auf und Ab des Balls */
+  --fbl-speed: 0.55s;   /* Tempo, mit dem das Feld vorbeizieht */
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9em;
+  color: var(--fbl-fg);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ===== BÜHNE ===== */
+.fbl-stage {
+  position: relative;
+  width: 12em;
+  height: 7.5em;
+}
+
+/* Spielfeld in Perspektive, Yard-Linien und Hash-Marks ziehen nach links */
+.fbl-field {
+  position: absolute;
+  left: -2em;
+  right: -2em;
+  bottom: 0;
+  height: 5em;
+  transform: perspective(9em) rotateX(58deg);
+  transform-origin: 50% 100%;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.4) 0 0.1em, transparent 0.1em 2.4em),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.28) 0 0.08em, transparent 0.08em 0.48em),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.28) 0 0.08em, transparent 0.08em 0.48em),
+    linear-gradient(180deg, rgba(var(--fbl-grass), 0.04), rgba(var(--fbl-grass), 0.22));
+  background-size: 2.4em 100%, 2.4em 0.4em, 2.4em 0.4em, 100% 100%;
+  background-repeat: repeat-x, repeat-x, repeat-x, no-repeat;
+  background-position: 0 0, 0 35%, 0 65%, 0 0;
+  -webkit-mask-image: radial-gradient(ellipse 50% 100% at 50% 100%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 100% at 50% 100%, #000 30%, transparent 100%);
+  animation: fbl-field var(--fbl-speed) linear infinite;
+}
+
+.fbl-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 1.1em;
+  width: 5em;
+  height: 0.9em;
+  margin-left: -2.5em;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.75), transparent);
+  animation: fbl-shadow var(--fbl-flight) ease-in-out infinite;
+}
+
+.fbl-flight {
+  position: absolute;
+  left: 50%;
+  top: 1.4em;
+  width: 7em;
+  margin-left: -3.5em;
+  animation: fbl-bob var(--fbl-flight) ease-in-out infinite;
+}
+
+.fbl-tilt {
+  position: relative;
+  transform: rotate(-12deg);
+}
+
+/* Fahrtwind-Streifen hinter dem Ball */
+.fbl-streaks {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  width: 3.5em;
+  margin-right: -0.8em;
+}
+
+.fbl-streaks span {
+  position: absolute;
+  right: 0;
+  height: 0.14em;
+  border-radius: 0.07em;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55));
+  opacity: 0;
+  animation: fbl-streak calc(var(--fbl-speed) * 1.6) linear infinite;
+}
+
+.fbl-streaks span:nth-child(1) { top: -1em; width: 2.2em; animation-delay: calc(var(--fbl-speed) * -0.5); }
+.fbl-streaks span:nth-child(2) { top: -0.1em; width: 3.2em; }
+.fbl-streaks span:nth-child(3) { top: 0.8em; width: 1.8em; animation-delay: calc(var(--fbl-speed) * -1.1); }
+
+/* ===== DER BALL ===== */
+.fbl-ball {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 0.3em 0.35em rgba(0, 0, 0, 0.5));
+  animation: fbl-wobble calc(var(--fbl-flight) / 2) ease-in-out infinite alternate;
+}
+
+.fbl-outline {
+  fill: none;
+  stroke: #2a0f04;
+  stroke-width: 1.5;
+  stroke-opacity: 0.7;
+}
+
+.fbl-shine {
+  fill: #fff;
+  opacity: 0.16;
+}
+
+/* Die Spirale: Nähte und Schnürung wandern um die Längsachse.
+   Jede Naht ist die obere Kontur des Balls, vertikal skaliert
+   (1 = oben, 0 = Mitte, -1 = unten) – sichtbar nur auf der Vorderseite. */
+.fbl-seam {
+  fill: none;
+  stroke: #2b0f04;
+  stroke-width: 1.3;
+  stroke-opacity: 0.8;
+  vector-effect: non-scaling-stroke;
+  transform-box: view-box;
+  transform-origin: 60px 36px;
+  animation:
+    fbl-seam var(--fbl-spin) linear infinite,
+    fbl-front var(--fbl-spin) linear infinite;
+}
+
+.fbl-seam--2 { animation-delay: calc(var(--fbl-spin) * -0.25); }
+.fbl-seam--3 { animation-delay: calc(var(--fbl-spin) * -0.5); }
+.fbl-seam--4 { animation-delay: calc(var(--fbl-spin) * -0.75); }
+
+.fbl-laces {
+  transform-box: view-box;
+  animation:
+    fbl-laces-y var(--fbl-spin) linear infinite,
+    fbl-front var(--fbl-spin) linear infinite;
+}
+
+.fbl-laces__inner {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fbl-laces-s var(--fbl-spin) linear infinite;
+}
+
+.fbl-lace {
+  fill: none;
+  stroke: #f6f1e7;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+/* ===== TEXT ===== */
+.fbl-label {
+  display: flex;
+  align-items: baseline;
+  font-family: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', Impact, sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.5em;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fbl-dots i {
+  font-style: normal;
+  opacity: 0.2;
+  animation: fbl-dot 1.2s ease-in-out infinite;
+}
+
+.fbl-dots i:nth-child(2) { animation-delay: 0.2s; }
+.fbl-dots i:nth-child(3) { animation-delay: 0.4s; }
+
+.fbl-hint {
+  margin-top: -0.35em;
+  font-size: 0.85em;
+  color: var(--fbl-muted);
+  text-align: center;
+}
+
+.fbl-hint[hidden],
+.fbl-drive[hidden] {
+  display: none;
+}
+
+/* ===== DRIVE (Fortschritt) ===== */
+.fbl-drive {
+  display: grid;
+  gap: 0.5em;
+  width: 14em;
+  max-width: 100%;
+  margin-top: 0.2em;
+}
+
+.fbl-drive__track {
+  position: relative;
+  height: 0.75em;
+  border-radius: 0.375em;
+  /* Yard-Linien alle 10 Yards zwischen den Endzonen (je 8 % breit) */
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0 1px, transparent 1px 10%) center / 84% 100% no-repeat,
+    rgba(var(--fbl-grass), 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.fbl-drive__ez {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8%;
+  background: var(--fbl-accent);
+}
+
+.fbl-drive__ez--own { left: 0; border-radius: 0.375em 0 0 0.375em; }
+
+.fbl-drive__ez--goal {
+  right: 0;
+  border-radius: 0 0.375em 0.375em 0;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.fbl-drive__gain {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 8%;
+  width: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.32));
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fbl-drive__ball {
+  position: absolute;
+  top: 50%;
+  left: 8%;
+  width: 1.6em;
+  margin: -0.48em 0 0 -0.8em;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
+  transition: left 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fbl-drive__ball svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.fbl-mini-body {
+  fill: #8e4219;
+  stroke: #2a0f04;
+  stroke-width: 5;
+}
+
+.fbl-mini-lace {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.fbl-drive__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fbl-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.fbl.is-redzone .fbl-drive__spot { color: var(--fbl-red); }
+.fbl.is-redzone .fbl-drive__gain {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(239, 68, 68, 0.5));
+}
+
+/* ===== TOUCHDOWN ===== */
+.fbl.is-touchdown .fbl-label {
+  color: var(--fbl-gold);
+  text-shadow: 0 0 0.6em rgba(255, 215, 0, 0.45);
+  animation: fbl-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fbl.is-touchdown .fbl-dots { display: none; }
+.fbl.is-touchdown .fbl-drive__spot { color: var(--fbl-gold); }
+
+.fbl.is-touchdown .fbl-drive__gain {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.45));
+}
+
+.fbl.is-touchdown .fbl-drive__ez--goal {
+  background-color: var(--fbl-gold);
+  box-shadow: 0 0 0.9em rgba(255, 215, 0, 0.75);
+  animation: fbl-flash 0.4s ease-in-out 3;
+}
+
+.fbl.is-touchdown .fbl-drive__ball svg {
+  animation: fbl-spike 0.55s ease-out;
+}
+
+/* ===== VARIANTE "LINE": vereinfachte Illustration ohne Farbe ===== */
+/* Alles in currentColor – über `color` umfärbbar. --fbl-paper ist die
+   Füllung des Balls und sollte dem Hintergrund dahinter entsprechen. */
+.fbl--line {
+  --fbl-paper: var(--background, #0a0a0a);
+}
+
+.fbl--line .fbl-ball { filter: none; }
+
+.fbl--line .fbl-body { fill: var(--fbl-paper); }
+
+.fbl--line .fbl-outline,
+.fbl--line .fbl-band {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-opacity: 1;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.fbl--line .fbl-band { stroke-width: 2; }
+
+.fbl--line .fbl-seam {
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-opacity: 0.3;
+}
+
+.fbl--line .fbl-lace {
+  stroke: currentColor;
+  stroke-width: 3;
+}
+
+/* Flacher Boden mit Yard-Markierungen statt Rasen in Perspektive */
+.fbl--line .fbl-field {
+  left: 0;
+  right: 0;
+  bottom: 0.9em;
+  height: 0.5em;
+  transform: none;
+  /* Bodenlinie + eine Markierung pro 1.2em-Kachel */
+  background-image:
+    linear-gradient(currentColor, currentColor),
+    linear-gradient(90deg, currentColor 2px, transparent 2px);
+  background-size: 100% 2px, 1.2em 0.4em;
+  background-repeat: no-repeat, repeat-x;
+  background-position: 0 0, 0 100%;
+  opacity: 0.45;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
+  animation-name: fbl-ground;
+}
+
+.fbl--line .fbl-shadow {
+  bottom: 1.25em;
+  width: 4em;
+  height: 0.35em;
+  margin-left: -2em;
+  background: currentColor;
+  opacity: 0.14;
+  animation-name: fbl-shadow-line;
+}
+
+.fbl--line .fbl-streaks { margin-right: 0.3em; }
+
+.fbl--line .fbl-streaks span {
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, currentColor);
+}
+
+/* Drive-Balken: Umriss, schraffierte Endzonen */
+.fbl--line .fbl-drive__track {
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, currentColor 25%, transparent) 0 1px, transparent 1px 10%) center / 84% 100% no-repeat;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, currentColor 45%, transparent);
+}
+
+.fbl--line .fbl-drive__ez {
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, currentColor 55%, transparent) 0 1.5px, transparent 1.5px 4px);
+}
+
+.fbl--line .fbl-drive__gain,
+.fbl--line.is-redzone .fbl-drive__gain {
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.fbl--line .fbl-drive__ball { filter: none; }
+
+.fbl--line .fbl-mini-body {
+  fill: var(--fbl-paper);
+  stroke: currentColor;
+  stroke-width: 8;
+}
+
+.fbl--line .fbl-mini-lace { stroke: currentColor; }
+
+.fbl--line.is-redzone .fbl-drive__spot { color: currentColor; }
+
+.fbl--line.is-touchdown .fbl-label {
+  color: currentColor;
+  text-shadow: none;
+}
+
+.fbl--line.is-touchdown .fbl-drive__spot { color: currentColor; }
+
+.fbl--line.is-touchdown .fbl-drive__gain {
+  background: color-mix(in srgb, currentColor 32%, transparent);
+}
+
+.fbl--line.is-touchdown .fbl-drive__ez--goal {
+  background: currentColor;
+  box-shadow: 0 0 0.8em color-mix(in srgb, currentColor 45%, transparent);
+}
+
+/* ===== VARIANTE "NFL": Nachbau der Ladeanimation der NFL-App ===== */
+/* Kleiner weißer Linien-Ball, 45° geneigt. Die Schnürung gleitet quer über
+   den Ball, dahinter werden drei Fahrtwind-Striche gezogen und wieder
+   eingeholt. Timings aus einer Bildschirmaufnahme (ein Zyklus ≈ 0,87 s). */
+.fbl--nfl {
+  --fbl-fg: #fff;
+  --fbl-paper: #000f32;
+  --fbl-nfl-cycle: 0.867s;
+  gap: 1.5em;
+}
+
+.fbl-nfl-icon {
+  display: block;
+  width: 3em;   /* Ball ≈ 1.7em (27px), Rest ist Platz für den Fahrtwind */
+  height: 3em;
+  overflow: visible;
+}
+
+.fbl-nfl-icon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fbl-nfl-laces {
+  transform: translateY(38px);
+  animation: fbl-nfl-laces var(--fbl-nfl-cycle) linear infinite;
+}
+
+.fbl-nfl-streak {
+  stroke-dasharray: 100 100;
+  opacity: 0;
+  animation: var(--fbl-nfl-cycle) linear infinite;
+}
+
+.fbl-nfl-streak--1 { animation-name: fbl-nfl-streak-1; }
+.fbl-nfl-streak--2 { animation-name: fbl-nfl-streak-2; }
+.fbl-nfl-streak--3 { animation-name: fbl-nfl-streak-3; }
+
+/* Wie in der NFL-App kein sichtbarer Text – nur für Screenreader */
+.fbl--nfl .fbl-label,
+.fbl--nfl .fbl-hint {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.fbl-nfl-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', Impact, sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 2.75em;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.fbl-nfl-brand img {
+  display: block;
+  max-width: 8rem;
+  max-height: 11rem;
+}
+
+/* ===== VOLLBILD-OVERLAY ===== */
+.fbl-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(10, 10, 10, 0.94);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  font-size: 1rem;
+  transition: opacity 0.3s ease, visibility 0s linear 0s;
+}
+
+.fbl-overlay.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+}
+
+/* NFL-Variante: Navy wie der Splash-Screen der App, Ball-Mitte 64px über
+   dem unteren Rand, Logo/Titel (und ggf. Drive-Balken) in der Mitte */
+.fbl-overlay--nfl {
+  background: #000f32;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.fbl-overlay--nfl .fbl--nfl {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.fbl-overlay--nfl .fbl-nfl-icon {
+  position: absolute;
+  left: 50%;
+  bottom: calc(64px - 1.5em);
+  margin-left: -1.5em;
+}
+
+html.fbl-lock,
+html.fbl-lock body {
+  overflow: hidden;
+}
+
+/* ===== KEYFRAMES ===== */
+@keyframes fbl-field {
+  to { background-position: -2.4em 0, -2.4em 35%, -2.4em 65%, 0 0; }
+}
+
+@keyframes fbl-bob {
+  50% { transform: translateY(-0.7em); }
+}
+
+@keyframes fbl-shadow {
+  50% { transform: scale(0.7); opacity: 0.5; }
+}
+
+@keyframes fbl-ground {
+  to { background-position: 0 0, -1.2em 100%; }
+}
+
+@keyframes fbl-shadow-line {
+  50% { transform: scale(0.7); opacity: 0.07; }
+}
+
+@keyframes fbl-wobble {
+  from { transform: rotate(-3deg); }
+  to { transform: rotate(2deg); }
+}
+
+@keyframes fbl-streak {
+  0% { transform: translateX(0.6em); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateX(-2.6em); opacity: 0; }
+}
+
+/* cos-Verlauf über die Vorderseite: ease-in-sine, dann ease-out-sine */
+@keyframes fbl-seam {
+  0% { transform: scaleY(1); animation-timing-function: cubic-bezier(0.12, 0, 0.39, 0); }
+  25% { transform: scaleY(0.001); animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1); }
+  50%, 100% { transform: scaleY(-1); }
+}
+
+@keyframes fbl-laces-y {
+  0% { transform: translateY(-30px); animation-timing-function: cubic-bezier(0.12, 0, 0.39, 0); }
+  25% { transform: translateY(0); animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1); }
+  50%, 100% { transform: translateY(30px); }
+}
+
+/* Verkürzung der Querschnürung: sin-Verlauf */
+@keyframes fbl-laces-s {
+  0% { transform: scaleY(0.05); animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1); }
+  25% { transform: scaleY(1); animation-timing-function: cubic-bezier(0.12, 0, 0.39, 0); }
+  50%, 100% { transform: scaleY(0.05); }
+}
+
+/* Nur die vordere Hälfte der Umdrehung ist sichtbar */
+@keyframes fbl-front {
+  0% { opacity: 0; }
+  5%, 45% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* NFL: Die Schnürung gleitet in 36,3 % des Zyklus von oben links nach unten
+   rechts über den Ball (fast linear, an die Aufnahme gefittet), danach bleibt
+   sie verdeckt. Zyklusstart = Schnürung taucht auf. */
+@keyframes fbl-nfl-laces {
+  0% { transform: translateY(-38px); animation-timing-function: cubic-bezier(0.4, 0.3, 0.6, 0.7); }
+  36.3%, 100% { transform: translateY(38px); }
+}
+
+/* Fahrtwind: dashoffset 100 → 0 zieht den Strich vom Ball weg auf,
+   0 → -100 holt ihn vom Ball her wieder ein */
+@keyframes fbl-nfl-streak-1 {
+  0%, 9.1% { stroke-dashoffset: 100; opacity: 0; }
+  9.11% { stroke-dashoffset: 100; opacity: 1; }
+  36% { stroke-dashoffset: 0; }
+  61% { stroke-dashoffset: -100; opacity: 1; }
+  61.01%, 100% { stroke-dashoffset: -100; opacity: 0; }
+}
+
+/* Strich 2 wird am Zyklusende aufgezogen und am Anfang eingeholt */
+@keyframes fbl-nfl-streak-2 {
+  0% { stroke-dashoffset: 5.2; opacity: 1; }
+  1.4% { stroke-dashoffset: 0; }
+  28.3% { stroke-dashoffset: -100; opacity: 1; }
+  28.31%, 74.5% { stroke-dashoffset: 100; opacity: 0; }
+  74.51% { stroke-dashoffset: 100; opacity: 1; }
+  100% { stroke-dashoffset: 5.2; opacity: 1; }
+}
+
+@keyframes fbl-nfl-streak-3 {
+  0%, 37.8% { stroke-dashoffset: 100; opacity: 0; }
+  37.81% { stroke-dashoffset: 100; opacity: 1; }
+  55.1%, 66.9% { stroke-dashoffset: 0; }
+  80.4% { stroke-dashoffset: -100; opacity: 1; }
+  80.41%, 100% { stroke-dashoffset: -100; opacity: 0; }
+}
+
+@keyframes fbl-dot {
+  0%, 60%, 100% { opacity: 0.2; }
+  30% { opacity: 1; }
+}
+
+@keyframes fbl-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fbl-flash {
+  50% { filter: brightness(1.7); }
+}
+
+@keyframes fbl-spike {
+  0% { transform: none; }
+  40% { transform: translateY(-0.7em) rotate(-35deg); }
+  100% { transform: none; }
+}
+
+/* ===== REDUZIERTE BEWEGUNG ===== */
+@media (prefers-reduced-motion: reduce) {
+  .fbl-field,
+  .fbl-shadow,
+  .fbl-ball,
+  .fbl-seam,
+  .fbl-laces,
+  .fbl-laces__inner,
+  .fbl-streaks span,
+  .fbl-dots i {
+    animation: none;
+  }
+
+  .fbl-streaks span { opacity: 0.35; }
+  .fbl-dots i { opacity: 1; }
+
+  /* Ball steht still, Schnürung leicht oberhalb der Mitte */
+  .fbl-laces { transform: translateY(-10px); }
+  .fbl-seam--1 { transform: scaleY(0.33); }
+  .fbl-seam--2 { transform: scaleY(-0.94); }
+  .fbl-seam--3,
+  .fbl-seam--4 { opacity: 0; }
+
+  .fbl-flight,
+  .fbl-nfl-icon { animation: fbl-breathe 2s ease-in-out infinite; }
+
+  /* NFL: Schnürung mittig, zwei Fahrtwind-Striche stehen */
+  .fbl-nfl-laces,
+  .fbl-nfl-streak { animation: none; }
+  .fbl-nfl-laces { transform: none; }
+  .fbl-nfl-streak { stroke-dashoffset: 0; opacity: 1; }
+  .fbl-nfl-streak--3 { opacity: 0; }
+
+  @keyframes fbl-breathe {
+    50% { opacity: 0.6; }
+  }
+
+  .fbl-drive__gain,
+  .fbl-drive__ball { transition: none; }
+
+  .fbl.is-touchdown .fbl-label,
+  .fbl.is-touchdown .fbl-drive__ez--goal,
+  .fbl.is-touchdown .fbl-drive__ball svg { animation: none; }
+}
