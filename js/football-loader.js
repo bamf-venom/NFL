@@ -211,13 +211,21 @@
       if (o.variant === 'nfl' && (o.logo || o.title)) {
         const brand = document.createElement('div');
         brand.className = 'fbl-nfl-brand';
+        // Logo (falls angegeben) über dem Titel-Schriftzug, nicht statt
+        // dessen - beide zusammen in .fbl-nfl-brand, die per CSS
+        // (flex-direction: column) gestapelt werden.
         if (o.logo) {
           const img = document.createElement('img');
+          img.className = 'fbl-nfl-brand-logo';
           img.src = o.logo;
           img.alt = o.title || '';
           brand.appendChild(img);
-        } else {
-          brand.textContent = o.title;
+        }
+        if (o.title) {
+          const text = document.createElement('div');
+          text.className = 'fbl-nfl-brand-text';
+          text.textContent = o.title;
+          brand.appendChild(text);
         }
         el.insertBefore(brand, el.firstChild);
       }

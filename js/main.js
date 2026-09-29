@@ -436,8 +436,8 @@ function waitForFirebaseSDK() {
 async function initPageWithLoader(pageInitFn) {
   const hasLoader = typeof FootballLoader !== 'undefined';
   if (hasLoader) {
-    const logoPrefix = window.location.pathname.includes('/pages/') ? '../logos/' : 'logos/';
-    FootballLoader.show({ variant: 'nfl', logo: logoPrefix + 'nfl-logo-inverted.svg', title: 'NFL POINTS' });
+    const iconPrefix = window.location.pathname.includes('/pages/') ? '../icons/' : 'icons/';
+    FootballLoader.show({ variant: 'nfl', logo: iconPrefix + 'icon-inverted.png', title: 'NFL POINTS' });
   }
   try {
     if (typeof waitForFirebaseSDK === 'function') {

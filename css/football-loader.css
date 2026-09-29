@@ -485,8 +485,13 @@
 
 .fbl-nfl-brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.25em;
+}
+
+.fbl-nfl-brand-text {
   font-family: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', Impact, sans-serif;
   font-style: italic;
   font-weight: 900;
@@ -498,8 +503,8 @@
 
 .fbl-nfl-brand img {
   display: block;
-  max-width: 8rem;
-  max-height: 11rem;
+  max-width: 6rem;
+  max-height: 6rem;
 }
 
 /* ===== VOLLBILD-OVERLAY ===== */
