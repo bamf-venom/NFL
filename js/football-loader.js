@@ -187,9 +187,16 @@
       if (!parent) throw new Error('FootballLoader: Container nicht gefunden');
 
       this.options = Object.assign({}, DEFAULTS, options);
-      this.el = document.createElement('div');
+      // Adoptiert ein bereits im HTML vorhandenes .fbl-Element (statisches
+      // Markup direkt im <body>, siehe "page-loader" in den *.html-Dateien -
+      // macht den Loader schon beim allerersten Paint sichtbar, ganz ohne
+      // auf JS zu warten, kein Aufblitzen der eigentlichen Seite mehr davor).
+      // Ohne passendes Element (z.B. normale Inline-Nutzung per
+      // `new FootballLoader('#container', ...)`) wird wie bisher ein neues
+      // erzeugt.
+      this.el = parent.querySelector(':scope > .fbl') || document.createElement('div');
       this.render();
-      parent.appendChild(this.el);
+      if (!this.el.parentElement) parent.appendChild(this.el);
     }
 
     // Baut das Markup für die aktuelle Variante (neu) auf
@@ -276,12 +283,22 @@
     static show(options) {
       clearTimeout(hideTimer);
       if (!overlay) {
-        const wrap = document.createElement('div');
-        wrap.className = 'fbl-overlay is-hidden';
-        (document.body || document.documentElement).appendChild(wrap);
+        // Schon ein statischer Loader im HTML vorhanden (siehe
+        // "page-loader" in den *.html-Dateien)? Dann übernehmen statt einen
+        // zweiten, überlappenden zu erzeugen - der ist schon sichtbar,
+        // braucht also auch keinen Reflow/Einblend-Übergang.
+        let wrap = document.querySelector('.fbl-overlay');
+        const isNew = !wrap;
+        if (isNew) {
+          wrap = document.createElement('div');
+          wrap.className = 'fbl-overlay is-hidden';
+          (document.body || document.documentElement).appendChild(wrap);
+        } else {
+          wrap.classList.remove('is-hidden');
+        }
         overlay = new FootballLoader(wrap, options);
         overlay.overlay = wrap;
-        void wrap.offsetWidth; // Reflow, damit das Einblenden animiert
+        if (isNew) void wrap.offsetWidth; // Reflow, damit das Einblenden animiert
       } else {
         const prev = overlay.options;
         overlay.options = Object.assign({}, DEFAULTS, options);

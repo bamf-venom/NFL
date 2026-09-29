@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" class="fbl-lock">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +10,9 @@
   <title>Rangliste - NFL POINTS</title>
   <link rel="stylesheet" href="../css/colors.css">
   <link rel="stylesheet" href="../css/base.css">
+  <!-- Vor allem anderen CSS geladen, da der Ladebildschirm unten im body
+       als erstes Element schon vor jedem JS sichtbar sein soll -->
+  <link rel="stylesheet" href="../css/football-loader.css">
   <link rel="stylesheet" href="../css/animations.css">
   <link rel="stylesheet" href="../css/components.css">
   <link rel="stylesheet" href="../css/layout.css">
@@ -18,7 +21,6 @@
   <link rel="stylesheet" href="../css/profile-admin.css">
   <link rel="stylesheet" href="../css/utilities.css">
   <link rel="stylesheet" href="../css/mobile.css">
-  <link rel="stylesheet" href="../css/football-loader.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -26,6 +28,29 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
+  <!-- Statischer Ladebildschirm - schon sichtbar, bevor irgendein JS läuft
+       (Animation läuft rein über CSS), damit beim Seitenwechsel nie kurz
+       die halbfertige Seite aufblitzt. js/football-loader.js übernimmt
+       dieses Element beim ersten FootballLoader.show()-Aufruf (siehe
+       initPageWithLoader() in main.js) statt ein zweites zu erzeugen, und
+       blendet es aus, sobald die echten Seitendaten da sind. -->
+  <div class="fbl-overlay fbl-overlay--nfl" id="page-loader">
+    <div class="fbl fbl--line fbl--nfl">
+      <div class="fbl-nfl-brand">NFL POINTS</div>
+      <svg class="fbl-nfl-icon" viewBox="-72 -72 144 144" aria-hidden="true" focusable="false">
+        <defs><clipPath id="page-loader-clip"><path d="M17.2 -37.8H31.8A6 6 0 0 1 37.8 -31.8V-17.2A55 55 0 0 1 -17.2 37.8H-31.8A6 6 0 0 1 -37.8 31.8V17.2A55 55 0 0 1 17.2 -37.8Z"/></clipPath></defs>
+        <g transform="rotate(-45)">
+          <path class="fbl-nfl-streak fbl-nfl-streak--1" d="M-61.5 -10.6H-85.5" pathLength="100"/>
+          <path class="fbl-nfl-streak fbl-nfl-streak--2" d="M-67.2 5.9H-89.8" pathLength="100"/>
+          <path class="fbl-nfl-streak fbl-nfl-streak--3" d="M-61.5 24.4H-72.3" pathLength="100"/>
+        </g>
+        <g clip-path="url(#page-loader-clip)"><g transform="rotate(-45)">
+          <g class="fbl-nfl-laces"><path d="M-24 0H24M-20.5 -6.9V6.9M-7.5 -6.9V6.9M7.5 -6.9V6.9M20.5 -6.9V6.9"/></g>
+        </g></g>
+        <path d="M17.2 -37.8H31.8A6 6 0 0 1 37.8 -31.8V-17.2A55 55 0 0 1 -17.2 37.8H-31.8A6 6 0 0 1 -37.8 31.8V17.2A55 55 0 0 1 17.2 -37.8Z"/>
+      </svg>
+    </div>
+  </div>
   <div id="navbar-container"></div>
   <main class="main-content">
     <div class="container container-sm">

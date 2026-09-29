@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" class="fbl-lock">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,22 +8,26 @@
   <link rel="icon" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <title>NFL POINTS - Wette mit Freunden auf NFL Spiele</title>
-  
+
   <!-- Preload für kritische Ressourcen -->
   <link rel="preload" href="css/colors.css" as="style">
   <link rel="preload" href="css/base.css" as="style">
+  <link rel="preload" href="css/football-loader.css" as="style">
   <link rel="preload" href="css/landing.css" as="style">
   <link rel="preload" href="logos/nfl-logo.svg" as="image">
-  
+
   <!-- CSS Files -->
   <link rel="stylesheet" href="css/colors.css">
   <link rel="stylesheet" href="css/base.css">
+  <!-- Vor allem anderen CSS geladen, da der Ladebildschirm unten im body
+       als erstes Element schon vor jedem JS sichtbar sein soll -->
+  <link rel="stylesheet" href="css/football-loader.css">
   <link rel="stylesheet" href="css/animations.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/landing.css">
   <link rel="stylesheet" href="css/mobile.css">
-  
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,7 +36,31 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-  <div id="app" class="landing-page">
+  <!-- Statischer Ladebildschirm - schon sichtbar, bevor irgendein JS läuft
+       (Animation läuft rein über CSS). Startseite entscheidet erst weiter
+       unten synchron per localStorage, ob wirklich ein Ladevorgang ansteht
+       (bekannter Nutzer, wird zu games.html weitergeleitet) oder ob
+       stattdessen der Login-Bildschirm gezeigt werden soll (kein
+       gespeicherter Nutzer) - verhindert, dass für einen bekannten Nutzer
+       kurz der Login-Bildschirm aufblitzt, bevor die Weiterleitung greift. -->
+  <div class="fbl-overlay fbl-overlay--nfl" id="page-loader">
+    <div class="fbl fbl--line fbl--nfl">
+      <div class="fbl-nfl-brand">NFL POINTS</div>
+      <svg class="fbl-nfl-icon" viewBox="-72 -72 144 144" aria-hidden="true" focusable="false">
+        <defs><clipPath id="page-loader-clip"><path d="M17.2 -37.8H31.8A6 6 0 0 1 37.8 -31.8V-17.2A55 55 0 0 1 -17.2 37.8H-31.8A6 6 0 0 1 -37.8 31.8V17.2A55 55 0 0 1 17.2 -37.8Z"/></clipPath></defs>
+        <g transform="rotate(-45)">
+          <path class="fbl-nfl-streak fbl-nfl-streak--1" d="M-61.5 -10.6H-85.5" pathLength="100"/>
+          <path class="fbl-nfl-streak fbl-nfl-streak--2" d="M-67.2 5.9H-89.8" pathLength="100"/>
+          <path class="fbl-nfl-streak fbl-nfl-streak--3" d="M-61.5 24.4H-72.3" pathLength="100"/>
+        </g>
+        <g clip-path="url(#page-loader-clip)"><g transform="rotate(-45)">
+          <g class="fbl-nfl-laces"><path d="M-24 0H24M-20.5 -6.9V6.9M-7.5 -6.9V6.9M7.5 -6.9V6.9M20.5 -6.9V6.9"/></g>
+        </g></g>
+        <path d="M17.2 -37.8H31.8A6 6 0 0 1 37.8 -31.8V-17.2A55 55 0 0 1 -17.2 37.8H-31.8A6 6 0 0 1 -37.8 31.8V17.2A55 55 0 0 1 17.2 -37.8Z"/>
+      </svg>
+    </div>
+  </div>
+  <div id="app" class="landing-page hidden">
     <!-- Hero Section -->
     <div class="hero-section">
       <div class="hero-content">
@@ -184,6 +212,7 @@
   <script src="js/i18n.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/football-loader.js"></script>
   <script src="js/main.js"></script>
   
   <!-- Initialize Firebase when SDK is loaded -->
@@ -232,8 +261,18 @@
     // riesige Mehrheit der Fälle) spart das den kompletten Firebase-Roundtrip
     // auf dem Startbildschirm.
     if (localStorage.getItem('user')) {
+      // Bekannter Nutzer: Ladebildschirm bleibt genau so sichtbar, wie er
+      // schon beim ersten Paint war (kein Umschalten, kein Aufblitzen) - die
+      // Weiterleitung nimmt ihn quasi "mit" zu games.html, das ihn seinerseits
+      // schon als statisches Element mitbringt (siehe initPageWithLoader()
+      // in main.js).
       window.location.href = 'pages/games.html';
     } else {
+      // Kein gespeicherter Nutzer: hier gibt es nichts zu laden - Ladebild-
+      // schirm ausblenden und stattdessen den Login-Bildschirm zeigen.
+      document.getElementById('page-loader').classList.add('is-hidden');
+      document.documentElement.classList.remove('fbl-lock');
+      document.getElementById('app').classList.remove('hidden');
       waitForFirebaseSDK().then(async () => {
         if (typeof initializeFirebase === 'function') {
           initializeFirebase();
