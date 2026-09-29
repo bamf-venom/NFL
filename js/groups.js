@@ -41,12 +41,24 @@ async function initGroupsPage() {
 }
 
 // Load user groups from Firebase
-async function loadGroups() {
+async function loadGroups(isRetry = false) {
   try {
     userGroups = await firebaseGetUserGroups();
     renderGroups();
   } catch (error) {
     console.error('Error loading groups:', error);
+    // Direkt nach dem Laden der Seite ist der Firebase-Auth-Token manchmal
+    // noch nicht ganz beim Firestore-Backend angekommen (bekannte Race,
+    // siehe Caching-System.md) - eine Abfrage in genau diesem Moment
+    // schlägt dann einmalig fehl, obwohl ein sofortiger manueller Klick auf
+    // "Erneut versuchen" zuverlässig funktioniert (der Token ist inzwischen
+    // angekommen). Ein automatischer, einmaliger Retry nach kurzer Pause
+    // fängt genau diesen Fall ab, bevor der Nutzer überhaupt eine
+    // Fehlermeldung sieht.
+    if (!isRetry) {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      return loadGroups(true);
+    }
     document.getElementById('groups-container').innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-exclamation-triangle fa-3x empty-icon" style="color: var(--error);"></i>

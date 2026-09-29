@@ -81,7 +81,7 @@ function updateGroupInfo() {
 // forceRefresh: true wenn der Nutzer aktiv den Filter wechselt (dann frische Daten
 // statt Cache) - beim normalen Seitenaufruf reicht der 60s-Cache und spart die
 // teure Abfrage über ALLE Bets in der Datenbank
-async function loadLeaderboard(forceRefresh = false) {
+async function loadLeaderboard(forceRefresh = false, isRetry = false) {
   try {
     if (forceRefresh && typeof invalidateCache === 'function') {
       invalidateCache('leaderboard');
@@ -92,10 +92,18 @@ async function loadLeaderboard(forceRefresh = false) {
     } else {
       leaderboardData = await firebaseGetGroupLeaderboard(selectedGroup);
     }
-    
+
     renderLeaderboard();
   } catch (error) {
     console.error('Error loading leaderboard:', error);
+    // Siehe gleicher Kommentar bei loadGroups() in groups.js - direkt nach
+    // dem Laden der Seite ist der Firebase-Auth-Token manchmal noch nicht
+    // ganz beim Firestore-Backend angekommen, ein automatischer Retry fängt
+    // das ab, bevor der Nutzer überhaupt eine Fehlermeldung sieht.
+    if (!isRetry) {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      return loadLeaderboard(forceRefresh, true);
+    }
     document.getElementById('leaderboard-container').innerHTML = `
       <div class="card empty-state">
         <i class="fas fa-exclamation-triangle fa-3x empty-icon" style="color: var(--error);"></i>

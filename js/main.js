@@ -436,7 +436,8 @@ function waitForFirebaseSDK() {
 async function initPageWithLoader(pageInitFn) {
   const hasLoader = typeof FootballLoader !== 'undefined';
   if (hasLoader) {
-    FootballLoader.show({ variant: 'nfl', title: 'NFL POINTS' });
+    const logoPrefix = window.location.pathname.includes('/pages/') ? '../logos/' : 'logos/';
+    FootballLoader.show({ variant: 'nfl', logo: logoPrefix + 'nfl-logo-inverted.svg', title: 'NFL POINTS' });
   }
   try {
     if (typeof waitForFirebaseSDK === 'function') {
