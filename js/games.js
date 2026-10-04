@@ -637,7 +637,7 @@ function renderGames() {
         <div class="card card-hover game-card-expanded ${isBettingClosed ? 'opacity-70' : ''} ${isInternational ? 'game-card-international' : ''}"
              style="animation: fadeIn 0.4s ease-out ${gameIndex * 0.05}s both; --home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};"
              data-testid="game-card-${game.id}">
-          ${isInternational ? getInternationalBadgeHTML(game) : ''}
+          ${isInternational ? getInternationalBackdropHTML(game) + getInternationalBadgeHTML(game) : ''}
 
           <!-- Game Header - klickbar -->
           <div class="game-card-header" onclick="openGameDetail('${game.id}')">

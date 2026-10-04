@@ -30,7 +30,10 @@ Saison von Hand ausgeführt:
 - **`fetch-international-games.js <Saison>`** (z.B. `node fetch-international-games.js 2027`): gibt
   die Spiele mit Spielort außerhalb der USA aus ESPN als fertige Zeilen für `INTERNATIONAL_GAMES`
   in `js/config.js` aus (Markierung "International Series" in Spieleliste/Detail-Ansicht). Ohne
-  neue Zeilen werden die internationalen Spiele einer neuen Saison nicht markiert.
+  neue Zeilen werden die internationalen Spiele einer neuen Saison nicht markiert. Die offiziellen
+  Stadt-Logos der Saison liegen in `logos/international/<stadt>.webp` und werden pro Eintrag über
+  das Feld `logo: '<stadt>'` zugeordnet (aktuell nur 2026, die Logos tragen die Jahreszahl); ohne
+  `logo` zeigt die App stattdessen ein Globus-Icon.
 
 Beide Push-Benachrichtigungen (Wett-Erinnerung UND Versions-Update) werden pro Nutzer in dessen
 in den Einstellungen gewählter Sprache verschickt (`language`-Feld am Nutzer-Dokument, gepflegt

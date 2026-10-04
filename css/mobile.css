@@ -693,8 +693,7 @@
   }
 
   /* Away Team (unteres Team): Name ÜBER dem Logo */
-  .game-detail-team:last-of-type h3,
-  .game-detail-team:last-of-type .team-record {
+  .game-detail-team:last-of-type h3 {
     order: -1;
   }
 

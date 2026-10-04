@@ -21,7 +21,7 @@ Object.assign(TRANSLATIONS.de, {
   edit_bet_success: 'Wette erfolgreich aktualisiert!', edit_bet_hint: 'Du kannst deine Wette bis 24 Stunden vor Spielbeginn bearbeiten',
   btn_save_changes: 'Änderungen speichern', bet_saving: 'Wird gespeichert...',
   error_updating_bet: 'Fehler beim Aktualisieren der Wette', error_deleting_bet: 'Fehler beim Löschen der Wette',
-  win_rate: 'Siegquote',
+  record_label: 'Bilanz · Siegquote',
   team_record_hint: 'Siege-Niederlagen der regulären Saison vor diesem Spiel'
 });
 Object.assign(TRANSLATIONS.en, {
@@ -39,7 +39,7 @@ Object.assign(TRANSLATIONS.en, {
   edit_bet_success: 'Bet updated successfully!', edit_bet_hint: 'You can edit your bet up to 24 hours before kickoff',
   btn_save_changes: 'Save changes', bet_saving: 'Saving...',
   error_updating_bet: 'Error updating bet', error_deleting_bet: 'Error deleting bet',
-  win_rate: 'Win rate',
+  record_label: 'Record · Win rate',
   team_record_hint: 'Win-loss record of the regular season before this game'
 });
 
@@ -95,15 +95,37 @@ function getTeamRecordBefore(results, abbr, beforeTime) {
   return record;
 }
 
-function getTeamRecordHTML(abbr, game) {
+// Vergleichsbalken unter den Teams: links Auswärts-, rechts Heimteam (wie in
+// der Kopfzeile), oben Bilanz, darunter Siegquote als gespiegelte Balken, die
+// von der Mitte nach aussen wachsen. Das Team mit der höheren Quote ist
+// hervorgehoben.
+function getRecordCompareHTML(game) {
   if (!currentTeamResults) return '';
-  const record = getTeamRecordBefore(currentTeamResults, abbr, new Date(game.game_date).getTime());
-  const wl = `${record.wins}-${record.losses}${record.ties ? '-' + record.ties : ''}`;
-  const pct = record.pct === null ? '–' : `${Math.round(record.pct * 100)}%`;
+  const time = new Date(game.game_date).getTime();
+  const sides = [game.away_team_abbr, game.home_team_abbr].map(abbr => {
+    const record = getTeamRecordBefore(currentTeamResults, abbr, time);
+    return {
+      abbr,
+      wl: `${record.wins}-${record.losses}${record.ties ? '-' + record.ties : ''}`,
+      pct: record.pct,
+      pctText: record.pct === null ? '–' : `${Math.round(record.pct * 100)}%`
+    };
+  });
+  const [away, home] = sides;
+  const lead = (a, b) => (a.pct ?? -1) >= (b.pct ?? -1) ? ' leads' : '';
+
   return `
-    <div class="team-record" title="${t('team_record_hint')}" data-testid="team-record-${abbr}">
-      <span class="team-record-wl">${wl}</span>
-      <span class="team-record-pct">${t('win_rate')} ${pct}</span>
+    <div class="record-compare" title="${t('team_record_hint')}" data-testid="record-compare">
+      <div class="record-wl record-away${lead(away, home)}" data-testid="team-record-${away.abbr}"><span class="record-abbr">${away.abbr}</span>${away.wl}</div>
+      <div class="record-label">${t('record_label')}</div>
+      <div class="record-wl record-home${lead(home, away)}" data-testid="team-record-${home.abbr}">${home.wl}<span class="record-abbr">${home.abbr}</span></div>
+
+      <div class="record-pct record-away${lead(away, home)}">${away.pctText}</div>
+      <div class="record-bars">
+        <div class="record-bar record-away${lead(away, home)}"><i style="width: ${Math.round((away.pct ?? 0) * 100)}%"></i></div>
+        <div class="record-bar record-home${lead(home, away)}"><i style="width: ${Math.round((home.pct ?? 0) * 100)}%"></i></div>
+      </div>
+      <div class="record-pct record-home${lead(home, away)}">${home.pctText}</div>
     </div>
   `;
 }
@@ -259,6 +281,7 @@ function renderGameDetail() {
     <!-- NFL-Konvention "Away at Home" (z.B. "Ravens at Cowboys") - Auswärtsteam
          links, Heimteam rechts, konsistent mit der Spieleliste (games.js) -->
     <div class="card game-detail-header animate-fade-in ${getInternationalInfo(game) ? 'game-detail-international' : ''}" style="--home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};">
+      ${getInternationalBackdropHTML(game)}
       <div class="badge-lock-group" style="justify-content: center; margin-bottom: 16px;">
         <span class="badge ${badgeClass}">
           ${badgeText}
@@ -274,7 +297,6 @@ function renderGameDetail() {
         <div class="game-detail-team">
           ${getTeamLogoHTML(game.away_team_abbr, 80)}
           <h3 data-testid="away-team-name">${game.away_team}</h3>
-          ${getTeamRecordHTML(game.away_team_abbr, game)}
         </div>
 
         <!-- Score or VS -->
@@ -292,10 +314,11 @@ function renderGameDetail() {
         <div class="game-detail-team">
           ${getTeamLogoHTML(game.home_team_abbr, 80)}
           <h3 data-testid="home-team-name">${game.home_team}</h3>
-          ${getTeamRecordHTML(game.home_team_abbr, game)}
         </div>
       </div>
-      
+
+      ${getRecordCompareHTML(game)}
+
       <div class="game-detail-info">
         <i class="fas fa-clock"></i>
         <span>${t('week_n', { n: game.week })} • ${formatDate(game.game_date)}</span>

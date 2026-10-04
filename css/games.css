@@ -724,14 +724,54 @@
 }
 
 /* ==================== Internationale Spiele ==================== */
-/* Spielort ausserhalb der USA (siehe INTERNATIONAL_GAMES in config.js):
-   eigene Farbe (--intl), Streifen oben in der Karte + farbiger Rahmen */
+/* Spielort ausserhalb der USA (siehe INTERNATIONAL_GAMES in config.js): eigene
+   Farbe (--intl), farbiger Rahmen, Stadt-Logo als Wasserzeichen im Hintergrund
+   und ein Streifen/eine Plakette mit Logo + Stadt */
 .game-card-international {
   border-color: rgba(var(--intl-rgb), 0.4);
   box-shadow: 0 0 0 1px rgba(var(--intl-rgb), 0.08), 0 8px 28px rgba(var(--intl-rgb), 0.07);
 }
 
+/* Hintergrund-Ebene: Farbverlauf von rechts + Logo, das zur Kartenmitte hin
+   ausläuft - verschmilzt mit der Karte statt sie zu überdecken */
+.international-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(270deg, rgba(var(--intl-rgb), 0.16) 0%, rgba(var(--intl-rgb), 0.05) 45%, transparent 75%);
+}
+
+.international-bg img {
+  position: absolute;
+  right: -3%;
+  top: 50%;
+  height: 130%;
+  width: auto;
+  transform: translateY(-50%);
+  opacity: 0.14;
+  -webkit-mask-image: linear-gradient(to left, #000 25%, transparent 92%);
+  mask-image: linear-gradient(to left, #000 25%, transparent 92%);
+}
+
+/* Inhalt über dem Hintergrund, Team-Farbbalken ganz oben darüber */
+.game-card-international > :not(.international-bg),
+.game-detail-international > :not(.international-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+.game-card-international::before,
+.game-detail-international::before {
+  z-index: 2;
+}
+
 .international-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   color: var(--intl);
   font-size: 11px;
   font-weight: 700;
@@ -739,12 +779,14 @@
   text-transform: uppercase;
 }
 
-.international-badge-main {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 4px 8px;
+.international-badge-logo {
+  height: 24px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.international-badge-globe {
+  font-size: 13px;
 }
 
 .international-badge-city {
@@ -754,45 +796,101 @@
 
 /* Streifen oben in der Spielkarte (unterhalb des 3px-Team-Farbbalkens) */
 .game-card-expanded > .international-badge {
-  padding: 9px 14px 6px;
+  padding: 8px 14px 5px;
   background: rgba(var(--intl-rgb), 0.1);
 }
 
-/* Detail-Ansicht: abgerundete Plakette unter der Status-Zeile */
+/* Detail-Ansicht: Plakette mit Logo links, Text rechts. Der Header ist
+   (besonders auf Mobile) viel höher als eine Spielkarte, das Wasserzeichen
+   bekommt deshalb eine feste Grösse statt Prozent der Höhe */
+.game-detail-international {
+  overflow: hidden;
+  border-color: rgba(var(--intl-rgb), 0.4);
+}
+
+.game-detail-international .international-bg img {
+  height: 280px;
+  right: -70px;
+  opacity: 0.1;
+}
+
 .international-badge-detail {
   display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  margin: 0 auto 20px;
-  padding: 8px 16px;
+  gap: 12px;
+  margin: 0 auto 24px;
+  padding: 8px 20px 8px 12px;
   background: rgba(var(--intl-rgb), 0.1);
   border: 1px solid rgba(var(--intl-rgb), 0.4);
-  border-radius: 12px;
+  border-radius: 14px;
+  text-align: left;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.international-badge-detail .international-badge-logo {
+  height: 54px;
+}
+
+.international-badge-detail .international-badge-globe {
+  font-size: 26px;
+  padding: 0 6px;
+}
+
+.international-badge-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.international-badge-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.international-badge-detail .international-badge-city {
+  padding: 0;
+  border: 0;
+  color: var(--foreground);
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
 }
 
 .international-badge-stadium {
   color: var(--muted-light);
   font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.game-detail-header.game-detail-international {
-  border-color: rgba(var(--intl-rgb), 0.4);
 }
 
 /* ==================== Team-Bilanz (Detail-Ansicht) ==================== */
-.team-record {
-  display: flex;
-  flex-direction: column;
+/* Vergleichsbalken unter den Teams: Auswärtsteam links, Heimteam rechts.
+   Oben Bilanz, unten Siegquote als gespiegelte Balken, die von der Mitte nach
+   aussen wachsen; das Team mit der höheren Quote ist hervorgehoben. */
+.record-compare {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 2px;
-  margin-top: -6px;
+  column-gap: 14px;
+  row-gap: 7px;
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 10px 16px 11px;
+  background: rgba(var(--white-rgb), 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-align: left;
 }
 
-.team-record-wl {
+.record-wl {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  color: var(--muted-light);
   font-family: 'Barlow Condensed', 'Inter', sans-serif;
   font-style: italic;
   font-size: 22px;
@@ -800,10 +898,73 @@
   line-height: 1;
 }
 
-.team-record-pct {
+.record-wl.leads,
+.record-pct.leads {
+  color: var(--foreground);
+}
+
+.record-wl.record-home,
+.record-pct.record-home {
+  justify-self: end;
+}
+
+.record-abbr {
+  color: var(--muted);
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.record-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.record-pct {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.record-bars {
+  display: flex;
+  gap: 3px;
+  height: 4px;
+}
+
+.record-bar {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: rgba(var(--white-rgb), 0.13);
+  border-radius: 2px;
+}
+
+.record-bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(var(--white-rgb), 0.38);
+  border-radius: 2px;
+}
+
+.record-bar.leads i {
+  background: var(--foreground);
+}
+
+.record-bar.record-away i {
+  right: 0;
+}
+
+.record-bar.record-home i {
+  left: 0;
 }
 
 /* Überschreibe game-card-header für expanded cards */

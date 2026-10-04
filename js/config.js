@@ -120,15 +120,15 @@ const INTERNATIONAL_GAMES = {
   '2025_7_JAX_LAR': { city: 'London', stadium: 'Wembley Stadium' },
   '2025_10_ATL_IND': { city: 'Berlin', stadium: 'Olympic Stadium Berlin' },
   '2025_11_MIA_WAS': { city: 'Madrid', stadium: 'Santiago Bernabéu' },
-  '2026_1_LAR_SF': { city: 'Melbourne', stadium: 'Melbourne Cricket Ground' },
-  '2026_3_BAL_DAL': { city: 'Rio de Janeiro', stadium: 'Maracanã Stadium' },
-  '2026_4_IND_WAS': { city: 'London', stadium: 'Tottenham Hotspur Stadium' },
-  '2026_5_JAX_PHI': { city: 'London', stadium: 'Tottenham Hotspur Stadium' },
-  '2026_6_HOU_JAX': { city: 'London', stadium: 'Wembley Stadium' },
-  '2026_7_NO_PIT': { city: 'Paris', stadium: 'Stade de France' },
-  '2026_9_ATL_CIN': { city: 'Madrid', stadium: 'Santiago Bernabéu' },
-  '2026_10_DET_NE': { city: 'Munich', city_de: 'München', stadium: 'FC Bayern Munich Stadium' },
-  '2026_11_MIN_SF': { city: 'Mexico City', city_de: 'Mexiko-Stadt', stadium: 'Estadio Banorte' },
+  '2026_1_LAR_SF': { logo: 'melbourne', city: 'Melbourne', stadium: 'Melbourne Cricket Ground' },
+  '2026_3_BAL_DAL': { logo: 'rio', city: 'Rio de Janeiro', stadium: 'Maracanã Stadium' },
+  '2026_4_IND_WAS': { logo: 'london', city: 'London', stadium: 'Tottenham Hotspur Stadium' },
+  '2026_5_JAX_PHI': { logo: 'london', city: 'London', stadium: 'Tottenham Hotspur Stadium' },
+  '2026_6_HOU_JAX': { logo: 'london', city: 'London', stadium: 'Wembley Stadium' },
+  '2026_7_NO_PIT': { logo: 'paris', city: 'Paris', stadium: 'Stade de France' },
+  '2026_9_ATL_CIN': { logo: 'madrid', city: 'Madrid', stadium: 'Santiago Bernabéu' },
+  '2026_10_DET_NE': { logo: 'munich', city: 'Munich', city_de: 'München', stadium: 'FC Bayern Munich Stadium' },
+  '2026_11_MIN_SF': { logo: 'mexico', city: 'Mexico City', city_de: 'Mexiko-Stadt', stadium: 'Estadio Banorte' },
 };
 
 function getInternationalInfo(game) {
@@ -136,22 +136,60 @@ function getInternationalInfo(game) {
   return INTERNATIONAL_GAMES[`${game.season}_${game.week}_${pair}`] || null;
 }
 
+// Das offizielle Logo der jeweiligen "International Series"-Stadt (logos/international/<logo>.webp)
+// gibt es nur für Einträge mit `logo`-Feld (aktuell die Saison 2026, die Logos
+// tragen die Jahreszahl). Ohne Logo fällt die Anzeige auf ein Globus-Icon zurück.
+function getInternationalLogoURL(info) {
+  if (!info.logo) return null;
+  const prefix = window.location.pathname.includes('/pages/') ? '../logos/international/' : 'logos/international/';
+  return `${prefix}${info.logo}.webp`;
+}
+
+function getInternationalCity(info) {
+  return (getCurrentLanguage() === 'de' && info.city_de) || info.city;
+}
+
 // Hinweis-Element für internationale Spiele (leer, wenn das Spiel in den USA
-// stattfindet). In der Detail-Ansicht zusätzlich mit dem Stadion.
+// stattfindet). Kompakt als Streifen in der Spielkarte, mit Stadion als
+// Plakette in der Detail-Ansicht.
 function getInternationalBadgeHTML(game, { withStadium = false } = {}) {
   const info = getInternationalInfo(game);
   if (!info) return '';
-  const city = (getCurrentLanguage() === 'de' && info.city_de) || info.city;
-  return `
-    <div class="international-badge${withStadium ? ' international-badge-detail' : ''}" data-testid="international-badge">
-      <div class="international-badge-main">
-        <i class="fas fa-globe"></i>
-        <span>${t('intl_label')}</span>
-        <span class="international-badge-city">${city}</span>
+  const city = getInternationalCity(info);
+  const logoURL = getInternationalLogoURL(info);
+  const icon = logoURL
+    ? `<img class="international-badge-logo" src="${logoURL}" alt="">`
+    : `<i class="fas fa-globe international-badge-globe"></i>`;
+
+  if (withStadium) {
+    return `
+      <div class="international-badge international-badge-detail" data-testid="international-badge">
+        ${icon}
+        <div class="international-badge-text">
+          <div class="international-badge-label">${t('intl_label')}</div>
+          <div class="international-badge-city">${city}</div>
+          <div class="international-badge-stadium">${info.stadium}</div>
+        </div>
       </div>
-      ${withStadium ? `<div class="international-badge-stadium">${info.stadium}</div>` : ''}
+    `;
+  }
+  return `
+    <div class="international-badge" data-testid="international-badge">
+      ${icon}
+      <span>${t('intl_label')}</span>
+      <span class="international-badge-city">${city}</span>
     </div>
   `;
+}
+
+// Hintergrund für internationale Spiele: Farbverlauf in der International-Farbe
+// und das Stadt-Logo groß, stark ausgeblendet und zum Rand hin verlaufend, so
+// dass es mit der Karte verschmilzt statt sie zu überdecken
+function getInternationalBackdropHTML(game) {
+  const info = getInternationalInfo(game);
+  if (!info) return '';
+  const logoURL = getInternationalLogoURL(info);
+  return `<div class="international-bg" aria-hidden="true">${logoURL ? `<img src="${logoURL}" alt="">` : ''}</div>`;
 }
 
 // Admin email for Firebase (gleiche Email wie Admin-Account)
