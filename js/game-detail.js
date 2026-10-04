@@ -295,7 +295,7 @@ function renderGameDetail() {
       <div class="game-detail-teams">
         <!-- Away Team -->
         <div class="game-detail-team">
-          ${getTeamLogoHTML(game.away_team_abbr, 80)}
+          ${getTeamLogoHTML(game.away_team_abbr, 72)}
           <h3 data-testid="away-team-name">${game.away_team}</h3>
         </div>
 
@@ -312,7 +312,7 @@ function renderGameDetail() {
 
         <!-- Home Team -->
         <div class="game-detail-team">
-          ${getTeamLogoHTML(game.home_team_abbr, 80)}
+          ${getTeamLogoHTML(game.home_team_abbr, 72)}
           <h3 data-testid="home-team-name">${game.home_team}</h3>
         </div>
       </div>

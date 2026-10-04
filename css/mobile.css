@@ -684,17 +684,8 @@
     padding: 20px 14px;
   }
 
-  .game-detail-teams {
-    gap: 20px;
-  }
-
   .game-detail-team h3 {
     font-size: 15px;
-  }
-
-  /* Away Team (unteres Team): Name ÜBER dem Logo */
-  .game-detail-team:last-of-type h3 {
-    order: -1;
   }
 
   .team-logo-lg {
