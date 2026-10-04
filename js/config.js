@@ -106,6 +106,54 @@ function getTeamLogoHTML(abbr, size = 40) {
   return `<div class="team-logo-placeholder" style="width: ${size}px; height: ${size}px;">${abbr.substring(0, 2)}</div>`;
 }
 
+// Internationale Spiele (Spielort ausserhalb der USA). Schlüssel:
+// "<Saison>_<Woche>_<Kürzel A>_<Kürzel B>", beide Kürzel alphabetisch sortiert
+// (unabhängig davon, wer in der Datenbank als Heimteam geführt wird).
+// Pro neuer Saison, sobald der Spielplan feststeht: im Ordner automation/
+// `node fetch-international-games.js <Saison>` ausführen und die Zeilen hier
+// ergänzen - sonst werden die Spiele der neuen Saison nicht markiert.
+const INTERNATIONAL_GAMES = {
+  '2025_1_KC_LAC': { city: 'São Paulo', stadium: 'Corinthians Arena' },
+  '2025_4_MIN_PIT': { city: 'Dublin', stadium: 'Croke Park' },
+  '2025_5_CLE_MIN': { city: 'London', stadium: 'Tottenham Hotspur Stadium' },
+  '2025_6_DEN_NYJ': { city: 'London', stadium: 'Tottenham Hotspur Stadium' },
+  '2025_7_JAX_LAR': { city: 'London', stadium: 'Wembley Stadium' },
+  '2025_10_ATL_IND': { city: 'Berlin', stadium: 'Olympic Stadium Berlin' },
+  '2025_11_MIA_WAS': { city: 'Madrid', stadium: 'Santiago Bernabéu' },
+  '2026_1_LAR_SF': { city: 'Melbourne', stadium: 'Melbourne Cricket Ground' },
+  '2026_3_BAL_DAL': { city: 'Rio de Janeiro', stadium: 'Maracanã Stadium' },
+  '2026_4_IND_WAS': { city: 'London', stadium: 'Tottenham Hotspur Stadium' },
+  '2026_5_JAX_PHI': { city: 'London', stadium: 'Tottenham Hotspur Stadium' },
+  '2026_6_HOU_JAX': { city: 'London', stadium: 'Wembley Stadium' },
+  '2026_7_NO_PIT': { city: 'Paris', stadium: 'Stade de France' },
+  '2026_9_ATL_CIN': { city: 'Madrid', stadium: 'Santiago Bernabéu' },
+  '2026_10_DET_NE': { city: 'Munich', city_de: 'München', stadium: 'FC Bayern Munich Stadium' },
+  '2026_11_MIN_SF': { city: 'Mexico City', city_de: 'Mexiko-Stadt', stadium: 'Estadio Banorte' },
+};
+
+function getInternationalInfo(game) {
+  const pair = [game.home_team_abbr, game.away_team_abbr].sort().join('_');
+  return INTERNATIONAL_GAMES[`${game.season}_${game.week}_${pair}`] || null;
+}
+
+// Hinweis-Element für internationale Spiele (leer, wenn das Spiel in den USA
+// stattfindet). In der Detail-Ansicht zusätzlich mit dem Stadion.
+function getInternationalBadgeHTML(game, { withStadium = false } = {}) {
+  const info = getInternationalInfo(game);
+  if (!info) return '';
+  const city = (getCurrentLanguage() === 'de' && info.city_de) || info.city;
+  return `
+    <div class="international-badge${withStadium ? ' international-badge-detail' : ''}" data-testid="international-badge">
+      <div class="international-badge-main">
+        <i class="fas fa-globe"></i>
+        <span>${t('intl_label')}</span>
+        <span class="international-badge-city">${city}</span>
+      </div>
+      ${withStadium ? `<div class="international-badge-stadium">${info.stadium}</div>` : ''}
+    </div>
+  `;
+}
+
 // Admin email for Firebase (gleiche Email wie Admin-Account)
 const ADMIN_EMAIL = 'info@mbpvfx.com';
 

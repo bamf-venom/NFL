@@ -11,7 +11,8 @@ Object.assign(TRANSLATIONS.de, {
   status_locked: 'GESPERRT', lock_title_locked: 'Tipp gesperrt - Spiel läuft/ist beendet',
   lock_title_open: 'Tipp noch möglich', my_pick: 'Dein Tipp',
   no_group_bets: 'Noch keine Wetten in der Gruppe',
-  back_to_games: 'Zurück zu den Spielen'
+  back_to_games: 'Zurück zu den Spielen',
+  intl_label: 'International Series'
 });
 Object.assign(TRANSLATIONS.en, {
   games_title: 'Games', games_subtitle: 'Choose a game and place your bet',
@@ -24,7 +25,8 @@ Object.assign(TRANSLATIONS.en, {
   status_locked: 'LOCKED', lock_title_locked: 'Picks locked - game is live/finished',
   lock_title_open: 'Picks still open', my_pick: 'Your pick',
   no_group_bets: 'No picks in this group yet',
-  back_to_games: 'Back to games'
+  back_to_games: 'Back to games',
+  intl_label: 'International Series'
 });
 
 let gamesData = [];
@@ -592,6 +594,7 @@ function renderGames() {
         ? `<i class="fas fa-lock lock-icon locked" title="${t('lock_title_locked')}"></i>`
         : `<i class="fas fa-lock-open lock-icon open" title="${t('lock_title_open')}"></i>`;
 
+      const isInternational = !!getInternationalInfo(game);
       const myBet = userBetsMap[game.id];
       const groupBets = groupBetsMap[game.id] || [];
 
@@ -631,10 +634,11 @@ function renderGames() {
       }
       
       html += `
-        <div class="card card-hover game-card-expanded ${isBettingClosed ? 'opacity-70' : ''}"
+        <div class="card card-hover game-card-expanded ${isBettingClosed ? 'opacity-70' : ''} ${isInternational ? 'game-card-international' : ''}"
              style="animation: fadeIn 0.4s ease-out ${gameIndex * 0.05}s both; --home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};"
              data-testid="game-card-${game.id}">
-          
+          ${isInternational ? getInternationalBadgeHTML(game) : ''}
+
           <!-- Game Header - klickbar -->
           <div class="game-card-header" onclick="openGameDetail('${game.id}')">
             <!-- Top Row: Badge links, Countdown mittig, eigene Wette + Pfeil rechts (für Mobile) -->

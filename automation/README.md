@@ -24,6 +24,14 @@ Workflow `.github/workflows/notify-new-version.yml`):
   Network-first ohnehin immer den neuesten Stand aus). Erst hochzählen und diesen Workflow
   auslösen, wenn es explizit eine neue "Vollversion" geben soll.
 
+Ein weiteres Skript braucht weder Zugangsdaten noch GitHub Actions, sondern wird einmal pro neuer
+Saison von Hand ausgeführt:
+
+- **`fetch-international-games.js <Saison>`** (z.B. `node fetch-international-games.js 2027`): gibt
+  die Spiele mit Spielort außerhalb der USA aus ESPN als fertige Zeilen für `INTERNATIONAL_GAMES`
+  in `js/config.js` aus (Markierung "International Series" in Spieleliste/Detail-Ansicht). Ohne
+  neue Zeilen werden die internationalen Spiele einer neuen Saison nicht markiert.
+
 Beide Push-Benachrichtigungen (Wett-Erinnerung UND Versions-Update) werden pro Nutzer in dessen
 in den Einstellungen gewählter Sprache verschickt (`language`-Feld am Nutzer-Dokument, gepflegt
 von `firebaseUpdateUserLanguage()` in `js/firebase-config.js`; Default Deutsch, falls ein Nutzer

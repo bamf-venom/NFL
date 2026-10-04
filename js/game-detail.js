@@ -20,7 +20,9 @@ Object.assign(TRANSLATIONS.de, {
   error_placing_bet: 'Fehler beim Platzieren der Wette', edit_bet_title: 'Wette bearbeiten',
   edit_bet_success: 'Wette erfolgreich aktualisiert!', edit_bet_hint: 'Du kannst deine Wette bis 24 Stunden vor Spielbeginn bearbeiten',
   btn_save_changes: 'Änderungen speichern', bet_saving: 'Wird gespeichert...',
-  error_updating_bet: 'Fehler beim Aktualisieren der Wette', error_deleting_bet: 'Fehler beim Löschen der Wette'
+  error_updating_bet: 'Fehler beim Aktualisieren der Wette', error_deleting_bet: 'Fehler beim Löschen der Wette',
+  win_rate: 'Siegquote',
+  team_record_hint: 'Siege-Niederlagen der regulären Saison vor diesem Spiel'
 });
 Object.assign(TRANSLATIONS.en, {
   game_not_found: 'Game not found', back_to_games_btn: 'Back to games',
@@ -36,12 +38,84 @@ Object.assign(TRANSLATIONS.en, {
   error_placing_bet: 'Error placing bet', edit_bet_title: 'Edit bet',
   edit_bet_success: 'Bet updated successfully!', edit_bet_hint: 'You can edit your bet up to 24 hours before kickoff',
   btn_save_changes: 'Save changes', bet_saving: 'Saving...',
-  error_updating_bet: 'Error updating bet', error_deleting_bet: 'Error deleting bet'
+  error_updating_bet: 'Error updating bet', error_deleting_bet: 'Error deleting bet',
+  win_rate: 'Win rate',
+  team_record_hint: 'Win-loss record of the regular season before this game'
 });
 
 let currentGameData = null;
 let groupBetsData = []; // Wetten der Mitglieder der ausgewählten Gruppe (nicht mehr "alle Wetten global")
 let myBetData = null;
+let currentTeamResults = null; // Ergebnisse der Saison pro Team, siehe getSeasonTeamResults()
+
+// ==================== TEAM-BILANZ (Siege-Niederlagen) ====================
+// Wird aus den ohnehin geladenen beendeten Spielen der Saison berechnet - keine
+// zusätzlichen Firestore-Abfragen und nichts, was extra gespeichert werden
+// müsste. Das Ergebnis bleibt ein fester Wert (wird pro Saison gemerkt), bis
+// sich die beendeten Spiele ändern: sobald ein Spiel beendet wird (oder ein
+// Endstand korrigiert wird), passt die Signatur nicht mehr und es wird beim
+// nächsten Öffnen einer Detail-Ansicht automatisch neu berechnet.
+const REGULAR_SEASON_LAST_WEEK = 18;
+const teamResultsCache = {}; // season -> { signature, results }
+
+function getSeasonTeamResults(season, games) {
+  const finished = games.filter(g =>
+    g.season === season && g.status === 'finished' && g.week <= REGULAR_SEASON_LAST_WEEK &&
+    g.home_score != null && g.away_score != null
+  );
+  const signature = finished.map(g => `${g.id}:${g.home_score}-${g.away_score}`).join('|');
+
+  const cached = teamResultsCache[season];
+  if (cached && cached.signature === signature) return cached.results;
+
+  const results = {}; // Kürzel -> [{ time, outcome: 'W' | 'L' | 'T' }]
+  finished.forEach(g => {
+    const time = new Date(g.game_date).getTime();
+    const diff = g.home_score - g.away_score;
+    (results[g.home_team_abbr] = results[g.home_team_abbr] || []).push({ time, outcome: diff > 0 ? 'W' : diff < 0 ? 'L' : 'T' });
+    (results[g.away_team_abbr] = results[g.away_team_abbr] || []).push({ time, outcome: diff < 0 ? 'W' : diff > 0 ? 'L' : 'T' });
+  });
+
+  teamResultsCache[season] = { signature, results };
+  return results;
+}
+
+// Bilanz eines Teams VOR dem Anpfiff des betrachteten Spiels. Unentschieden
+// zählen wie in der NFL als halber Sieg.
+function getTeamRecordBefore(results, abbr, beforeTime) {
+  const record = { wins: 0, losses: 0, ties: 0, pct: null };
+  (results[abbr] || []).forEach(r => {
+    if (r.time >= beforeTime) return;
+    if (r.outcome === 'W') record.wins++;
+    else if (r.outcome === 'L') record.losses++;
+    else record.ties++;
+  });
+  const total = record.wins + record.losses + record.ties;
+  if (total > 0) record.pct = (record.wins + record.ties / 2) / total;
+  return record;
+}
+
+function getTeamRecordHTML(abbr, game) {
+  if (!currentTeamResults) return '';
+  const record = getTeamRecordBefore(currentTeamResults, abbr, new Date(game.game_date).getTime());
+  const wl = `${record.wins}-${record.losses}${record.ties ? '-' + record.ties : ''}`;
+  const pct = record.pct === null ? '–' : `${Math.round(record.pct * 100)}%`;
+  return `
+    <div class="team-record" title="${t('team_record_hint')}" data-testid="team-record-${abbr}">
+      <span class="team-record-wl">${wl}</span>
+      <span class="team-record-pct">${t('win_rate')} ${pct}</span>
+    </div>
+  `;
+}
+
+// Spiele der Saison für die Bilanz: normalerweise liegen sie über games.js
+// schon im Speicher, bei einem Deep-Link auf eine noch nicht geladene Saison
+// wird sie (aus dem Cache bzw. gezielt) nachgeladen
+async function getSeasonGamesForRecords(season) {
+  const loaded = typeof gamesData !== 'undefined' ? gamesData.filter(g => g.season === season) : [];
+  if (loaded.length > 0) return loaded;
+  return await firebaseGetGames({ season });
+}
 
 // Load game detail - bevorzugt aus den bereits von games.js geladenen
 // Daten (gamesData/userBetsMap/userGroups), damit das Öffnen eines Spiels
@@ -65,6 +139,15 @@ async function loadGameDetail(gameId) {
         </div>
       `;
       return;
+    }
+
+    // Die Bilanz ist nur eine Zusatzinfo - schlägt das Laden fehl, wird die
+    // Detail-Ansicht trotzdem ohne sie angezeigt
+    try {
+      currentTeamResults = getSeasonTeamResults(game.season, await getSeasonGamesForRecords(game.season));
+    } catch (error) {
+      console.error('Error loading team records:', error);
+      currentTeamResults = null;
     }
 
     myBetData = (typeof userBetsMap !== 'undefined' ? userBetsMap[gameId] : null) || null;
@@ -175,7 +258,7 @@ function renderGameDetail() {
     <!-- Game Header -->
     <!-- NFL-Konvention "Away at Home" (z.B. "Ravens at Cowboys") - Auswärtsteam
          links, Heimteam rechts, konsistent mit der Spieleliste (games.js) -->
-    <div class="card game-detail-header animate-fade-in" style="--home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};">
+    <div class="card game-detail-header animate-fade-in ${getInternationalInfo(game) ? 'game-detail-international' : ''}" style="--home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};">
       <div class="badge-lock-group" style="justify-content: center; margin-bottom: 16px;">
         <span class="badge ${badgeClass}">
           ${badgeText}
@@ -184,11 +267,14 @@ function renderGameDetail() {
         ${lockIconHTML}
       </div>
 
+      ${getInternationalBadgeHTML(game, { withStadium: true })}
+
       <div class="game-detail-teams">
         <!-- Away Team -->
         <div class="game-detail-team">
           ${getTeamLogoHTML(game.away_team_abbr, 80)}
           <h3 data-testid="away-team-name">${game.away_team}</h3>
+          ${getTeamRecordHTML(game.away_team_abbr, game)}
         </div>
 
         <!-- Score or VS -->
@@ -206,6 +292,7 @@ function renderGameDetail() {
         <div class="game-detail-team">
           ${getTeamLogoHTML(game.home_team_abbr, 80)}
           <h3 data-testid="home-team-name">${game.home_team}</h3>
+          ${getTeamRecordHTML(game.home_team_abbr, game)}
         </div>
       </div>
       

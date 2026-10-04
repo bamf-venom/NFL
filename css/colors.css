@@ -30,6 +30,11 @@
   --error-light: #f87171;
   --error-light-rgb: 248, 113, 113;
   
+  /* Internationale Spiele (Spielort ausserhalb der USA) - bewusst eine Farbe,
+     die sonst nirgends in der App vorkommt, damit sie sofort auffällt */
+  --intl: #38bdf8;
+  --intl-rgb: 56, 189, 248;
+
   /* ===== PRIMÄR-FARBEN ===== */
   --primary: #ffffff;
   --primary-foreground: #000000;
