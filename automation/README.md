@@ -31,7 +31,7 @@ Saison von Hand ausgeführt:
   die Spiele mit Spielort außerhalb der USA aus ESPN als fertige Zeilen für `INTERNATIONAL_GAMES`
   in `js/config.js` aus (Markierung "International Series" in Spieleliste/Detail-Ansicht). Ohne
   neue Zeilen werden die internationalen Spiele einer neuen Saison nicht markiert. Die offiziellen
-  Stadt-Logos der Saison liegen in `logos/international/<stadt>.webp` und werden pro Eintrag über
+  Stadt-Logos der Saison liegen in `logos/international/<stadt>.webp` (384px hoch) und werden pro Eintrag über
   das Feld `logo: '<stadt>'` zugeordnet (aktuell nur 2026, die Logos tragen die Jahreszahl); ohne
   `logo` zeigt die App stattdessen ein Globus-Icon.
 

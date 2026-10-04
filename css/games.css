@@ -761,14 +761,12 @@
 }
 
 /* Inhalt über dem Hintergrund, Team-Farbbalken ganz oben darüber */
-.game-card-international > :not(.international-bg),
-.game-detail-international > :not(.international-bg) {
+.game-card-international > :not(.international-bg) {
   position: relative;
   z-index: 1;
 }
 
-.game-card-international::before,
-.game-detail-international::before {
+.game-card-international::before {
   z-index: 2;
 }
 
@@ -805,22 +803,10 @@
   background: rgba(var(--intl-rgb), 0.1);
 }
 
-/* Detail-Ansicht: Plakette mit Logo links, Text rechts. Der Header ist
-   (besonders auf Mobile) viel höher als eine Spielkarte, das Wasserzeichen
-   bekommt deshalb eine feste Grösse statt Prozent der Höhe */
+/* Detail-Ansicht: Plakette mit Logo links, Text rechts (bewusst ohne
+   Logo-Wasserzeichen im Hintergrund, nur Rahmen in der International-Farbe) */
 .game-detail-international {
-  overflow: hidden;
   border-color: rgba(var(--intl-rgb), 0.4);
-}
-
-.game-detail-international .international-bg img {
-  height: 300px;
-  right: auto;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  opacity: 0.055;
-  -webkit-mask-image: radial-gradient(closest-side, #000 50%, transparent 100%);
-  mask-image: radial-gradient(closest-side, #000 50%, transparent 100%);
 }
 
 .international-badge-detail {
