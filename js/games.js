@@ -521,15 +521,29 @@ function handleBettingCountdownExpired() {
   }
 }
 
+// Seitenweiter Super-Bowl-Konfetti-Effekt (celebration.js): soll nur laufen,
+// wenn der Super-Bowl-Filter aktiv ist (Woche 22 der gewählten Saison), die
+// Liste sichtbar ist (nicht die Detail-Ansicht) und es das Spiel gibt. Bei
+// "Alle Wochen" gibt es bewusst keinen Effekt.
+function updateSuperBowlPageEffect() {
+  const listView = document.getElementById('games-list-view');
+  const listVisible = !!listView && !listView.classList.contains('hidden');
+  const superBowl = listVisible && Number(selectedWeek) === SUPER_BOWL_WEEK
+    ? gamesData.find(g => g.season === selectedSeason && isSuperBowlGame(g))
+    : null;
+  syncSuperBowlPageEffect(superBowl || null);
+}
+
 // Render games list
 function renderGames() {
   const container = document.getElementById('games-container');
   const user = currentUser;
 
-  // Laufende Super-Bowl-Konfetti-Effekte der alten Karten beenden, bevor der
-  // Inhalt unten neu aufgebaut wird (siehe celebration.js)
-  stopSuperBowlListEffects();
-  
+  // Seitenweiter Super-Bowl-Konfetti-Effekt: läuft nur bei aktivem
+  // Super-Bowl-Filter (siehe celebration.js). Unabhängig vom gerenderten
+  // Inhalt, deshalb gleich hier am Anfang für alle Pfade unten.
+  updateSuperBowlPageEffect();
+
   let filteredGames = gamesData;
   
   // Apply season filter
@@ -599,7 +613,6 @@ function renderGames() {
         : `<i class="fas fa-lock-open lock-icon open" title="${t('lock_title_open')}"></i>`;
 
       const isInternational = !!getInternationalInfo(game);
-      const isSuperBowl = isSuperBowlGame(game);
       const myBet = userBetsMap[game.id];
       const groupBets = groupBetsMap[game.id] || [];
 
@@ -639,11 +652,10 @@ function renderGames() {
       }
       
       html += `
-        <div class="card card-hover game-card-expanded ${isBettingClosed ? 'opacity-70' : ''} ${isInternational ? 'game-card-international' : ''} ${isSuperBowl ? 'game-card-superbowl' : ''}"
+        <div class="card card-hover game-card-expanded ${isBettingClosed ? 'opacity-70' : ''} ${isInternational ? 'game-card-international' : ''}"
              style="animation: fadeIn 0.4s ease-out ${gameIndex * 0.05}s both; --home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};"
              data-testid="game-card-${game.id}">
           ${isInternational ? getInternationalBackdropHTML(game) + getInternationalBadgeHTML(game) : ''}
-          ${isSuperBowl ? getSuperBowlCanvasHTML(game) : ''}
 
           <!-- Game Header - klickbar -->
           <div class="game-card-header" onclick="openGameDetail('${game.id}')">
@@ -777,9 +789,6 @@ function renderGames() {
   });
   
   container.innerHTML = html;
-
-  // Konfetti in der Super-Bowl-Karte (falls in dieser Ansicht eine da ist)
-  startSuperBowlListEffects(container, gamesData);
 }
 
 // ==================== SPIEL-DETAIL ALS IN-PAGE-ANSICHT ====================
@@ -810,6 +819,7 @@ async function openGameDetail(gameId, { pushState = true } = {}) {
   stopSuperBowlFireworks();
   listView.classList.add('hidden');
   detailView.classList.remove('hidden');
+  updateSuperBowlPageEffect();
   window.scrollTo(0, 0);
 
   document.getElementById('game-detail-container').innerHTML = `
@@ -834,6 +844,7 @@ function closeGameDetail({ pushState = true } = {}) {
   stopSuperBowlFireworks();
   detailView.classList.add('hidden');
   listView.classList.remove('hidden');
+  updateSuperBowlPageEffect();
   window.scrollTo(0, savedListScrollY);
 }
 

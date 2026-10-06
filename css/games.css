@@ -978,18 +978,17 @@
 }
 
 /* ==================== Super Bowl: Konfetti-Ebene ==================== */
-/* Canvas liegt über der Karte, fängt aber keine Klicks ab (die Karte bleibt
-   normal anklickbar). Die Höhe wird per JS auf den Spielbereich begrenzt
-   (siehe fitSuperBowlCanvas in celebration.js). Die Karte selbst schneidet
-   alles ab, was über den Rand hinausfliegt (overflow: hidden). */
-.game-card-expanded > .superbowl-confetti {
-  position: absolute;
+/* Feste Zeichenfläche über der ganzen Seite (Konfetti vom linken/rechten
+   Bildschirmrand, siehe celebration.js). Fängt keine Klicks ab. z-index 30:
+   über dem Seiteninhalt, aber unter Navigation (40), Dropdowns und Dialogen. */
+.superbowl-page-confetti {
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 3;
+  z-index: 30;
 }
 
 /* Überschreibe game-card-header für expanded cards */

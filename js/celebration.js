@@ -1,9 +1,10 @@
 // ==================== SUPER-BOWL-EFFEKTE ====================
 // Konfetti-Effekte rund um den Super Bowl (canvas-confetti, siehe
 // js/vendor/confetti.browser.min.js):
-//  - Spieleliste: "School Pride" - Konfetti-Fontänen von beiden Seiten, NUR
-//    innerhalb der Super-Bowl-Karte, in den Farben der beiden Teams. Ist das
-//    Spiel beendet, nur in den Farben des Siegers.
+//  - Spieleliste, NUR bei aktivem Super-Bowl-Filter: "School Pride" über die
+//    ganze Seite - Konfetti-Fontänen vom linken und rechten Bildschirmrand,
+//    in den Farben der beiden Teams. Ist das Spiel beendet, nur in den Farben
+//    des Siegers.
 //  - Detail-Ansicht eines beendeten Super Bowls: bunte "Fireworks" über der
 //    ganzen Seite.
 // Ohne geladene Library (z.B. blockiert) passiert einfach nichts.
@@ -28,6 +29,9 @@ const TEAM_CONFETTI_COLORS = {
   TEN: ['#4b92db', '#e0183c'], WAS: ['#b5273b', '#ffb612']
 };
 
+// Farben der Library-Demo, falls ein Kürzel keiner bekannten Mannschaft entspricht
+const DEFAULT_CONFETTI_COLORS = ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'];
+
 function isSuperBowlGame(game) {
   return !!game && Number(game.week) === SUPER_BOWL_WEEK;
 }
@@ -51,7 +55,7 @@ function getSuperBowlConfettiColors(game) {
     if (winner) return winner.slice();
   }
 
-  if (!away || !home) return undefined; // Standardfarben der Library
+  if (!away || !home) return DEFAULT_CONFETTI_COLORS.slice();
   const homeColor = confettiColorDistance(away[0], home[0]) < 70 ? home[1] : home[0];
   return [away[0], homeColor];
 }
@@ -64,110 +68,132 @@ function confettiAvailable() {
   return typeof confetti === 'function' && typeof confetti.create === 'function' && !prefersReducedMotion();
 }
 
-// ---------- Spieleliste: "School Pride" in der Super-Bowl-Karte ----------
-const SUPER_BOWL_LIST_EFFECT_MS = 15000;
+// ---------- Spieleliste: "School Pride" über die ganze Seite ----------
+const SUPER_BOWL_PAGE_EFFECT_MS = 15000;
 
-// Fest abgestimmt auf die kleine Karte (voller Standard-Wert wäre eine
-// Fontäne über den ganzen Bildschirm)
-const SUPER_BOWL_LIST_SHOT = {
-  particleCount: 2, spread: 55, startVelocity: 26, gravity: 0.8, ticks: 120, scalar: 0.75
-};
-
-let superBowlListObserver = null;
-const superBowlListRunning = new Map(); // canvas -> stop()
-
-function getSuperBowlCanvasHTML(game) {
-  return `<canvas class="superbowl-confetti" data-game-id="${game.id}" aria-hidden="true"></canvas>`;
+// Fontänen am linken und rechten Bildschirmrand. Die Original-Demo ("School
+// Pride": 60/120 Grad, Tempo 45) verteilt das Konfetti über die ganze Breite,
+// hier sollen die Fontänen am Rand bleiben (gemessen: >= 99 % des Konfettis in
+// den äusseren 25 % je Seite bei Desktop, in den äusseren ~35 % bei Handy) -
+// deshalb steilere Winkel und weniger Tempo. Auf schmalen Bildschirmen
+// (Handy) zusätzlich weniger Teilchen und kürzere Lebensdauer, sonst
+// verdeckt es zu viel vom Inhalt.
+// angle = Winkel der linken Fontäne, die rechte ist gespiegelt (180 - angle).
+function getSuperBowlPageShot() {
+  return window.innerWidth < 768
+    ? { particleCount: 1, angle: 72, spread: 38, startVelocity: 20, gravity: 0.8, ticks: 150, scalar: 0.9 }
+    : { particleCount: 2, angle: 68, spread: 45, startVelocity: 30, gravity: 0.9, ticks: 170, scalar: 1 };
 }
 
-// Die Konfetti-Ebene deckt nur den Spielbereich der Karte ab, nicht die
-// Tipps der Gruppenmitglieder darunter - sonst würde sich der Effekt mit
-// aktivem Gruppenfilter über die ganze, dann viel höhere Karte verteilen
-function fitSuperBowlCanvas(canvas) {
-  const card = canvas.parentElement;
-  const header = card.querySelector('.game-card-header');
-  const paddingBottom = parseFloat(getComputedStyle(card).paddingBottom) || 0;
-  const wanted = header ? header.offsetTop + header.offsetHeight + paddingBottom : card.clientHeight;
-  canvas.style.height = Math.min(wanted, card.clientHeight) + 'px';
-}
+// key = Zustand, für den der Effekt gerade läuft oder schon gelaufen ist
+// (Spiel + Farben). Solange derselbe Zustand bleibt (z.B. beim Wechsel des
+// Gruppenfilters, der die Liste neu rendert), startet er nicht neu.
+const superBowlPageEffect = { key: null, stop: null };
 
-function runSuperBowlSchoolPride(canvas, colors, durationMs = SUPER_BOWL_LIST_EFFECT_MS) {
-  if (!confettiAvailable()) return () => {};
+function runSuperBowlPageSchoolPride(colors, durationMs = SUPER_BOWL_PAGE_EFFECT_MS) {
+  // Eigene, feste Zeichenfläche über der ganzen Seite; Klicks gehen durch
+  // (pointer-events: none, siehe .superbowl-page-confetti in games.css)
+  const canvas = document.createElement('canvas');
+  canvas.className = 'superbowl-page-confetti';
+  canvas.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(canvas);
 
-  fitSuperBowlCanvas(canvas);
   // Mit der Geräte-Pixeldichte zeichnen (sonst wirkt das Konfetti auf
   // Handys unscharf) und Geschwindigkeit/Schwerkraft/Grösse entsprechend
   // mitskalieren, damit es auf jedem Gerät gleich aussieht
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = Math.max(1, Math.round(rect.width * dpr));
-  canvas.height = Math.max(1, Math.round(rect.height * dpr));
+  let dpr = 1;
+  let fitted = { w: 0, h: 0 };
+  const fit = () => {
+    dpr = Math.min(window.devicePixelRatio || 1, 2); // bei jedem Anpassen neu (Fenster kann auf anderen Monitor wechseln)
+    const rect = canvas.getBoundingClientRect();
+    fitted = { w: rect.width, h: rect.height };
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+  };
+  fit();
 
   const fire = confetti.create(canvas, { resize: false, useWorker: false, disableForReducedMotion: true });
-  const base = SUPER_BOWL_LIST_SHOT;
+  let base = getSuperBowlPageShot();
+  // Pro Schuss eine zufällige der Farben: die Library verteilt die Farben
+  // sonst nur innerhalb EINES Aufrufs (bei 1 Teilchen immer die erste Farbe)
+  const pickColor = () => [colors[Math.floor(Math.random() * colors.length)]];
   const shot = (angle, x) => fire({
     particleCount: base.particleCount,
     angle,
     spread: base.spread,
-    origin: { x, y: 0.8 },
-    colors,
+    origin: { x },
+    colors: pickColor(),
     startVelocity: base.startVelocity * dpr,
     gravity: base.gravity * dpr,
     scalar: base.scalar * dpr,
     ticks: base.ticks
   });
 
-  const end = Date.now() + durationMs;
   let stopped = false;
   let raf = 0;
+  let last = null;
+
+  // Bei Drehen des Geräts/Ändern der Fenstergrösse die Zeichenfläche neu
+  // anpassen. Kleine Höhenänderungen (Adressleiste auf dem Handy blendet beim
+  // Scrollen ein/aus) werden ignoriert. Laufende Teilchen müssen vorher
+  // verworfen werden, sonst rechnet die Library mit der alten Grösse weiter.
+  function onResize() {
+    const rect = canvas.getBoundingClientRect();
+    if (Math.abs(rect.width - fitted.w) < 40 && Math.abs(rect.height - fitted.h) < 120) return;
+    fire.reset();
+    fit();
+    base = getSuperBowlPageShot();
+  }
+  window.addEventListener('resize', onResize);
+
+  function cleanup() {
+    window.removeEventListener('resize', onResize);
+    canvas.remove();
+  }
+
+  const end = Date.now() + durationMs;
   (function frame() {
     if (stopped) return;
-    shot(60, 0);
-    shot(120, 1);
-    if (Date.now() < end) raf = requestAnimationFrame(frame);
+    shot(base.angle, 0);
+    last = shot(180 - base.angle, 1);
+    if (Date.now() < end) {
+      raf = requestAnimationFrame(frame);
+    } else {
+      // Zeit um: die letzten Teilchen noch auslaufen lassen, dann aufräumen
+      Promise.resolve(last).then(() => { if (!stopped) cleanup(); });
+    }
   })();
 
   return function stop() {
     stopped = true;
     cancelAnimationFrame(raf);
     fire.reset();
-    const ctx = canvas.getContext('2d');
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    cleanup();
   };
 }
 
-function stopSuperBowlListEffects() {
-  if (superBowlListObserver) {
-    superBowlListObserver.disconnect();
-    superBowlListObserver = null;
-  }
-  superBowlListRunning.forEach(stop => stop());
-  superBowlListRunning.clear();
+function stopSuperBowlPageEffect() {
+  if (superBowlPageEffect.stop) superBowlPageEffect.stop();
+  superBowlPageEffect.key = null;
+  superBowlPageEffect.stop = null;
 }
 
-// Startet den Effekt, sobald die Super-Bowl-Karte im sichtbaren Bereich ist,
-// und beendet ihn beim Wegscrollen bzw. wenn die Liste ausgeblendet wird
-// (Detail-Ansicht offen). Beim erneuten Sichtbarwerden läuft er wieder an.
-function startSuperBowlListEffects(root, games) {
-  const canvases = root.querySelectorAll('canvas.superbowl-confetti');
-  if (!canvases.length || !confettiAvailable() || typeof IntersectionObserver === 'undefined') return;
+// Wird mit dem Super-Bowl-Spiel aufgerufen, wenn der Effekt laufen SOLL (Super-
+// Bowl-Filter aktiv und Liste sichtbar), sonst mit null. Startet nur, wenn er
+// für diesen Zustand nicht schon läuft bzw. gelaufen ist - ein erneutes
+// Aufrufen (Neu-Rendern der Liste) startet ihn also nicht von vorn.
+function syncSuperBowlPageEffect(game) {
+  if (!game || !confettiAvailable()) {
+    stopSuperBowlPageEffect();
+    return;
+  }
+  const colors = getSuperBowlConfettiColors(game);
+  const key = `${game.id}|${game.status}|${colors ? colors.join(',') : ''}`;
+  if (superBowlPageEffect.key === key) return;
 
-  superBowlListObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      const canvas = entry.target;
-      if (entry.isIntersecting) {
-        if (superBowlListRunning.has(canvas)) return;
-        const game = games.find(g => g.id === canvas.dataset.gameId);
-        if (!game) return;
-        superBowlListRunning.set(canvas, runSuperBowlSchoolPride(canvas, getSuperBowlConfettiColors(game)));
-      } else if (superBowlListRunning.has(canvas)) {
-        superBowlListRunning.get(canvas)();
-        superBowlListRunning.delete(canvas);
-      }
-    });
-  }, { threshold: 0.15 });
-
-  canvases.forEach(canvas => superBowlListObserver.observe(canvas));
+  stopSuperBowlPageEffect();
+  superBowlPageEffect.key = key;
+  superBowlPageEffect.stop = runSuperBowlPageSchoolPride(colors);
 }
 
 // ---------- Detail-Ansicht: "Fireworks" bei beendetem Super Bowl ----------
