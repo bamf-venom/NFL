@@ -183,12 +183,13 @@ function getInternationalBadgeHTML(game, { withStadium = false } = {}) {
 }
 
 // Hintergrund für internationale Spiele: Farbverlauf in der International-Farbe
-// und das Stadt-Logo groß, stark ausgeblendet und zum Rand hin verlaufend, so
-// dass es mit der Karte verschmilzt statt sie zu überdecken
-function getInternationalBackdropHTML(game) {
+// und (mit logo: true) das Stadt-Logo groß, stark ausgeblendet und zum Rand hin
+// verlaufend, so dass es mit der Karte verschmilzt statt sie zu überdecken. Die
+// Detail-Ansicht nutzt logo: false, dort soll nur der Verlauf erscheinen.
+function getInternationalBackdropHTML(game, { logo = true } = {}) {
   const info = getInternationalInfo(game);
   if (!info) return '';
-  const logoURL = getInternationalLogoURL(info);
+  const logoURL = logo ? getInternationalLogoURL(info) : null;
   return `<div class="international-bg" aria-hidden="true">${logoURL ? `<img src="${logoURL}" alt="">` : ''}</div>`;
 }
 

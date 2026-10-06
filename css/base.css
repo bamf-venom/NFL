@@ -45,6 +45,31 @@ body {
   background: var(--muted);
 }
 
+/* Mobil (schmale Breite oder Touch-Gerät): Scrollbar überall unsichtbar, auch
+   kurz im Ladebildschirm und in Listen/Dropdowns. Gescrollt wird weiterhin
+   ganz normal, nur der Balken wird nicht angezeigt. Steht bewusst hier in
+   base.css (auf jeder Seite ganz früh geladen) und gilt für ALLE Elemente. */
+@media (max-width: 768px), (pointer: coarse) {
+  html {
+    scrollbar-gutter: auto;
+  }
+
+  html,
+  body,
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  *::-webkit-scrollbar,
+  ::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
+}
+
 /* ==================== Selection ==================== */
 ::selection {
   background: rgba(var(--accent-rgb), 0.3);

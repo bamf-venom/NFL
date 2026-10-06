@@ -281,6 +281,7 @@ function renderGameDetail() {
     <!-- NFL-Konvention "Away at Home" (z.B. "Ravens at Cowboys") - Auswärtsteam
          links, Heimteam rechts, konsistent mit der Spieleliste (games.js) -->
     <div class="card game-detail-header animate-fade-in ${getInternationalInfo(game) ? 'game-detail-international' : ''}" style="--home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};">
+      ${getInternationalBackdropHTML(game, { logo: false })}
       <div class="badge-lock-group" style="justify-content: center; margin-bottom: 16px;">
         <span class="badge ${badgeClass}">
           ${badgeText}

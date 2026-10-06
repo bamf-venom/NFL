@@ -748,25 +748,37 @@
   background: linear-gradient(270deg, rgba(var(--intl-rgb), 0.16) 0%, rgba(var(--intl-rgb), 0.05) 45%, transparent 75%);
 }
 
+/* Feste Grösse und Position statt Prozent der Kartenhöhe: mit aktivem
+   Gruppenfilter wächst die Karte um die Tipps der Mitglieder, das Logo darf
+   dabei nicht mitwachsen. Werte = 130 % der Kartenhöhe ohne Filter (Desktop
+   165px, Mobile 202px), vertikal mittig dazu. */
 .international-bg img {
   position: absolute;
   right: -3%;
-  top: 50%;
-  height: 130%;
+  top: -24px;
+  height: 214px;
   width: auto;
-  transform: translateY(-50%);
   opacity: 0.14;
   -webkit-mask-image: linear-gradient(to left, #000 25%, transparent 92%);
   mask-image: linear-gradient(to left, #000 25%, transparent 92%);
 }
 
+@media (max-width: 768px) {
+  .international-bg img {
+    top: -30px;
+    height: 262px;
+  }
+}
+
 /* Inhalt über dem Hintergrund, Team-Farbbalken ganz oben darüber */
-.game-card-international > :not(.international-bg) {
+.game-card-international > :not(.international-bg),
+.game-detail-international > :not(.international-bg) {
   position: relative;
   z-index: 1;
 }
 
-.game-card-international::before {
+.game-card-international::before,
+.game-detail-international::before {
   z-index: 2;
 }
 
@@ -803,9 +815,10 @@
   background: rgba(var(--intl-rgb), 0.1);
 }
 
-/* Detail-Ansicht: Plakette mit Logo links, Text rechts (bewusst ohne
-   Logo-Wasserzeichen im Hintergrund, nur Rahmen in der International-Farbe) */
+/* Detail-Ansicht: Plakette mit Logo links, Text rechts. Hintergrund nur der
+   blaue Verlauf von der Seite, bewusst OHNE Logo-Wasserzeichen. */
 .game-detail-international {
+  overflow: hidden;
   border-color: rgba(var(--intl-rgb), 0.4);
 }
 
