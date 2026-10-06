@@ -525,6 +525,10 @@ function handleBettingCountdownExpired() {
 function renderGames() {
   const container = document.getElementById('games-container');
   const user = currentUser;
+
+  // Laufende Super-Bowl-Konfetti-Effekte der alten Karten beenden, bevor der
+  // Inhalt unten neu aufgebaut wird (siehe celebration.js)
+  stopSuperBowlListEffects();
   
   let filteredGames = gamesData;
   
@@ -595,6 +599,7 @@ function renderGames() {
         : `<i class="fas fa-lock-open lock-icon open" title="${t('lock_title_open')}"></i>`;
 
       const isInternational = !!getInternationalInfo(game);
+      const isSuperBowl = isSuperBowlGame(game);
       const myBet = userBetsMap[game.id];
       const groupBets = groupBetsMap[game.id] || [];
 
@@ -634,10 +639,11 @@ function renderGames() {
       }
       
       html += `
-        <div class="card card-hover game-card-expanded ${isBettingClosed ? 'opacity-70' : ''} ${isInternational ? 'game-card-international' : ''}"
+        <div class="card card-hover game-card-expanded ${isBettingClosed ? 'opacity-70' : ''} ${isInternational ? 'game-card-international' : ''} ${isSuperBowl ? 'game-card-superbowl' : ''}"
              style="animation: fadeIn 0.4s ease-out ${gameIndex * 0.05}s both; --home-color: ${TEAM_COLORS[game.home_team_abbr] || 'var(--accent)'}; --away-color: ${TEAM_COLORS[game.away_team_abbr] || 'var(--accent)'};"
              data-testid="game-card-${game.id}">
           ${isInternational ? getInternationalBackdropHTML(game) + getInternationalBadgeHTML(game) : ''}
+          ${isSuperBowl ? getSuperBowlCanvasHTML(game) : ''}
 
           <!-- Game Header - klickbar -->
           <div class="game-card-header" onclick="openGameDetail('${game.id}')">
@@ -771,6 +777,9 @@ function renderGames() {
   });
   
   container.innerHTML = html;
+
+  // Konfetti in der Super-Bowl-Karte (falls in dieser Ansicht eine da ist)
+  startSuperBowlListEffects(container, gamesData);
 }
 
 // ==================== SPIEL-DETAIL ALS IN-PAGE-ANSICHT ====================
@@ -798,6 +807,7 @@ async function openGameDetail(gameId, { pushState = true } = {}) {
 
   savedListScrollY = window.scrollY;
 
+  stopSuperBowlFireworks();
   listView.classList.add('hidden');
   detailView.classList.remove('hidden');
   window.scrollTo(0, 0);
@@ -821,6 +831,7 @@ function closeGameDetail({ pushState = true } = {}) {
     history.pushState({}, '', 'games.html');
   }
 
+  stopSuperBowlFireworks();
   detailView.classList.add('hidden');
   listView.classList.remove('hidden');
   window.scrollTo(0, savedListScrollY);

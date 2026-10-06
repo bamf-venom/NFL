@@ -199,6 +199,11 @@ async function loadGameDetail(gameId) {
     }
 
     renderGameDetail();
+
+    // Beendeter Super Bowl: Feuerwerk. Bewusst hier und nicht in
+    // renderGameDetail(), das auch bei Tipp-Änderungen oder Gruppenwechsel
+    // erneut läuft - das Feuerwerk soll nur einmal pro Öffnen kommen.
+    celebrateSuperBowlDetail(currentGameData);
   } catch (error) {
     console.error('Error loading game:', error);
     document.getElementById('game-detail-container').innerHTML = `
