@@ -31,7 +31,8 @@ Object.assign(TRANSLATIONS.de, {
   error_only_admin_rename_group: 'Nur der Admin kann den Gruppennamen ändern',
   error_group_name_min_length: 'Gruppenname muss mindestens 2 Zeichen haben',
   error_push_not_supported: 'Dein Browser unterstützt leider keine Push-Benachrichtigungen',
-  error_push_permission_denied: 'Benachrichtigungen wurden nicht erlaubt. Du kannst das in den Browser-/App-Einstellungen ändern.'
+  error_push_permission_denied: 'Benachrichtigungen wurden nicht erlaubt. Du kannst das in den Browser-/App-Einstellungen ändern.',
+  error_delete_relogin: 'Aus Sicherheitsgründen ist dafür eine frische Anmeldung nötig. Bitte melde dich kurz ab und wieder an und lösche dein Konto danach direkt. Es wurde nichts gelöscht.'
 });
 Object.assign(TRANSLATIONS.en, {
   error_not_logged_in: 'Not logged in', error_user_data_not_found: 'User data not found',
@@ -52,7 +53,8 @@ Object.assign(TRANSLATIONS.en, {
   error_only_admin_rename_group: 'Only the admin can change the group name',
   error_group_name_min_length: 'Group name must be at least 2 characters',
   error_push_not_supported: 'Your browser does not support push notifications',
-  error_push_permission_denied: 'Notifications were not allowed. You can change this in your browser/app settings.'
+  error_push_permission_denied: 'Notifications were not allowed. You can change this in your browser/app settings.',
+  error_delete_relogin: 'For security reasons this needs a fresh login. Please log out and log back in, then delete your account right away. Nothing was deleted.'
 });
 
 // ==================== PERFORMANCE CACHE ====================
@@ -534,10 +536,32 @@ async function firebaseGetCurrentUser(useCache = true) {
   return result;
 }
 
+// Firebase verlangt für user.delete() eine Anmeldung, die höchstens ca. 5
+// Minuten zurückliegt, sonst wirft es auth/requires-recent-login. Dieser
+// Fehler kam früher erst NACH dem Löschen von Nutzer-Dokument und Tipps und
+// hat ein Auth-Konto ohne Profildaten zurückgelassen: checkAuth() findet dann
+// kein Profil und leitet zur Startseite, die wegen des gespeicherten Nutzers
+// sofort wieder zur Spiele-Seite leitet - Endlosschleife. Deshalb wird die
+// Anmeldezeit vorab geprüft und abgebrochen, bevor irgendetwas gelöscht wird.
+// 4 statt 5 Minuten als Sicherheitsabstand zur Serverschwelle.
+const RECENT_LOGIN_MAX_AGE_MS = 4 * 60 * 1000;
+
+async function firebaseAssertRecentLogin(user) {
+  // authTime ist die Zeit der echten Anmeldung (ein Token-Refresh ändert sie
+  // nicht). Fehlt sie oder ist sie nicht lesbar, ist der Vergleich false und
+  // es wird abgebrochen - lieber nichts löschen als ein halbes Konto zu hinterlassen.
+  const { authTime } = await user.getIdTokenResult();
+  if (!(Date.now() - Date.parse(authTime) <= RECENT_LOGIN_MAX_AGE_MS)) {
+    throw new Error(t('error_delete_relogin'));
+  }
+}
+
 async function firebaseDeleteAccount() {
   const user = auth.currentUser;
   if (!user) throw new Error(t('error_not_logged_in'));
-  
+
+  await firebaseAssertRecentLogin(user);
+
   await collections.users().doc(user.uid).delete();
   
   const betsSnapshot = await collections.bets().where('user_id', '==', user.uid).get();
