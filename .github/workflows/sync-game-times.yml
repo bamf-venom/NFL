@@ -1,0 +1,51 @@
+name: Anstoßzeiten mit ESPN abgleichen (manuell)
+
+# NUR manuell auslösbar. Der regelmäßige Abgleich läuft als Schritt im Workflow
+# "NFL Ergebnisse automatisch eintragen" (update-scores.yml).
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Abweichende Zeiten wirklich korrigieren (aus = nur berichten)'
+        type: boolean
+        default: false
+      scope:
+        description: 'all = komplette Saisons prüfen, window = nur nicht beendete Spiele der nächsten 21 Tage'
+        type: choice
+        options:
+          - all
+          - window
+        default: all
+      seasons:
+        description: 'Saisons, Komma-getrennt (nur bei scope=all)'
+        type: string
+        default: '2025,2026'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Abhängigkeiten installieren
+        working-directory: automation
+        run: npm install
+
+      - name: Spiele mit ESPN abgleichen
+        working-directory: automation
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          SYNC_APPLY: ${{ inputs.apply }}
+          SYNC_SCOPE: ${{ inputs.scope }}
+          SYNC_SEASONS: ${{ inputs.seasons }}
+        run: |
+          ARGS="--scope=$SYNC_SCOPE --seasons=$SYNC_SEASONS"
+          if [ "$SYNC_APPLY" = "true" ]; then ARGS="$ARGS --apply"; fi
+          echo "node sync-game-times.js $ARGS"
+          node sync-game-times.js $ARGS
