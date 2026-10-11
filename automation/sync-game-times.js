@@ -7,14 +7,14 @@
 // "geplant" und war weiter tippbar (Packers - Bears, Woche 5: eingetragen 22:25,
 // tatsächlich 19:00 Uhr).
 //
-// Dieses Skript gleicht Anstoßzeit, Heim/Auswärts, Woche und Endstände mit ESPN ab
+// Dieses Skript gleicht Anstoßzeit, Heim/Auswärts, Woche, Teamnamen und Endstände mit ESPN ab
 // und kann abweichende Anstoßzeiten korrigieren:
 //
 //   node sync-game-times.js                      Trockenlauf: nur berichten, nichts schreiben
 //   node sync-game-times.js --apply              abweichende Zeiten korrigieren
 //   node sync-game-times.js --scope=all --seasons=2025,2026
 //                                                komplette Saison(en) prüfen (Standard: window =
-//                                                nur nicht beendete Spiele der nächsten 21 Tage)
+//                                                nur nicht beendete Spiele der nächsten 14 Tage)
 //   node sync-game-times.js --apply --hourly     wie --apply, läuft aber nur in den ersten 10
 //                                                Minuten jeder Stunde (für den 5-Minuten-Takt)
 //
@@ -64,6 +64,8 @@ function normalizeEspnEvent(event) {
     id: event.id,
     home: ourAbbr(home.team.abbreviation),
     away: ourAbbr(away.team.abbreviation),
+    homeName: home.team.displayName,
+    awayName: away.team.displayName,
     date: new Date(event.date),
     timeValid: comp.timeValid !== false,
     state: statusType.state, // pre | in | post
@@ -149,6 +151,12 @@ function auditGames(fsGames, espnByKey, options = {}) {
       if (Math.abs(diffMs) >= TIME_TOLERANCE_MS) findings.push({ type: 'zeit', game, ev, diffMs });
     }
 
+    // Teamnamen (Anzeige in der App) müssen zu den Kürzeln passen
+    const sameName = (a, b) => !a || !b || String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+    if (!sameName(game.home_team, ev.homeName) || !sameName(game.away_team, ev.awayName)) {
+      findings.push({ type: 'teamname', game, ev });
+    }
+
     const expected = EXPECTED_STATUS[ev.state];
     if (expected && game.status !== expected) {
       findings.push({ type: 'status', game, ev, expected });
@@ -191,6 +199,8 @@ function describeFinding(f) {
       return `STATUS      ${gameLabel(f.game)}: Firestore "${f.game.status}", ESPN meldet "${f.ev.state}" (erwartet "${f.expected}")`;
     case 'endstand':
       return `ENDSTAND    ${gameLabel(f.game)}: Firestore ${f.game.away_score}:${f.game.home_score}, ESPN ${f.ev.awayScore}:${f.ev.homeScore} (Gast:Heim)`;
+    case 'teamname':
+      return `TEAMNAME    ${gameLabel(f.game)}: Firestore "${f.game.away_team}" @ "${f.game.home_team}", ESPN "${f.ev.awayName}" @ "${f.ev.homeName}"`;
     case 'home_away':
       return `HEIM/GAST   ${gameLabel(f.game)}: bei ESPN ist es ${f.ev.away} @ ${f.ev.home}`;
     case 'andere_woche':
@@ -255,7 +265,7 @@ async function loadFirestoreGames(db, opts) {
     console.log(`Spiele-Sammlung: ${snap.size} Dokumente, davon ${snaps.length} in den Saisons ${opts.seasons.join(', ')}.`);
     if (other.size) console.log(`Weitere Saison-Werte in der Sammlung (nicht geprüft): ${[...other].map(([s, n]) => `${s} (${n})`).join(', ')}`);
   } else {
-    const horizon = new Date(Date.now() + 21 * 24 * 3600 * 1000);
+    const horizon = new Date(Date.now() + 14 * 24 * 3600 * 1000);
     const snap = await db.collection('games')
       .where('status', 'in', ['scheduled', 'live'])
       .where('game_date', '<=', admin.firestore.Timestamp.fromDate(horizon))
@@ -344,7 +354,7 @@ async function main() {
 
   const findings = auditGames(checkable, espnByKey, { completeSeasons: opts.scope === 'all' ? opts.seasons : [] });
 
-  const order = ['zeit', 'kein_match', 'home_away', 'andere_woche', 'doppelt', 'fehlt_in_firestore', 'endstand', 'status'];
+  const order = ['zeit', 'kein_match', 'home_away', 'andere_woche', 'doppelt', 'fehlt_in_firestore', 'endstand', 'teamname', 'status'];
   findings.sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
   console.log(`\n${checkable.length} Spiele geprüft, ${findings.length} Befunde:`);
   findings.forEach(f => console.log(describeFinding(f)));

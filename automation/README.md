@@ -1,7 +1,19 @@
 # Automatischer Ergebnis-Check + Push-Benachrichtigungen
 
-Zwei Skripte laufen alle 15 Minuten über GitHub Actions (`.github/workflows/update-scores.yml`):
+Drei Skripte laufen regelmäßig über GitHub Actions (`.github/workflows/update-scores.yml`, in der
+Praxis alle ~5 Minuten per cron-job.org):
 
+- **`sync-game-times.js`** (läuft nur in den ersten 10 Minuten jeder Stunde, `--hourly`): gleicht
+  die Anstoßzeit (`game_date`) aller nicht beendeten Spiele der nächsten 14 Tage mit ESPN ab und
+  korrigiert sie. Hintergrund: Die Spiele einer Saison werden einmalig angelegt
+  (`add-season-2026.html`); verlegt die NFL ein Spiel später (Flex-Scheduling), blieb die alte
+  Zeit stehen - und weil `check-scores.js` nur Spiele ansieht, deren `game_date` schon vorbei ist,
+  lief das Spiel dann real, stand aber auf "geplant" und war weiter tippbar (Packers - Bears,
+  Woche 5 der Saison 2026: eingetragen 22:25, tatsächlich 19:00). Mit der neuen Zeit werden auch
+  die Sperrzeiten (`betting_lock_time`) der bestehenden Tipps nachgezogen. Es werden nur Spiele
+  mit Status `scheduled`/`live` und gültiger ESPN-Zeit angefasst, höchstens 8 Korrekturen pro Lauf
+  (Schutz gegen eine fehlerhafte ESPN-Antwort). Der Schritt hat `continue-on-error`, blockiert
+  also nie den Ergebnis-Check.
 - **`check-scores.js`**: holt sich Ergebnisse von der kostenlosen ESPN-Schnittstelle und trägt sie
   in Firestore ein. Wird ein Spiel als beendet erkannt, werden automatisch auch die Punkte aller
   Tipps berechnet (gleiche Logik wie im Admin-Panel der App).
@@ -83,7 +95,25 @@ node send-bet-reminders.js
 node notify-new-version.js
 ```
 
+## Gesamtprüfung aller Spiele (manuell)
+
+`sync-game-times.js` ist zugleich ein Prüfwerkzeug: Es vergleicht Anstoßzeit, Heim/Gast, Woche,
+Teamnamen, Status und Endstände aller Spiele einer Saison mit ESPN und berichtet jede Abweichung
+(ohne Nutzernamen - die Logs dieses öffentlichen Repos sind öffentlich). Auslösen: GitHub-Repo →
+Tab **Actions** → **Anstoßzeiten mit ESPN abgleichen (manuell)** → **Run workflow**
+(`scope=all`, `seasons=2026`; **`apply` aus = nur berichten**, an = abweichende Zeiten laufender/
+geplanter Spiele korrigieren). Oder lokal: `node sync-game-times.js --scope=all --seasons=2026`
+(Trockenlauf; ohne `--apply` wird nichts geschrieben). Beendete Spiele, Endstände und Status
+werden nie automatisch geändert, nur gemeldet.
+
 ## Was die Skripte machen
+
+**sync-game-times.js:**
+1. Holt die nicht beendeten Spiele bis 14 Tage voraus (`--scope=all`: komplette Saisons)
+2. Fragt für jede betroffene (Saison, Woche) ESPN ab (`dates=<Saison>`, nicht `year=` - das ignoriert
+   ESPN; Playoff-Wochen 19-22 = `seasontype=3`, ESPN-Wochen 1, 2, 3, 5)
+3. Weicht die Anstoßzeit um mehr als eine Minute ab und ist die ESPN-Zeit gültig, wird `game_date`
+   und `betting_lock_time` der bestehenden Tipps (nur wo das Feld schon existiert) angepasst
 
 **check-scores.js:**
 1. Holt alle Spiele aus Firestore mit Status `scheduled` oder `live`, deren Anstoßzeit

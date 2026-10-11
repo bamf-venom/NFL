@@ -10,7 +10,7 @@ on:
         type: boolean
         default: false
       scope:
-        description: 'all = komplette Saisons prüfen, window = nur nicht beendete Spiele der nächsten 21 Tage'
+        description: 'all = komplette Saisons prüfen, window = nur nicht beendete Spiele der nächsten 14 Tage'
         type: choice
         options:
           - all

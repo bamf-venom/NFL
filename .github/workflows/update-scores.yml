@@ -22,6 +22,17 @@ jobs:
         working-directory: automation
         run: npm install
 
+      # Zuerst die Anstoßzeiten mit ESPN abgleichen (nur in den ersten 10 Minuten jeder
+      # Stunde, siehe --hourly), damit ein von der NFL verlegtes Spiel (Flex-Scheduling)
+      # noch im selben Lauf von check-scores.js richtig erkannt wird. Darf den
+      # Ergebnis-Check und die Erinnerungen nie blockieren.
+      - name: Anstoßzeiten mit ESPN abgleichen
+        working-directory: automation
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node sync-game-times.js --apply --scope=window --hourly
+
       - name: Ergebnisse prüfen und eintragen
         working-directory: automation
         env:
