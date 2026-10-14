@@ -138,6 +138,38 @@ async function main() {
     throw new Error(`Abbruch: ${dropWithTips.length} der weggelassenen Spiele haben Tipps (${dropWithTips.map(g => `${g.id}: ${tipsFor(g)}`).join(', ')}).`);
   }
 
+  // ---- Rohsicherung ----
+  if (opts.rawOut) {
+    const raw = snap.docs.map(doc => ({ doc_id: doc.id, data: toPlain(doc.data()) }));
+    fs.mkdirSync(path.dirname(path.resolve(opts.rawOut)), { recursive: true });
+    fs.writeFileSync(opts.rawOut, JSON.stringify({ season: opts.season, saved_at: new Date().toISOString(), count: raw.length, docs: raw }, null, 1) + '\n', 'utf8');
+    console.log(`\nRohsicherung geschrieben: ${opts.rawOut} (${raw.length} Dokumente, unverändert inkl. Doppelter).`);
+  }
+
+  // ---- Löschen (nur mit --delete-firestore --confirm=<Saison>) ----
+  if (opts.deleteFirestore) {
+    const archivePath = path.join(__dirname, '..', 'data', 'seasons', `${opts.season}.json`);
+    if (!fs.existsSync(archivePath)) throw new Error(`Abbruch: ${archivePath} existiert nicht - erst archivieren.`);
+    const archive = JSON.parse(fs.readFileSync(archivePath, 'utf8'));
+    if (String(archive.season) !== opts.season || !Array.isArray(archive.games) || archive.games.length === 0) {
+      throw new Error('Abbruch: Archivdatei passt nicht zur Saison oder ist leer.');
+    }
+    if (tipsTotal > 0) throw new Error(`Abbruch: ${tipsTotal} Tipps zeigen auf Spiele dieser Saison - nichts gelöscht.`);
+    console.log(`\nLösche ${snap.docs.length} Spiele-Dokumente der Saison ${opts.season} aus Firestore (Archivdatei: ${archive.games.length} Spiele, 0 Tipps betroffen)...`);
+    let batch = db.batch();
+    let pending = 0;
+    let deleted = 0;
+    for (const doc of snap.docs) {
+      batch.delete(doc.ref);
+      pending++;
+      if (pending >= 400) { await batch.commit(); deleted += pending; batch = db.batch(); pending = 0; }
+    }
+    if (pending > 0) { await batch.commit(); deleted += pending; }
+    const rest = await db.collection('games').where('season', '==', opts.season).get();
+    console.log(`Gelöscht: ${deleted} Dokumente. Verbleibend in Firestore für Saison ${opts.season}: ${rest.size}.`);
+    return;
+  }
+
   // ---- Datei ----
   if (!opts.out) {
     console.log('\nBericht-Modus: es wird nichts geschrieben (--out=<Datei> zum Schreiben).');
