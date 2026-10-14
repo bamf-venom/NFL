@@ -1,0 +1,62 @@
+name: Beendete Saison archivieren (manuell)
+
+# NUR manuell auslösbar. Schreibt die Spiele einer abgeschlossenen Saison in eine Datei
+# (data/seasons/<Saison>.json), die als Artefakt zum Download bereitsteht und dann ins
+# Repo übernommen wird. Ohne "write" gibt es nur einen Bericht im Log. Es werden nur
+# Spiele (öffentliche NFL-Daten) archiviert, keine Tipps oder Nutzerdaten - Artefakte und
+# Logs dieses öffentlichen Repos sind öffentlich. Firestore wird nicht verändert.
+on:
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Saison, z.B. 2025 (= Saison 2025/2026)'
+        type: string
+        required: true
+        default: '2025'
+      write:
+        description: 'Datei erzeugen (aus = nur Bericht im Log)'
+        type: boolean
+        default: false
+      drop:
+        description: 'Spiel-IDs weglassen, Komma-getrennt (z.B. Doppeleinträge aus dem Bericht)'
+        type: string
+        default: ''
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Abhängigkeiten installieren
+        working-directory: automation
+        run: npm install
+
+      - name: Saison auslesen
+        working-directory: automation
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          ARCHIVE_SEASON: ${{ inputs.season }}
+          ARCHIVE_WRITE: ${{ inputs.write }}
+          ARCHIVE_DROP: ${{ inputs.drop }}
+        run: |
+          ARGS="--season=$ARCHIVE_SEASON"
+          if [ -n "$ARCHIVE_DROP" ]; then ARGS="$ARGS --drop=$ARCHIVE_DROP"; fi
+          if [ "$ARCHIVE_WRITE" = "true" ]; then ARGS="$ARGS --out=../data/seasons/$ARCHIVE_SEASON.json"; fi
+          echo "node archive-season.js $ARGS"
+          node archive-season.js $ARGS
+
+      - name: Datei als Artefakt bereitstellen
+        if: ${{ inputs.write }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: saison-${{ inputs.season }}
+          path: data/seasons/${{ inputs.season }}.json
+          retention-days: 7
+          if-no-files-found: error
