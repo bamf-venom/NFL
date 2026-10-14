@@ -4,7 +4,8 @@ name: Beendete Saison archivieren (manuell)
 # (data/seasons/<Saison>.json), die als Artefakt zum Download bereitsteht und dann ins
 # Repo übernommen wird. Ohne "write" gibt es nur einen Bericht im Log. Es werden nur
 # Spiele (öffentliche NFL-Daten) archiviert, keine Tipps oder Nutzerdaten - Artefakte und
-# Logs dieses öffentlichen Repos sind öffentlich. Firestore wird nicht verändert.
+# Logs dieses öffentlichen Repos sind öffentlich. Firestore wird nur mit "delete_firestore"
+# verändert (Spiele-Dokumente der Saison löschen, nachdem die Datei im Repo liegt).
 on:
   workflow_dispatch:
     inputs:
@@ -19,6 +20,18 @@ on:
         default: false
       drop:
         description: 'Spiel-IDs weglassen, Komma-getrennt (z.B. Doppeleinträge aus dem Bericht)'
+        type: string
+        default: ''
+      backup:
+        description: 'Rohsicherung aller Spiele-Dokumente der Saison als Artefakt (vor dem Löschen)'
+        type: boolean
+        default: false
+      delete_firestore:
+        description: 'ACHTUNG: Spiele-Dokumente der Saison aus Firestore LÖSCHEN (nur wenn archiviert und ohne Tipps)'
+        type: boolean
+        default: false
+      confirm:
+        description: 'Nur beim Löschen: Saison zur Bestätigung noch einmal eintippen'
         type: string
         default: ''
 
@@ -45,10 +58,15 @@ jobs:
           ARCHIVE_SEASON: ${{ inputs.season }}
           ARCHIVE_WRITE: ${{ inputs.write }}
           ARCHIVE_DROP: ${{ inputs.drop }}
+          ARCHIVE_BACKUP: ${{ inputs.backup }}
+          ARCHIVE_DELETE: ${{ inputs.delete_firestore }}
+          ARCHIVE_CONFIRM: ${{ inputs.confirm }}
         run: |
           ARGS="--season=$ARCHIVE_SEASON"
           if [ -n "$ARCHIVE_DROP" ]; then ARGS="$ARGS --drop=$ARCHIVE_DROP"; fi
           if [ "$ARCHIVE_WRITE" = "true" ]; then ARGS="$ARGS --out=../data/seasons/$ARCHIVE_SEASON.json"; fi
+          if [ "$ARCHIVE_BACKUP" = "true" ]; then ARGS="$ARGS --raw-out=../backup/games-$ARCHIVE_SEASON-raw.json"; fi
+          if [ "$ARCHIVE_DELETE" = "true" ]; then ARGS="$ARGS --delete-firestore --confirm=$ARCHIVE_CONFIRM"; fi
           echo "node archive-season.js $ARGS"
           node archive-season.js $ARGS
 
@@ -58,5 +76,14 @@ jobs:
         with:
           name: saison-${{ inputs.season }}
           path: data/seasons/${{ inputs.season }}.json
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Rohsicherung als Artefakt bereitstellen
+        if: ${{ inputs.backup }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: saison-${{ inputs.season }}-roh
+          path: backup/games-${{ inputs.season }}-raw.json
           retention-days: 7
           if-no-files-found: error

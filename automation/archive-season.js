@@ -12,23 +12,38 @@
 //                                                                  Datei schreiben
 //   --drop=<id>,<id>   diese Spiel-IDs weglassen (z.B. Doppeleinträge, vorher im Bericht prüfen)
 //   --allow-unfinished auch schreiben, wenn nicht alle Spiele beendet sind (nur für Tests)
+//   --raw-out=<Datei>  alle Firestore-Dokumente der Saison unverändert sichern (auch Doppelte)
+//   --delete-firestore --confirm=<Saison>
+//                      die Spiele-Dokumente der Saison aus Firestore LÖSCHEN, nachdem sie archiviert
+//                      sind. Nur wenn: die Archivdatei data/seasons/<Saison>.json im Repo liegt und
+//                      zur Saison passt, kein einziger Tipp auf diese Spiele zeigt und --confirm
+//                      genau die Saison nennt.
 //
-// Die Firestore-Dokumente bleiben unangetastet (nichts wird gelöscht oder geändert).
+// Ohne --delete-firestore bleiben die Firestore-Dokumente unangetastet.
 
 const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
 
 function parseArgs(argv) {
-  const opts = { season: null, out: null, drop: [], allowUnfinished: false };
+  const opts = { season: null, out: null, drop: [], allowUnfinished: false, rawOut: null, deleteFirestore: false, confirm: null };
   for (const arg of argv) {
     if (arg.startsWith('--season=')) opts.season = arg.slice(9).trim();
     else if (arg.startsWith('--out=')) opts.out = arg.slice(6).trim();
     else if (arg.startsWith('--drop=')) opts.drop = arg.slice(7).split(',').map(s => s.trim()).filter(Boolean);
     else if (arg === '--allow-unfinished') opts.allowUnfinished = true;
+    else if (arg.startsWith('--raw-out=')) opts.rawOut = arg.slice(10).trim();
+    else if (arg === '--delete-firestore') opts.deleteFirestore = true;
+    else if (arg.startsWith('--confirm=')) opts.confirm = arg.slice(10).trim();
     else throw new Error(`Unbekanntes Argument: ${arg}`);
   }
   if (!/^\d{4}$/.test(opts.season || '')) throw new Error('--season=<Jahr> fehlt oder ist ungültig (z.B. 2025)');
+  if (opts.deleteFirestore && opts.confirm !== opts.season) {
+    throw new Error('--delete-firestore braucht --confirm=<Saison> mit genau derselben Saison');
+  }
+  if (opts.deleteFirestore && opts.out) {
+    throw new Error('--delete-firestore und --out nicht im selben Lauf (erst Datei schreiben und einchecken, dann löschen)');
+  }
   return opts;
 }
 
