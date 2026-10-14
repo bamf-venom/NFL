@@ -53,9 +53,38 @@ async function main() {
   const db = admin.firestore();
 
   const snap = await db.collection('games').where('season', '==', opts.season).get();
-  const games = snap.docs.map(doc => ({ ...toPlain(doc.data()), id: doc.id }));
+  // Gleiche ID-Logik wie mapGameDoc() in der App (js/firebase-config.js): Das Feld "id" im
+  // Dokument hat Vorrang, sonst die Dokument-ID. Tipps hängen über game_id an dieser ID.
+  const docIdOf = new Map();
+  const games = snap.docs.map(doc => {
+    const game = { id: doc.id, ...toPlain(doc.data()) };
+    docIdOf.set(game.id, doc.id);
+    return game;
+  });
   console.log(`Saison ${opts.season}: ${games.length} Spiele in Firestore.`);
   if (games.length === 0) throw new Error('Keine Spiele gefunden.');
+
+  // Dokumente, deren Feld "id" nicht zur Dokument-ID passt (alte Handeingaben)
+  const idMismatch = games.filter(g => docIdOf.get(g.id) !== g.id);
+  if (idMismatch.length) {
+    const byWeek = {};
+    idMismatch.forEach(g => { byWeek[g.week] = (byWeek[g.week] || 0) + 1; });
+    console.log(`Hinweis: ${idMismatch.length} Spiele haben ein id-Feld, das von der Dokument-ID abweicht (je Woche: ${JSON.stringify(byWeek)}) - die App nutzt das id-Feld, so auch die Datei.`);
+  }
+  const withoutIdField = snap.docs.filter(doc => doc.data().id === undefined);
+  if (withoutIdField.length) console.log(`Hinweis: ${withoutIdField.length} Spiele haben kein id-Feld - dort gilt die Dokument-ID.`);
+
+  // Tipps je Spiel (nur Anzahlen): alle Tipps einmal lesen, nach game_id zählen. Ein Tipp kann
+  // an der App-ID ODER an der Dokument-ID hängen.
+  const betsSnap = await db.collection('bets').select('game_id').get();
+  const betCount = new Map();
+  betsSnap.docs.forEach(doc => {
+    const id = doc.data().game_id;
+    betCount.set(id, (betCount.get(id) || 0) + 1);
+  });
+  const tipsFor = (g) => (betCount.get(g.id) || 0) + (docIdOf.get(g.id) !== g.id ? (betCount.get(docIdOf.get(g.id)) || 0) : 0);
+  const tipsTotal = games.reduce((sum, g) => sum + tipsFor(g), 0);
+  console.log(`Tipps auf Spiele dieser Saison: ${tipsTotal} (von ${betsSnap.size} Tipps insgesamt).`);
 
   // ---- Bericht ----
   const byStatus = {};
@@ -82,13 +111,17 @@ async function main() {
     const [week, home, away] = key.split('|');
     console.log(`  W${week} ${away} @ ${home}:`);
     for (const g of list) {
-      const bets = await db.collection('bets').where('game_id', '==', g.id).get();
-      console.log(`    id ${g.id} | ${g.game_date} | ${g.status} ${g.away_score}:${g.home_score} | ${bets.size} Tipps`);
+      console.log(`    id ${g.id} | ${g.game_date} | ${g.status} ${g.away_score}:${g.home_score} | ${tipsFor(g)} Tipps`);
     }
   }
 
   const unknownDrop = opts.drop.filter(id => !games.some(g => g.id === id));
   if (unknownDrop.length) throw new Error(`--drop enthält unbekannte Spiel-IDs: ${unknownDrop.join(', ')}`);
+  // Schutz: ein Spiel, auf das getippt wurde, wird nie weggelassen (die Tipps würden ins Leere zeigen)
+  const dropWithTips = games.filter(g => opts.drop.includes(g.id) && tipsFor(g) > 0);
+  if (dropWithTips.length) {
+    throw new Error(`Abbruch: ${dropWithTips.length} der weggelassenen Spiele haben Tipps (${dropWithTips.map(g => `${g.id}: ${tipsFor(g)}`).join(', ')}).`);
+  }
 
   // ---- Datei ----
   if (!opts.out) {
