@@ -670,6 +670,7 @@ async function firebaseUpdateUsername(newUsername) {
 function mapGameDoc(doc) {
   const data = doc.data();
   return {
+    id: doc.id, // Fallback - das Feld id im Dokument überschreibt es (gleicher Wert)
     ...data,
     game_date: data.game_date?.toDate?.()?.toISOString() || data.game_date,
     created_at: data.created_at?.toDate?.()?.toISOString() || data.created_at
@@ -746,6 +747,34 @@ async function getActiveGamesFresh(season = null) {
   return snapshot.docs.map(mapGameDoc);
 }
 
+// Kürzlich beendete Spiele - immer frisch. Schließt die Lücke zwischen den
+// beiden Listen oben: Ein Spiel, das NACH dem Schreiben des Caches der beendeten
+// Spiele von live auf finished wechselt, steht dort noch nicht drin und ist in
+// der "aktiv"-Liste nicht mehr enthalten - es fehlte dann komplett, und zwar bei
+// jedem Nutzer zu einem anderen Zeitpunkt (je nachdem, wann sein Cache
+// geschrieben wurde): "bei mir werden Spiele angezeigt, bei anderen nicht und
+// umgekehrt". Fenster 48 Stunden (ein Spiel wird kurz nach dem Ende beendet,
+// selbst Verzögerungen/Unterbrechungen liegen weit darunter). Läuft mit dem
+// vorhandenen Index status + game_date (derselbe wie in automation/check-scores.js),
+// deshalb wird nach Saison erst im Client gefiltert. Schlägt die Abfrage fehl,
+// bleibt es beim bisherigen Verhalten (leere Liste), die Seite lädt trotzdem.
+const RECENT_FINISHED_WINDOW_MS = 48 * 3600 * 1000;
+
+async function getRecentlyFinishedFresh(season = null) {
+  try {
+    const cutoff = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - RECENT_FINISHED_WINDOW_MS));
+    const snapshot = await collections.games()
+      .where('status', '==', 'finished')
+      .where('game_date', '>=', cutoff)
+      .get();
+    const games = snapshot.docs.map(mapGameDoc);
+    return season ? games.filter(game => game.season === season) : games;
+  } catch (error) {
+    console.warn('Kürzlich beendete Spiele konnten nicht frisch geladen werden:', error);
+    return [];
+  }
+}
+
 function invalidateGamesCaches() {
   Object.keys(finishedGamesCache).forEach(key => delete finishedGamesCache[key]);
   Object.keys(gamesCombinedCache).forEach(key => delete gamesCombinedCache[key]);
@@ -791,12 +820,18 @@ async function firebaseGetGames(filters = {}, useCache = true) {
       }
     }
 
-    const [finishedGames, activeGames] = await Promise.all([
+    const [finishedGames, recentFinished, activeGames] = await Promise.all([
       getFinishedGamesCached(filters.season),
+      getRecentlyFinishedFresh(filters.season),
       getActiveGamesFresh(filters.season)
     ]);
 
-    const sortedGames = [...finishedGames, ...activeGames]
+    // Nach ID zusammenführen (kürzlich beendete Spiele stehen oft auch in der
+    // gecachten Liste) - bei Doppelten gewinnt der frischere Stand:
+    // aktiv > kürzlich beendet > gecachte Liste
+    const gamesById = new Map();
+    [...finishedGames, ...recentFinished, ...activeGames].forEach(game => gamesById.set(game.id, game));
+    const sortedGames = [...gamesById.values()]
       .sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
 
     const entry = { data: sortedGames, timestamp: Date.now() };

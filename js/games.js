@@ -206,7 +206,15 @@ async function loadAllSeasonsInBackground() {
     const allSeasons = new Set(allGames.map(g => g.season));
 
     if (allSeasons.size > loadedSeasons.size) {
-      gamesData = allGames;
+      // Nur die NOCH NICHT geladenen Saisons ergänzen. Früher wurde gamesData
+      // komplett durch allGames ersetzt - die Liste der "alle Saisons"-Abfrage
+      // hat aber einen eigenen Cache mit eigenem Alter und konnte deshalb
+      // Spiele der aktuellen Saison nicht (mehr) enthalten, die die frisch
+      // geladene Saison-Liste noch hatte: Spiele verschwanden kurz nach dem
+      // Laden aus der Anzeige, je nach Nutzer unterschiedlich.
+      const additionalGames = allGames.filter(g => !loadedSeasons.has(g.season));
+      gamesData = [...gamesData, ...additionalGames]
+        .sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
       populateSeasonFilter();
     }
   } catch (error) {
