@@ -1,6 +1,6 @@
 // ==================== NFL POINTS - Anstoßzeiten mit ESPN abgleichen ====================
 // Hintergrund (2026-10-11): Die Spiele einer Saison werden einmalig angelegt
-// (add-season-2026.html) und danach nie mehr mit dem Spielplan abgeglichen. Ändert die
+// und danach nie mehr mit dem Spielplan abgeglichen. Ändert die
 // NFL später die Anstoßzeit (Flex-Scheduling, Verlegungen), blieb in Firestore die
 // alte Zeit stehen. check-scores.js betrachtet aber nur Spiele, deren game_date schon
 // vorbei ist - ein bereits laufendes Spiel mit zu später Zeit blieb deshalb auf

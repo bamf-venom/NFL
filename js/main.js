@@ -2,7 +2,7 @@
 
 Object.assign(TRANSLATIONS.de, {
   nav_games: 'Spiele', nav_groups: 'Gruppen', nav_leaderboard: 'Rangliste',
-  nav_admin: 'Admin', nav_profile: 'Profil', nav_settings: 'Einstellungen',
+  nav_profile: 'Profil', nav_settings: 'Einstellungen',
   nav_my_profile: 'Mein Profil', nav_logout: 'Abmelden', nav_menu: 'Menü',
   nav_menu_close: 'Menü schließen', nav_menu_open: 'Menü öffnen',
   status_live: 'LIVE', status_finished: 'BEENDET', status_scheduled: 'GEPLANT',
@@ -15,7 +15,7 @@ Object.assign(TRANSLATIONS.de, {
 });
 Object.assign(TRANSLATIONS.en, {
   nav_games: 'Games', nav_groups: 'Groups', nav_leaderboard: 'Leaderboard',
-  nav_admin: 'Admin', nav_profile: 'Profile', nav_settings: 'Settings',
+  nav_profile: 'Profile', nav_settings: 'Settings',
   nav_my_profile: 'My Profile', nav_logout: 'Log out', nav_menu: 'Menu',
   nav_menu_close: 'Close menu', nav_menu_open: 'Open menu',
   status_live: 'LIVE', status_finished: 'FINISHED', status_scheduled: 'SCHEDULED',
@@ -252,10 +252,6 @@ function renderNavbar() {
     { href: 'groups.html', id: 'groups', label: t('nav_groups'), icon: 'fa-users' },
     { href: 'leaderboard.html', id: 'leaderboard', label: t('nav_leaderboard'), icon: 'fa-trophy' },
   ];
-
-  if (user.is_admin) {
-    navItems.push({ href: 'admin.html', id: 'admin', label: t('nav_admin'), icon: 'fa-shield' });
-  }
 
   const navLinksHTML = navItems.map(item => `
     <a href="${item.href}" class="nav-link ${currentPage === item.id ? 'active' : ''}" data-testid="nav-${item.id}">

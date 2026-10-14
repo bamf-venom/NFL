@@ -6,8 +6,8 @@ Object.assign(TRANSLATIONS.de, {
   week_wildcard: 'Wild Card Weekend', week_divisional: 'Divisional Playoffs',
   week_conference: 'Conference Championships', week_superbowl: 'Super Bowl',
   error_loading_games: 'Die Spiele konnten nicht geladen werden. Bitte versuche es erneut.',
-  no_games_found: 'Keine Spiele gefunden', no_games_admin: 'Als Admin kannst du neue Spiele hinzufügen.',
-  no_games_user: 'Es sind noch keine Spiele geplant.', btn_go_to_admin: 'Zum Admin Panel',
+  no_games_found: 'Keine Spiele gefunden',
+  no_games_user: 'Es sind noch keine Spiele geplant.',
   status_locked: 'GESPERRT', lock_title_locked: 'Tipp gesperrt - Spiel läuft/ist beendet',
   lock_title_open: 'Tipp noch möglich', my_pick: 'Dein Tipp',
   no_group_bets: 'Noch keine Wetten in der Gruppe',
@@ -20,8 +20,8 @@ Object.assign(TRANSLATIONS.en, {
   week_wildcard: 'Wild Card Weekend', week_divisional: 'Divisional Playoffs',
   week_conference: 'Conference Championships', week_superbowl: 'Super Bowl',
   error_loading_games: 'The games could not be loaded. Please try again.',
-  no_games_found: 'No games found', no_games_admin: 'As admin, you can add new games.',
-  no_games_user: 'No games have been scheduled yet.', btn_go_to_admin: 'Go to admin panel',
+  no_games_found: 'No games found',
+  no_games_user: 'No games have been scheduled yet.',
   status_locked: 'LOCKED', lock_title_locked: 'Picks locked - game is live/finished',
   lock_title_open: 'Picks still open', my_pick: 'Your pick',
   no_group_bets: 'No picks in this group yet',
@@ -570,13 +570,8 @@ function renderGames() {
         <i class="fas fa-calendar fa-3x empty-icon"></i>
         <h3 class="empty-title">${t('no_games_found')}</h3>
         <p class="empty-text">
-          ${user?.is_admin ? t('no_games_admin') : t('no_games_user')}
+          ${t('no_games_user')}
         </p>
-        ${user?.is_admin ? `
-          <button class="btn btn-primary" onclick="window.location.href='admin.html'" data-testid="go-to-admin">
-            ${t('btn_go_to_admin')}
-          </button>
-        ` : ''}
       </div>
     `;
     return;

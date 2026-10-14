@@ -15,3 +15,11 @@ android-signing/
 # Gebaute APK selbst - grosse Binärdatei, gehoert nicht ins Repo
 *.apk
 *.aab
+
+# Admin-Bereich: nur lokal, nicht im oeffentlichen Repo (Ablauf siehe Obsidian-Notiz Admin-Lokal)
+pages/admin.html
+js/admin.js
+js/admin-api.js
+
+# Lokale Werkzeug-Einstellungen und Arbeitskopien
+.claude/

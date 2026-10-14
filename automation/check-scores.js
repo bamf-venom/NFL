@@ -122,7 +122,7 @@ async function main() {
   // mit (nicht erst client-seitig danach) - Firestore berechnet pro
   // QUERY-TREFFER einen Lesevorgang, unabhängig davon, ob man das Ergebnis
   // hinterher noch filtert. Bei ca. 280 Spielen pro Saison, die alle auf
-  // einmal als 'scheduled' angelegt werden (siehe add-season-2026.html), hat
+  // einmal als 'scheduled' angelegt werden, hat
   // die alte reine status-Abfrage bei JEDEM Lauf (alle 5-15 Min, rund um die
   // Uhr) praktisch die komplette Saison gelesen statt nur die paar fälligen
   // Spiele - Hauptursache des Kontingent-Vorfalls vom 21.09.2026.

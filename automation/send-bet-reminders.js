@@ -16,7 +16,7 @@ admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
 webpush.setVapidDetails(
-  'mailto:info@mbpvfx.com',
+  'https://bamf-venom.github.io/NFL/',
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 );

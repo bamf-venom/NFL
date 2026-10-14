@@ -193,9 +193,6 @@ function getInternationalBackdropHTML(game, { logo = true } = {}) {
   return `<div class="international-bg" aria-hidden="true">${logoURL ? `<img src="${logoURL}" alt="">` : ''}</div>`;
 }
 
-// Admin email for Firebase (gleiche Email wie Admin-Account)
-const ADMIN_EMAIL = 'info@mbpvfx.com';
-
 // Wetten werden so viele Minuten vor Anpfiff gesperrt
 const BETTING_LOCK_MINUTES_BEFORE_KICKOFF = 3;
 

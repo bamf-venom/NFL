@@ -1013,58 +1013,6 @@ async function firebaseGetGame(gameId) {
   };
 }
 
-async function firebaseCreateGame(gameData) {
-  const gameId = db.collection('_').doc().id;
-  const game = {
-    id: gameId,
-    ...gameData,
-    game_date: firebase.firestore.Timestamp.fromDate(new Date(gameData.game_date)),
-    home_score: null,
-    away_score: null,
-    status: 'scheduled',
-    created_at: firebase.firestore.FieldValue.serverTimestamp()
-  };
-  
-  await collections.games().doc(gameId).set(game);
-  
-  // Invalidate games cache
-  invalidateGamesCaches();
-  
-  return { ...game, game_date: gameData.game_date, created_at: new Date().toISOString() };
-}
-
-async function firebaseUpdateGame(gameId, updateData) {
-  // Convert Date object to Firestore Timestamp if present
-  if (updateData.game_date instanceof Date) {
-    updateData.game_date = firebase.firestore.Timestamp.fromDate(updateData.game_date);
-  }
-  
-  await collections.games().doc(gameId).update(updateData);
-  
-  // Invalidate games cache
-  invalidateGamesCaches();
-  
-  if (updateData.status === 'finished' && updateData.home_score != null && updateData.away_score != null) {
-    await calculatePointsForGame(gameId, updateData.home_score, updateData.away_score);
-    // Invalidate leaderboard cache after points calculation
-    invalidateCache('leaderboard');
-  }
-  
-  return await firebaseGetGame(gameId);
-}
-
-async function firebaseDeleteGame(gameId) {
-  await collections.games().doc(gameId).delete();
-  
-  // Invalidate games cache
-  invalidateGamesCaches();
-  
-  const betsSnapshot = await collections.bets().where('game_id', '==', gameId).get();
-  const batch = db.batch();
-  betsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-  await batch.commit();
-}
-
 // ==================== BETS HELPERS ====================
 // Lädt nur die eigene Wette für ein Spiel, statt wie firebaseGetGameBets()
 // ALLE Wetten aller Nutzer im ganzen System zu laden, nur um die eigene
@@ -1271,65 +1219,6 @@ async function firebaseGetCurrentUserBets(useCache = true) {
   } catch (error) {
     console.error('Error in firebaseGetCurrentUserBets:', error);
     return [];
-  }
-}
-
-async function calculatePointsForGame(gameId, homeScore, awayScore) {
-  const betsSnapshot = await collections.bets().where('game_id', '==', gameId).get();
-
-  let actualWinner;
-  if (homeScore > awayScore) actualWinner = 1;
-  else if (awayScore > homeScore) actualWinner = 2;
-  else actualWinner = 0;
-
-  const batch = db.batch();
-  // Statt nur Punkte auch correct_winners/correct_scores pro Nutzer mitführen,
-  // damit die Rangliste komplett aus den Nutzer-Konten gelesen werden kann statt
-  // jedes Mal ALLE Wetten aller Nutzer im System zu scannen
-  const userStatsMap = {};
-
-  betsSnapshot.docs.forEach(doc => {
-    const bet = doc.data();
-    // WICHTIG: Differenz zur zuletzt gespeicherten points_earned dieser Wette
-    // verrechnen, nicht den absoluten neuen Wert - total_points am
-    // Nutzer-Konto wird unten per FieldValue.increment() aktualisiert, kein
-    // set(). Ohne das wuerde eine spaetere Korrektur eines bereits
-    // beendeten Spiels (Admin tippt sich beim Endstand vertan, editiert ihn
-    // nochmal) die Punkte ein zweites Mal draufaddieren statt sie zu
-    // ersetzen - macht die Funktion sicher mehrfach fuer dasselbe Spiel
-    // aufrufbar (2026-09-25).
-    const oldPoints = bet.points_earned || 0;
-    let points = 0;
-
-    if (bet.home_score_prediction === homeScore) points += 3;
-    if (bet.away_score_prediction === awayScore) points += 3;
-
-    let predictedWinner;
-    if (bet.home_score_prediction > bet.away_score_prediction) predictedWinner = 1;
-    else if (bet.away_score_prediction > bet.home_score_prediction) predictedWinner = 2;
-    else predictedWinner = 0;
-
-    if (predictedWinner === actualWinner) points += 1;
-
-    batch.update(doc.ref, { points_earned: points });
-
-    if (!userStatsMap[bet.user_id]) {
-      userStatsMap[bet.user_id] = { points: 0, correctWinners: 0, correctScores: 0 };
-    }
-    userStatsMap[bet.user_id].points += (points - oldPoints);
-    userStatsMap[bet.user_id].correctWinners += (points > 0 ? 1 : 0) - (oldPoints > 0 ? 1 : 0);
-    userStatsMap[bet.user_id].correctScores += (points >= 3 ? 1 : 0) - (oldPoints >= 3 ? 1 : 0);
-  });
-
-  await batch.commit();
-
-  for (const [userId, stats] of Object.entries(userStatsMap)) {
-    if (stats.points === 0 && stats.correctWinners === 0 && stats.correctScores === 0) continue;
-    await collections.users().doc(userId).update({
-      total_points: firebase.firestore.FieldValue.increment(stats.points),
-      correct_winners: firebase.firestore.FieldValue.increment(stats.correctWinners),
-      correct_scores: firebase.firestore.FieldValue.increment(stats.correctScores)
-    });
   }
 }
 
@@ -1848,22 +1737,4 @@ async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
   lsWrite(storageKey, entry);
 
   return allBets;
-}
-
-// ==================== ADMIN HELPERS ====================
-async function firebaseGetAllUsers() {
-  const snapshot = await collections.users().get();
-  return snapshot.docs.map(doc => ({
-    ...doc.data(),
-    created_at: doc.data().created_at?.toDate?.()?.toISOString() || doc.data().created_at
-  }));
-}
-
-async function firebaseDeleteUser(userId) {
-  await collections.users().doc(userId).delete();
-  
-  const betsSnapshot = await collections.bets().where('user_id', '==', userId).get();
-  const batch = db.batch();
-  betsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-  await batch.commit();
 }
