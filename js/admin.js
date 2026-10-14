@@ -230,8 +230,10 @@ function populateAdminWeekFilter() {
 // Load admin data from Firebase
 async function loadAdminData() {
   try {
+    // Admin sieht alles direkt aus Firestore (auch archivierte Saisons, damit
+    // Korrekturen dort sichtbar bleiben) - nicht die Archiv-Dateien
     const [games, users] = await Promise.all([
-      firebaseGetGames(),
+      firebaseGetGames({ fromFirestoreOnly: true }),
       firebaseGetAllUsers()
     ]);
     

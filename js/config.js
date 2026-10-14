@@ -199,6 +199,14 @@ const ADMIN_EMAIL = 'info@mbpvfx.com';
 // Wetten werden so viele Minuten vor Anpfiff gesperrt
 const BETTING_LOCK_MINUTES_BEFORE_KICKOFF = 3;
 
+// Abgeschlossene Saisons, deren Spiele nicht mehr aus Firestore, sondern aus einer
+// festen Datei kommen (data/seasons/<Saison>.json, erzeugt mit
+// automation/archive-season.js - Anleitung in automation/README.md). Eine Saison
+// erst hier eintragen, NACHDEM ihre Datei im Repo liegt. Die Datei enthält nur
+// Spiele, keine Tipps; Tipps, Gruppen und Rangliste laufen weiter über Firestore.
+// Ist die Datei nicht ladbar, fällt die App für diese Saison auf Firestore zurück.
+const ARCHIVED_SEASONS = ['2025'];
+
 // Öffentlicher VAPID-Schlüssel für Web-Push-Benachrichtigungen (Wett-Erinnerung
 // 1h vor Anpfiff, siehe automation/send-bet-reminders.js). Unbedenklich im
 // Client-Code, da nur der private Schlüssel (GitHub Actions Secret

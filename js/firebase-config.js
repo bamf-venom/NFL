@@ -230,6 +230,7 @@ function initializeFirebase() {
       // behoben wird. Läuft VOR setPersistence, damit Firebase Auth danach
       // möglichst viel freien Speicher vorfindet.
       pruneGroupBetsCacheIfNeeded();
+      cleanupObsoleteGameCaches();
 
       auth = firebase.auth();
 
@@ -782,8 +783,157 @@ function invalidateGamesCaches() {
   lsRemovePrefix('gamesCombined_');
 }
 
+// ==================== SAISON-ARCHIV ====================
+// Abgeschlossene Saisons (ARCHIVED_SEASONS in config.js) ändern sich nie mehr -
+// ihre Spiele kommen aus einer festen Datei (data/seasons/<Saison>.json, erzeugt
+// mit automation/archive-season.js) statt bei jedem Aufruf aus Firestore. Die
+// Firestore-Dokumente bleiben unverändert bestehen. Die Datei enthält nur
+// Spiele; Tipps, Gruppen und Rangliste laufen weiter über Firestore.
+const ARCHIVE_BASE_URL = (document.currentScript && document.currentScript.src)
+  ? new URL('../data/seasons/', document.currentScript.src).href
+  : new URL(location.pathname.includes('/pages/') ? '../data/seasons/' : 'data/seasons/', location.href).href;
+
+const archivedSeasonPromises = {}; // Saison -> Promise (pro Seitenaufruf nur einmal laden)
+const archivedGamesLoaded = {};    // Saison -> Spiele, für firebaseGetGame ohne Netzwerk
+
+function getArchivedSeasons() {
+  return typeof ARCHIVED_SEASONS !== 'undefined' ? ARCHIVED_SEASONS.map(String) : [];
+}
+
+function isArchivedSeason(season) {
+  return getArchivedSeasons().includes(String(season));
+}
+
+// Lädt die Spiele einer archivierten Saison. Liefert null (statt zu werfen), wenn die
+// Datei nicht ladbar oder unvollständig ist - der Aufrufer fällt dann auf Firestore
+// zurück, damit nie Spiele verschwinden, nur weil eine Datei fehlt.
+function loadArchivedSeason(season) {
+  season = String(season);
+  if (!archivedSeasonPromises[season]) {
+    archivedSeasonPromises[season] = fetch(`${ARCHIVE_BASE_URL}${season}.json`)
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        if (!data || String(data.season) !== season || !Array.isArray(data.games) || data.games.length === 0) {
+          throw new Error('Archivdatei unvollständig');
+        }
+        archivedGamesLoaded[season] = data.games;
+        return data.games;
+      })
+      .catch(error => {
+        console.warn(`Archiv der Saison ${season} nicht ladbar, nutze Firestore:`, error);
+        delete archivedSeasonPromises[season]; // beim nächsten Aufruf erneut versuchen
+        return null;
+      });
+  }
+  // Kopien, damit niemand das gemeinsam genutzte Archiv versehentlich verändert
+  return archivedSeasonPromises[season].then(games => (games ? games.map(game => ({ ...game })) : null));
+}
+
+// Saisons, für die (noch) Spiele in Firestore liegen können: die laufende bzw.
+// zuletzt gespielte Saison, die davor (noch nicht archiviert?) und die nächste
+// (wird im Frühjahr schon angelegt). Die NFL-Saison beginnt im September.
+function firestoreSeasonCandidates() {
+  const now = new Date();
+  const current = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+  return [current - 1, current, current + 1].map(String).filter(season => !isArchivedSeason(season));
+}
+
+function sortGamesByDate(games) {
+  return games.sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
+}
+
+// Spiele aller NICHT archivierten Saisons aus Firestore. Die beendeten Spiele kommen
+// je Saison (statt "alle beendeten"), damit die archivierten Saisons nicht mehr mit
+// gelesen werden. Saisons, die weder Kandidat noch archiviert sind, aber aktive oder
+// kürzlich beendete Spiele haben, werden trotzdem miterfasst.
+async function getNonArchivedGames(useCache = true) {
+  const cacheKey = 'open';
+  const storageKey = `gamesCombined_${cacheKey}`;
+  if (useCache) {
+    const cached = gamesCombinedCache[cacheKey];
+    if (cached && (Date.now() - cached.timestamp) < GAMES_COMBINED_TTL) return cached.data;
+    const persisted = lsRead(storageKey);
+    if (persisted && (Date.now() - persisted.timestamp) < GAMES_COMBINED_TTL) {
+      gamesCombinedCache[cacheKey] = persisted;
+      return persisted.data;
+    }
+  }
+
+  const candidates = firestoreSeasonCandidates();
+  const [recentFinished, activeGames, ...finishedLists] = await Promise.all([
+    getRecentlyFinishedFresh(),
+    getActiveGamesFresh(),
+    ...candidates.map(season => getFinishedGamesCached(season))
+  ]);
+  const isOpen = game => !isArchivedSeason(game.season);
+  const recent = recentFinished.filter(isOpen);
+  const active = activeGames.filter(isOpen);
+
+  const extraSeasons = [...new Set([...recent, ...active].map(game => game.season))]
+    .filter(season => !candidates.includes(season));
+  const extraLists = await Promise.all(extraSeasons.map(season => getFinishedGamesCached(season)));
+
+  const gamesById = new Map();
+  [...finishedLists.flat(), ...extraLists.flat(), ...recent, ...active].forEach(game => gamesById.set(game.id, game));
+  const games = sortGamesByDate([...gamesById.values()]);
+
+  const entry = { data: games, timestamp: Date.now() };
+  gamesCombinedCache[cacheKey] = entry;
+  lsWrite(storageKey, entry);
+  return games;
+}
+
+// Alle Saisons: archivierte aus ihren Dateien, der Rest aus Firestore
+async function getGamesAllSeasons(useCache = true) {
+  const [archivedLists, openGames] = await Promise.all([
+    Promise.all(getArchivedSeasons().map(async season => {
+      const games = await loadArchivedSeason(season);
+      // Datei nicht ladbar: diese Saison ausnahmsweise aus Firestore holen
+      return games || await firebaseGetGames({ season, fromFirestoreOnly: true }, useCache);
+    })),
+    getNonArchivedGames(useCache)
+  ]);
+  const gamesById = new Map();
+  [...archivedLists.flat(), ...openGames].forEach(game => gamesById.set(game.id, game));
+  return sortGamesByDate([...gamesById.values()]);
+}
+
+// Einmalig: Caches der Spieleliste aus der Zeit vor dem Saison-Archiv wegräumen
+// (enthielten die inzwischen archivierten Saisons und würden sonst ungenutzt im
+// localStorage liegen bleiben)
+function cleanupObsoleteGameCaches() {
+  try {
+    const flag = LS_PREFIX + 'archiveCleanup1';
+    if (localStorage.getItem(flag)) return;
+    lsRemovePrefix('finishedGames_');
+    lsRemovePrefix('gamesCombined_');
+    localStorage.setItem(flag, '1');
+  } catch (e) {}
+}
+
+// filters.fromFirestoreOnly: ohne Archiv, alles direkt aus Firestore (Admin-Bereich,
+// dort sollen auch archivierte Spiele bearbeitbar sein)
 async function firebaseGetGames(filters = {}, useCache = true) {
   try {
+    const fromFirestoreOnly = !!filters.fromFirestoreOnly;
+
+    // Archivierte Saison: aus der Datei, Firestore wird gar nicht gefragt
+    if (!fromFirestoreOnly && filters.season && isArchivedSeason(filters.season)) {
+      const archived = await loadArchivedSeason(filters.season);
+      if (archived) {
+        return filters.week ? archived.filter(game => game.week === filters.week) : archived;
+      }
+      // Datei nicht ladbar: weiter unten über Firestore
+    }
+
+    // Alle Saisons (mit Archiv): Archiv-Dateien + Firestore für den Rest
+    if (!fromFirestoreOnly && !filters.season && !filters.week && getArchivedSeasons().length > 0) {
+      return await getGamesAllSeasons(useCache);
+    }
+
     // Einzelne Woche: sehr spezifische, kleine Abfrage - unverändert direkt
     if (filters.week) {
       let query = collections.games().where('week', '==', filters.week);
@@ -846,6 +996,12 @@ async function firebaseGetGames(filters = {}, useCache = true) {
 }
 
 async function firebaseGetGame(gameId) {
+  // Schon geladene Archiv-Saison? Dann ohne Firestore-Lesevorgang
+  for (const games of Object.values(archivedGamesLoaded)) {
+    const archived = games.find(game => game.id === gameId);
+    if (archived) return { ...archived };
+  }
+
   const doc = await collections.games().doc(gameId).get();
   if (!doc.exists) return null;
   
