@@ -595,6 +595,12 @@ async function retryFirebaseWrite(fn, attempts = 3) {
 // Jeder Versuch liest die Tipps frisch aus der Datenbank: Ging nur die Antwort auf einen
 // Batch verloren, findet die Wiederholung nichts mehr zu löschen (ein erneutes Löschen
 // bereits gelöschter Tipps würde die Regeln verletzen, sie lesen resource.data).
+// Im selben Batch verlassen die Gruppen des Nutzers: normale Mitglieder tragen sich aus, ein
+// Gruppen-Admin gibt die Rolle an das am längsten dabei seiende Mitglied weiter (ohne weitere
+// Mitglieder wird die Gruppe gelöscht) - sonst bliebe eine Gruppe ohne Admin oder mit einem
+// gelöschten Mitglied zurück. Die Push-Abos (Untersammlung users/{uid}/push_subscriptions,
+// Firestore löscht Untersammlungen nie mit) folgen danach als Best-Effort-Schritt: ein Fehler
+// dort blockiert das Löschen nicht.
 async function firebaseDeleteAccount() {
   const user = auth.currentUser;
   if (!user) throw new Error(t('error_not_logged_in'));
@@ -605,11 +611,13 @@ async function firebaseDeleteAccount() {
   const betsQuery = (max) => collections.bets().where('user_id', '==', user.uid).limit(max);
 
   try {
-    // Nutzer-Dokument + so viele Tipps, wie in den Batch passen
+    // Nutzer-Dokument + Gruppen + so viele Tipps, wie in den Batch passen
     await retryFirebaseWrite(async () => {
-      const snapshot = await betsQuery(DELETE_ACCOUNT_BATCH_SIZE - 1).get({ source: 'server' });
+      const groupPlan = await planGroupExitsOnAccountDeletion(user.uid);
+      const snapshot = await betsQuery(Math.max(1, DELETE_ACCOUNT_BATCH_SIZE - 1 - groupPlan.length)).get({ source: 'server' });
       const batch = db.batch();
       batch.delete(userRef);
+      groupPlan.forEach(({ ref, update, remove }) => (remove ? batch.delete(ref) : batch.update(ref, update)));
       snapshot.docs.forEach(doc => batch.delete(doc.ref));
       await batch.commit();
     });
@@ -619,6 +627,9 @@ async function firebaseDeleteAccount() {
   }
 
   try {
+    // Push-Abos (Best Effort, wirft nie): vor user.delete(), danach fehlt die Berechtigung
+    await deleteOwnPushSubscriptions(userRef);
+
     // Mehr Tipps als in den ersten Batch passen: der Rest folgt in weiteren Batches. Das
     // Nutzer-Dokument ist dann schon weg, die Regel erlaubt das Löschen der Tipps trotzdem.
     for (let round = 0; round < DELETE_ACCOUNT_MAX_ROUNDS; round++) {
@@ -637,6 +648,67 @@ async function firebaseDeleteAccount() {
   } catch (error) {
     console.error('Konto löschen: Daten gelöscht, Rest fehlgeschlagen', error);
     throw new Error(t('error_delete_account_incomplete'));
+  }
+}
+
+// Gruppen des Nutzers für "Konto löschen": liefert die Schreibvorgänge, die zusammen mit dem
+// Nutzer-Dokument in den Batch kommen (siehe firebaseDeleteAccount).
+// - Normales Mitglied: trägt sich aus member_ids/members aus (wie firebaseLeaveGroup; die Regel
+//   erlaubt das jedem Mitglied).
+// - Admin: Die Rolle geht an das am längsten dabei seiende Mitglied (joined_at, sonst
+//   Reihenfolge in member_ids), das noch ein Nutzer-Dokument hat - frühere Löschungen haben ihre
+//   Gruppen nicht verlassen und stehen evtl. noch in der Liste. Gibt es kein solches Mitglied,
+//   wird die Gruppe gelöscht. Die Regeln erlauben dem Admin jede Änderung an seiner Gruppe und
+//   das Löschen.
+async function planGroupExitsOnAccountDeletion(uid) {
+  const snapshot = await collections.groups().where('member_ids', 'array-contains', uid).get({ source: 'server' });
+  const plan = [];
+  for (const groupDoc of snapshot.docs) {
+    const group = groupDoc.data();
+    const memberIds = (group.member_ids || []).filter(id => id !== uid);
+    const members = (group.members || []).filter(m => m.user_id !== uid);
+
+    if (group.admin_id !== uid) {
+      plan.push({ ref: groupDoc.ref, update: { member_ids: memberIds, members } });
+      continue;
+    }
+
+    const joinedAt = (id) => {
+      const entry = members.find(m => m.user_id === id);
+      const time = entry ? Date.parse(entry.joined_at) : NaN;
+      return Number.isNaN(time) ? Infinity : time;
+    };
+    const candidates = memberIds
+      .map((id, index) => ({ id, index, time: joinedAt(id) }))
+      .sort((a, b) => (a.time === b.time ? a.index - b.index : (a.time < b.time ? -1 : 1)));
+
+    let successor = null;
+    for (const candidate of candidates) {
+      const userDoc = await collections.users().doc(candidate.id).get({ source: 'server' });
+      if (userDoc.exists) { successor = candidate.id; break; }
+    }
+    plan.push(successor
+      ? { ref: groupDoc.ref, update: { admin_id: successor, member_ids: memberIds, members } }
+      : { ref: groupDoc.ref, remove: true });
+  }
+  return plan;
+}
+
+// Löscht die Push-Abos (users/{uid}/push_subscriptions). Firestore löscht Untersammlungen nie mit
+// dem Eltern-Dokument; ohne diesen Schritt blieben Geräte-Endpunkt und Schlüssel als Waisen
+// zurück. Die Regel erlaubt dem Eigentümer das auch ohne Profil. Best Effort: Ein Fehler hier
+// darf das Konto-Löschen nicht blockieren (Waisen sind kein halbes Konto) und wird nur
+// protokolliert. Läuft nach dem ersten Batch und vor user.delete(), danach fehlt die Berechtigung.
+async function deleteOwnPushSubscriptions(userRef) {
+  try {
+    const snapshot = await userRef.collection('push_subscriptions').get({ source: 'server' });
+    for (let i = 0; i < snapshot.docs.length; i += DELETE_ACCOUNT_BATCH_SIZE) {
+      const batch = db.batch();
+      snapshot.docs.slice(i, i + DELETE_ACCOUNT_BATCH_SIZE).forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    }
+  } catch (error) {
+    console.warn('Konto löschen: Push-Abos konnten nicht entfernt werden (das Konto wird trotzdem gelöscht)', error);
   }
 }
 
