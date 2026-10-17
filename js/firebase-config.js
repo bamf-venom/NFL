@@ -32,7 +32,9 @@ Object.assign(TRANSLATIONS.de, {
   error_group_name_min_length: 'Gruppenname muss mindestens 2 Zeichen haben',
   error_push_not_supported: 'Dein Browser unterstützt leider keine Push-Benachrichtigungen',
   error_push_permission_denied: 'Benachrichtigungen wurden nicht erlaubt. Du kannst das in den Browser-/App-Einstellungen ändern.',
-  error_delete_relogin: 'Aus Sicherheitsgründen ist dafür eine frische Anmeldung nötig. Bitte melde dich kurz ab und wieder an und lösche dein Konto danach direkt. Es wurde nichts gelöscht.'
+  error_delete_relogin: 'Aus Sicherheitsgründen ist dafür eine frische Anmeldung nötig. Bitte melde dich kurz ab und wieder an und lösche dein Konto danach direkt. Es wurde nichts gelöscht.',
+  error_delete_account_failed: 'Das Konto konnte nicht gelöscht werden. Es wurde nichts gelöscht - bitte versuche es später noch einmal.',
+  error_delete_account_incomplete: 'Das Löschen deines Kontos wurde nur teilweise abgeschlossen. Bitte melde dich beim Admin, damit der Rest entfernt wird.'
 });
 Object.assign(TRANSLATIONS.en, {
   error_not_logged_in: 'Not logged in', error_user_data_not_found: 'User data not found',
@@ -54,7 +56,9 @@ Object.assign(TRANSLATIONS.en, {
   error_group_name_min_length: 'Group name must be at least 2 characters',
   error_push_not_supported: 'Your browser does not support push notifications',
   error_push_permission_denied: 'Notifications were not allowed. You can change this in your browser/app settings.',
-  error_delete_relogin: 'For security reasons this needs a fresh login. Please log out and log back in, then delete your account right away. Nothing was deleted.'
+  error_delete_relogin: 'For security reasons this needs a fresh login. Please log out and log back in, then delete your account right away. Nothing was deleted.',
+  error_delete_account_failed: 'Your account could not be deleted. Nothing was deleted - please try again later.',
+  error_delete_account_incomplete: 'Deleting your account was only partly completed. Please contact the admin so the rest can be removed.'
 });
 
 // ==================== PERFORMANCE CACHE ====================
@@ -560,20 +564,80 @@ async function firebaseAssertRecentLogin(user) {
   }
 }
 
+// Dokumente je Batch beim Konto-Löschen (Firestore erlaubt höchstens 500 Schreibvorgänge je Batch)
+// und Obergrenze für die Folge-Batches (Schutz vor einer Endlosschleife, reicht für 40.000 Tipps)
+const DELETE_ACCOUNT_BATCH_SIZE = 400;
+const DELETE_ACCOUNT_MAX_ROUNDS = 100;
+
+// Führt einen Schreibvorgang bis zu dreimal aus (kurze Netzausfälle). Fehlende Berechtigung
+// und eine zu alte Anmeldung werden nicht wiederholt, die ändern sich dadurch nicht. fn baut
+// bei jedem Aufruf einen NEUEN Batch, weil sich ein Batch nur einmal abschicken lässt.
+async function retryFirebaseWrite(fn, attempts = 3) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const permanent = error.code === 'permission-denied' || error.code === 'auth/requires-recent-login';
+      if (attempt >= attempts || permanent) throw error;
+      await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+    }
+  }
+}
+
+// Löscht Nutzer-Dokument und alle eigenen Tipps im SELBEN Batch (alles oder nichts), danach
+// das Anmelde-Konto. Früher wurde erst das Nutzer-Dokument gelöscht und dann in einem zweiten
+// Schritt die Tipps; scheiterte der zweite (die Regeln erlauben das Löschen von Tipps auf
+// beendeten Spielen nicht), blieb ein Anmelde-Konto ohne Profil zurück (Weiterleitungsschleife,
+// siehe firebaseAssertRecentLogin). Die Regel für das Löschen von Tipps erlaubt es dem
+// Eigentümer ausdrücklich, wenn sein Nutzer-Dokument im selben Schreibvorgang verschwindet
+// (existsAfter), sonst bleibt alles gesperrt. Solange der erste Batch nicht durch ist, ist
+// nichts gelöscht - auch dann nicht, wenn die Regeln noch die alte Fassung sind.
+// Jeder Versuch liest die Tipps frisch aus der Datenbank: Ging nur die Antwort auf einen
+// Batch verloren, findet die Wiederholung nichts mehr zu löschen (ein erneutes Löschen
+// bereits gelöschter Tipps würde die Regeln verletzen, sie lesen resource.data).
 async function firebaseDeleteAccount() {
   const user = auth.currentUser;
   if (!user) throw new Error(t('error_not_logged_in'));
 
   await firebaseAssertRecentLogin(user);
 
-  await collections.users().doc(user.uid).delete();
-  
-  const betsSnapshot = await collections.bets().where('user_id', '==', user.uid).get();
-  const batch = db.batch();
-  betsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-  await batch.commit();
-  
-  await user.delete();
+  const userRef = collections.users().doc(user.uid);
+  const betsQuery = (max) => collections.bets().where('user_id', '==', user.uid).limit(max);
+
+  try {
+    // Nutzer-Dokument + so viele Tipps, wie in den Batch passen
+    await retryFirebaseWrite(async () => {
+      const snapshot = await betsQuery(DELETE_ACCOUNT_BATCH_SIZE - 1).get({ source: 'server' });
+      const batch = db.batch();
+      batch.delete(userRef);
+      snapshot.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    });
+  } catch (error) {
+    console.error('Konto löschen: nichts gelöscht', error);
+    throw new Error(t('error_delete_account_failed'));
+  }
+
+  try {
+    // Mehr Tipps als in den ersten Batch passen: der Rest folgt in weiteren Batches. Das
+    // Nutzer-Dokument ist dann schon weg, die Regel erlaubt das Löschen der Tipps trotzdem.
+    for (let round = 0; round < DELETE_ACCOUNT_MAX_ROUNDS; round++) {
+      const deleted = await retryFirebaseWrite(async () => {
+        const snapshot = await betsQuery(DELETE_ACCOUNT_BATCH_SIZE).get({ source: 'server' });
+        if (snapshot.empty) return 0;
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        return snapshot.size;
+      });
+      if (deleted === 0) break;
+    }
+
+    await retryFirebaseWrite(() => user.delete());
+  } catch (error) {
+    console.error('Konto löschen: Daten gelöscht, Rest fehlgeschlagen', error);
+    throw new Error(t('error_delete_account_incomplete'));
+  }
 }
 
 // Send password reset email
@@ -629,44 +693,32 @@ async function firebaseUpdateUserLanguage(lang) {
 }
 
 // Update username
+// Maßgeblich ist allein users/{uid}.username. Früher wurde der Name hier zusätzlich an allen
+// eigenen Tipps (bets.username) und in den Gruppen (groups.members) nachgezogen. Das ging nur
+// für Spieler, deren Tipps alle auf noch offenen Spielen liegen: Tipps auf beendeten Spielen
+// darf der Eigentümer nicht mehr ändern (der Batch scheiterte als Ganzes), in fremden Gruppen
+// sind für Mitglieder nur Beitritt und Verlassen erlaubt, und ein Batch darf höchstens 20
+// get()-Zugriffe der Regeln auslösen. Die Kopien an Tipps und Gruppen bleiben Momentaufnahmen
+// vom Zeitpunkt des Tippens bzw. Beitretens; angezeigt wird der Name in Gruppen immer live aus
+// dem Nutzer-Dokument (getGroupMembersForBets, firebaseGetGroup, firebaseGetGroupLeaderboard).
 async function firebaseUpdateUsername(newUsername) {
   const user = auth.currentUser;
   if (!user) throw new Error(t('error_not_logged_in'));
-  
+
   if (!newUsername || newUsername.trim().length < 2) {
     throw new Error(t('error_username_min_length'));
   }
-  
+
   const trimmedUsername = newUsername.trim();
-  
-  // Update user document
+
   await collections.users().doc(user.uid).update({
     username: trimmedUsername
   });
-  
-  // Update username in all bets
-  const betsSnapshot = await collections.bets().where('user_id', '==', user.uid).get();
-  if (!betsSnapshot.empty) {
-    const batch = db.batch();
-    betsSnapshot.docs.forEach(doc => {
-      batch.update(doc.ref, { username: trimmedUsername });
-    });
-    await batch.commit();
-  }
-  
-  // Update username in group memberships
-  const groupsSnapshot = await collections.groups()
-    .where('member_ids', 'array-contains', user.uid)
-    .get();
-  
-  for (const groupDoc of groupsSnapshot.docs) {
-    const groupData = groupDoc.data();
-    const updatedMembers = groupData.members.map(m => 
-      m.user_id === user.uid ? { ...m, username: trimmedUsername } : m
-    );
-    await groupDoc.ref.update({ members: updatedMembers });
-  }
-  
+
+  // Gecachte Ableitungen mit dem alten Namen verwerfen (Rangliste, Gruppen-Mitgliedernamen)
+  invalidateCache('leaderboard');
+  invalidateGroupMembersCaches();
+
   return trimmedUsername;
 }
 
@@ -1329,7 +1381,8 @@ async function firebaseGetGroup(groupId) {
   
   const data = doc.data();
   
-  // Load profile pictures for all members
+  // Load profile pictures and current usernames for all members (der in der Gruppe
+  // gespeicherte Name ist nur eine Momentaufnahme vom Beitritt, siehe firebaseUpdateUsername)
   const membersWithPictures = await Promise.all(
     (data.members || []).map(async (member) => {
       try {
@@ -1338,6 +1391,7 @@ async function firebaseGetGroup(groupId) {
           const userData = userDoc.data();
           return {
             ...member,
+            username: userData.username || member.username,
             profile_picture: userData.profile_picture || null
           };
         }
@@ -1564,15 +1618,41 @@ async function firebaseGetGroupLeaderboard(groupId) {
     });
   });
 
+  // Namen live aus den Nutzer-Dokumenten (der Name an den Tipps ist nur eine Momentaufnahme)
+  const memberNames = await getCurrentMemberNames(groupId);
+  Object.values(userStats).forEach(stats => {
+    stats.username = memberNames[stats.user_id] || stats.username;
+  });
+
   return Object.values(userStats).sort((a, b) => b.total_points - a.total_points);
 }
 
-// Cache für Gruppen-Mitglieder + Profilbilder, damit firebaseGetGroupBets()
+// Cache für Gruppen-Mitglieder + Profilbilder + Namen, damit firebaseGetGroupBets()
 // bei mehreren Spielen derselben Gruppe nicht jedes Mal Gruppe + alle
 // Profilbilder erneut aus Firestore lädt (war die Hauptbremse beim Laden
 // einer Gruppe mit vielen Spielen)
 const groupMembersCache = {};
 const GROUP_MEMBERS_CACHE_TTL = 30000; // 30 Sekunden
+
+// Verwirft die gemerkten Mitglieder (nach einer Namensänderung: die Namen darin sind veraltet)
+function invalidateGroupMembersCaches() {
+  Object.keys(groupMembersCache).forEach(groupId => delete groupMembersCache[groupId]);
+  lsRemovePrefix('groupMembers_');
+}
+
+// Aktuelle Benutzernamen der Gruppenmitglieder ({ uid: name }) aus den Nutzer-Dokumenten.
+// Der Name an Tipps und in groups.members ist nur eine Momentaufnahme (siehe
+// firebaseUpdateUsername) und wird bei der Anzeige damit überschrieben. Schlägt das Laden
+// fehl, bleibt es bei der Momentaufnahme - die Anzeige soll daran nicht scheitern.
+async function getCurrentMemberNames(groupId) {
+  try {
+    const { memberNames } = await getGroupMembersForBets(groupId);
+    return memberNames || {};
+  } catch (error) {
+    console.warn('Aktuelle Benutzernamen konnten nicht geladen werden:', error);
+    return {};
+  }
+}
 
 // Gibt ein Promise zurück (nicht async) und legt es SOFORT synchron in den Cache,
 // damit mehrere gleichzeitige Aufrufe für dieselbe Gruppe (z.B. Promise.all über
@@ -1604,18 +1684,21 @@ function getGroupMembersForBets(groupId) {
     const memberIds = (groupData?.member_ids || []).filter(id => typeof id === 'string' && id.length > 0);
 
     const memberPictures = {};
+    const memberNames = {};
     await Promise.all(memberIds.map(async (userId) => {
       try {
         const userDoc = await collections.users().doc(userId).get();
         if (userDoc.exists) {
-          memberPictures[userId] = userDoc.data().profile_picture || null;
+          const userData = userDoc.data();
+          memberPictures[userId] = userData.profile_picture || null;
+          if (userData.username) memberNames[userId] = userData.username;
         }
       } catch (e) {
         console.error('Error loading user profile picture:', e);
       }
     }));
 
-    const result = { memberIds, memberPictures };
+    const result = { memberIds, memberPictures, memberNames };
     lsWrite(storageKey, { data: result, timestamp: Date.now() });
     return result;
   })();
@@ -1679,6 +1762,16 @@ function pruneGroupBetsCacheIfNeeded() {
   }
 }
 
+// Setzt bei Gruppen-Tipps den aktuellen Namen aus den Nutzer-Dokumenten ein (der an den Tipps
+// gespeicherte ist eine Momentaufnahme, siehe firebaseUpdateUsername). Das passiert erst beim
+// Ausliefern und nicht im Cache: Tipps beendeter Spiele werden dauerhaft gecacht und würden
+// sonst für immer den alten Namen zeigen.
+async function withCurrentUsernames(groupId, bets) {
+  if (bets.length === 0) return bets;
+  const memberNames = await getCurrentMemberNames(groupId);
+  return bets.map(bet => ({ ...bet, username: memberNames[bet.user_id] || bet.username || '?' }));
+}
+
 async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
   // Ohne gültige gameId würde Query.where('game_id', '==', gameId) mit
   // "Unsupported field value: undefined" abstürzen und damit die komplette
@@ -1691,7 +1784,7 @@ async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
   const cacheKey = `${groupId}::${gameId}`;
   const cached = groupBetsCache[cacheKey];
   if (cached && (cached.permanent || (Date.now() - cached.timestamp) < GROUP_BETS_CACHE_TTL)) {
-    return cached.bets;
+    return withCurrentUsernames(groupId, cached.bets);
   }
 
   // Beendete Spiele werden "permanent" gecacht (ändern sich nie mehr) - genau
@@ -1700,7 +1793,7 @@ async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
   const persisted = lsRead(storageKey);
   if (persisted && (persisted.permanent || (Date.now() - persisted.timestamp) < GROUP_BETS_CACHE_TTL)) {
     groupBetsCache[cacheKey] = persisted;
-    return persisted.bets;
+    return withCurrentUsernames(groupId, persisted.bets);
   }
 
   const { memberIds, memberPictures } = await getGroupMembersForBets(groupId);
@@ -1739,5 +1832,5 @@ async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
   pruneGroupBetsCacheIfNeeded();
   lsWrite(storageKey, entry);
 
-  return allBets;
+  return withCurrentUsernames(groupId, allBets);
 }
