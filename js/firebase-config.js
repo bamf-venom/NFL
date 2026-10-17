@@ -471,10 +471,13 @@ async function firebaseRegister(email, password, username) {
   const userCredential = await auth.createUserWithEmailAndPassword(email, password);
   const user = userCredential.user;
   
+  // Bewusst KEIN email-Feld: Dieses Dokument darf jeder angemeldete Spieler
+  // lesen (Rangliste), die Adresse wäre damit für alle einsehbar. Sie steht
+  // ohnehin in Firebase Authentication und wird von dort gelesen
+  // (auth.currentUser.email: Profil, Passwort zurücksetzen, E-Mail ändern).
   const userData = {
     id: user.uid,
     username: username,
-    email: email,
     is_admin: false,
     total_points: 0,
     // total_bets/correct_winners/correct_scores waren hier bisher NICHT

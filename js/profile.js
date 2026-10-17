@@ -526,6 +526,10 @@ function renderProfile() {
     return game && game.status !== 'finished';
   });
   
+  // Die E-Mail-Adresse kommt aus Firebase Authentication - im Nutzer-Dokument
+  // wird sie nicht gespeichert (siehe firebaseRegister()).
+  const userEmail = auth.currentUser?.email || '';
+
   // Profile picture HTML
   const hasProfilePicture = user.profile_picture;
   const avatarContent = hasProfilePicture 
@@ -589,7 +593,7 @@ function renderProfile() {
         </div>
       `}
       
-      <p class="profile-email">${user.email}</p>
+      <p class="profile-email">${escapeHtml(userEmail)}</p>
       ${user.is_admin ? `<span class="profile-badge">${t('admin_badge')}</span>` : ''}
     </div>
 
