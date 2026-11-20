@@ -1361,3 +1361,315 @@
     display: none;
   }
 }
+
+/* ==================== Wochen-Leiste und Zusammenfassung (Spiele-Seite) ==================== */
+/* Das Wochen-Dropdown wird durch die Leiste ersetzt; das Select bleibt als Zustandshalter im DOM */
+.games-header .filter-container .custom-select:has(#week-filter) {
+  display: none;
+}
+
+.week-nav {
+  margin-bottom: 16px;
+}
+
+.week-nav[hidden],
+.week-summary[hidden] {
+  display: none;
+}
+
+/* Desktop: die Kacheln teilen sich die Breite (auch mit Playoff-Wochen eine Zeile) */
+.week-strip {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.week-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.week-chip {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 44px;
+  max-width: 76px;
+  height: 56px;
+  padding: 6px 8px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(var(--white-rgb), 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--muted-light);
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.week-chip:hover {
+  border-color: var(--border-light);
+  color: var(--white);
+}
+
+.week-chip:active {
+  transform: scale(0.96);
+}
+
+.week-chip-label {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.week-chip.is-text .week-chip-label {
+  font-size: 12px;
+  letter-spacing: 0.03em;
+}
+
+/* Zeile für die eigenen Punkte; bleibt auch ohne Punkte stehen, damit alle Kacheln gleich hoch sind */
+.week-chip-pts {
+  min-height: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.week-chip.has-points .week-chip-pts {
+  color: var(--success);
+}
+
+.week-chip.has-points.zero .week-chip-pts {
+  color: var(--muted);
+}
+
+.week-chip.is-current {
+  border-color: rgba(var(--white-rgb), 0.3);
+}
+
+.week-chip.is-selected {
+  background: var(--accent);
+  border-color: rgba(var(--white-rgb), 0.3);
+  color: var(--white);
+}
+
+.week-chip.is-selected .week-chip-pts {
+  color: var(--white);
+}
+
+/* Läuft gerade: kleiner pulsierender Punkt oben rechts */
+.week-chip.is-live::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning);
+  animation: weekChipPulse 1.8s ease-out infinite;
+}
+
+@keyframes weekChipPulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--warning-rgb), 0.55); }
+  70% { box-shadow: 0 0 0 6px rgba(var(--warning-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--warning-rgb), 0); }
+}
+
+/* Zusammenfassung der gewählten Woche (oder der Saison) */
+.week-summary {
+  margin-bottom: 22px;
+  padding: 14px 18px 16px;
+  border: 1px solid rgba(var(--white-rgb), 0.08);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.5) 0%, rgba(var(--accent-rgb), 0.14) 58%, rgba(var(--white-rgb), 0.02) 100%);
+}
+
+.week-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.week-summary-kicker {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--white-rgb), 0.78);
+}
+
+.week-summary-status {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(var(--white-rgb), 0.1);
+  color: var(--muted-light);
+}
+
+.week-summary-status.is-done {
+  background: rgba(var(--success-rgb), 0.18);
+  color: var(--success);
+}
+
+.week-summary-status.is-live {
+  background: rgba(var(--warning-rgb), 0.18);
+  color: var(--warning);
+}
+
+.week-summary-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.ws-cell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ws-value {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ws-value small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-light);
+}
+
+.ws-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-light);
+}
+
+/* Die Punkte groß, im Look der Spielstände (siehe .game-score-num) */
+.ws-main .ws-value {
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 46px;
+  line-height: 0.9;
+}
+
+@media (max-width: 768px) {
+  /* Kopfzeile kompakt: Titel links, Saison-/Gruppenauswahl als schmale Pillen rechts; die
+     Unterzeile entfällt */
+  .games-header {
+    margin-bottom: 14px;
+  }
+
+  .games-header .page-subtitle {
+    display: none;
+  }
+
+  .games-header .page-header-row {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
+
+  .games-header .filter-container {
+    width: auto;
+    flex: 0 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+
+  /* inline min-width (140px) aus dem Markup überstimmen - auch beim ausgeblendeten Select selbst,
+     sonst ragt es (absolut positioniert) über den rechten Bildschirmrand hinaus */
+  .games-header .filter-container .custom-select,
+  .games-header .filter-container select {
+    flex: 0 1 auto;
+    min-width: 0 !important;
+  }
+
+  .games-header .filter-container .custom-select-trigger {
+    min-width: 0;
+    gap: 8px;
+    padding: 8px 13px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .games-header .filter-container .custom-select-options {
+    left: auto;
+    right: 0;
+    width: max-content;
+    min-width: 100%;
+    max-width: min(280px, 80vw);
+  }
+
+  /* Leiste einzeilig, bis an den Bildschirmrand scrollbar */
+  .week-nav {
+    margin: 0 -14px 12px;
+  }
+
+  .week-strip {
+    padding: 2px 14px 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .week-chip {
+    flex: 0 0 auto;
+    min-width: 48px;
+    max-width: none;
+    height: 54px;
+  }
+
+  .week-summary {
+    margin-bottom: 18px;
+    padding: 12px 14px 14px;
+    border-radius: 14px;
+  }
+
+  .week-summary-head {
+    margin-bottom: 10px;
+  }
+
+  .ws-main .ws-value {
+    font-size: 40px;
+  }
+
+  .ws-value {
+    font-size: 18px;
+  }
+
+  .games-date-group {
+    margin-bottom: 26px;
+  }
+}

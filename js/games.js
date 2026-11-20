@@ -12,7 +12,11 @@ Object.assign(TRANSLATIONS.de, {
   lock_title_open: 'Tipp noch möglich', my_pick: 'Dein Tipp',
   no_group_bets: 'Noch keine Wetten in der Gruppe',
   back_to_games: 'Zurück zu den Spielen',
-  intl_label: 'International Series'
+  intl_label: 'International Series',
+  week_all_short: 'Alle', ws_season: 'Saison {s}',
+  ws_done: 'Abgeschlossen', ws_live: 'Läuft', ws_open: 'Offen',
+  ws_points: 'Punkte', ws_tips: 'Tipps', ws_hits: 'Treffer', ws_exact: 'Exakt',
+  ws_week_points: '{week}: {n} Punkte'
 });
 Object.assign(TRANSLATIONS.en, {
   games_title: 'Games', games_subtitle: 'Choose a game and place your bet',
@@ -26,7 +30,11 @@ Object.assign(TRANSLATIONS.en, {
   lock_title_open: 'Picks still open', my_pick: 'Your pick',
   no_group_bets: 'No picks in this group yet',
   back_to_games: 'Back to games',
-  intl_label: 'International Series'
+  intl_label: 'International Series',
+  week_all_short: 'All', ws_season: 'Season {s}',
+  ws_done: 'Completed', ws_live: 'In progress', ws_open: 'Upcoming',
+  ws_points: 'Points', ws_tips: 'Picks', ws_hits: 'Hits', ws_exact: 'Exact',
+  ws_week_points: '{week}: {n} points'
 });
 
 let gamesData = [];
@@ -101,6 +109,9 @@ async function initGamesPage() {
   if (deepLinkGameId) {
     openGameDetail(deepLinkGameId, { pushState: false });
   }
+
+  // Wochen-Leiste (Klick auf eine Kachel wählt die Woche)
+  document.getElementById('week-strip').addEventListener('click', handleWeekStripClick);
 
   // Week filter change
   document.getElementById('week-filter').addEventListener('change', function(e) {
@@ -542,6 +553,177 @@ function updateSuperBowlPageEffect() {
   syncSuperBowlPageEffect(superBowl || null);
 }
 
+// ==================== WOCHEN-LEISTE UND ZUSAMMENFASSUNG ====================
+// Wochen-Leiste über der Spieleliste (statt des Wochen-Dropdowns): eine Kachel je Woche der
+// gewählten Saison, bei Wochen mit Ergebnissen steht darunter, wie viele Punkte man selbst
+// gemacht hat. Die Zusammenfassungskarte darunter zeigt die Zahlen der gewählten Woche (oder der
+// ganzen Saison bei "Alle"). Alles wird aus gamesData + userBetsMap (den eigenen Tipps) berechnet,
+// es kommt nichts zusätzlich aus der Datenbank.
+
+// Kennzahlen je Woche und für die ganze Saison
+function computeWeekStats(season) {
+  const emptyStats = () => ({ games: 0, finished: 0, live: 0, tips: 0, finishedTips: 0, points: 0, hits: 0, exact: 0 });
+  const weeks = new Map();
+  const total = emptyStats();
+
+  gamesData.filter(game => game.season === season).forEach(game => {
+    if (!weeks.has(game.week)) weeks.set(game.week, emptyStats());
+    const week = weeks.get(game.week);
+    const bet = userBetsMap[game.id];
+
+    [week, total].forEach(stats => {
+      stats.games++;
+      if (game.status === 'finished') stats.finished++;
+      if (game.status === 'live') stats.live++;
+      if (!bet) return;
+      stats.tips++;
+      if (game.status === 'finished') {
+        const points = bet.points_earned || 0;
+        stats.finishedTips++;
+        stats.points += points;
+        if (points > 0) stats.hits++;
+        if (points >= 7) stats.exact++; // 3 + 3 + 1: beide Ergebnisse und der Sieger richtig
+      }
+    });
+  });
+
+  return { weeks, total };
+}
+
+// done = alle Spiele der Woche beendet, live = Woche läuft (mindestens ein Spiel beendet oder live)
+function getWeekProgress(stats) {
+  if (stats.games > 0 && stats.finished === stats.games) return 'done';
+  if (stats.finished > 0 || stats.live > 0) return 'live';
+  return 'open';
+}
+
+function getWeekChipLabel(week) {
+  switch (week) {
+    case 19: return 'WC';
+    case 20: return 'DIV';
+    case 21: return 'CONF';
+    case 22: return 'SB';
+    default: return String(week);
+  }
+}
+
+let lastCenteredWeekKey = null;
+
+function renderWeekNav() {
+  const nav = document.getElementById('week-nav');
+  const strip = document.getElementById('week-strip');
+  if (!nav || !strip) return;
+
+  const { weeks, total } = computeWeekStats(selectedSeason);
+  if (weeks.size === 0) {
+    nav.hidden = true;
+    return;
+  }
+
+  const currentWeek = getCurrentWeekForSeason(selectedSeason);
+  const chip = (week, label, stats, isText, ariaLabel) => {
+    const progress = getWeekProgress(stats);
+    const showPoints = stats.finishedTips > 0;
+    const isSelected = week === null ? !selectedWeek : week === selectedWeek;
+    const classes = [
+      'week-chip',
+      isSelected ? 'is-selected' : '',
+      isText ? 'is-text' : '',
+      week !== null ? `is-${progress}` : '',
+      week !== null && week === currentWeek ? 'is-current' : '',
+      showPoints ? (stats.points > 0 ? 'has-points' : 'has-points zero') : ''
+    ].filter(Boolean).join(' ');
+    return `
+      <button type="button" class="${classes}" data-week="${week === null ? '' : week}" aria-pressed="${isSelected}"
+              aria-label="${escapeHtml(ariaLabel)}" data-testid="week-chip-${week === null ? 'all' : week}">
+        <span class="week-chip-label">${label}</span>
+        <span class="week-chip-pts">${showPoints ? stats.points : ''}</span>
+      </button>`;
+  };
+
+  const sortedWeeks = [...weeks.keys()].sort((a, b) => a - b);
+  const previousScroll = strip.scrollLeft;
+  strip.innerHTML =
+    chip(null, t('week_all_short'), total, true, t('all_weeks')) +
+    sortedWeeks.map(week => {
+      const stats = weeks.get(week);
+      const name = getWeekDisplayName(week);
+      const aria = stats.finishedTips > 0 ? t('ws_week_points', { week: name, n: stats.points }) : name;
+      return chip(week, getWeekChipLabel(week), stats, week >= 19, aria);
+    }).join('');
+  nav.hidden = false;
+  strip.scrollLeft = previousScroll; // ein Neuaufbau (z.B. durch Countdown) soll die Leiste nicht zurückspringen lassen
+
+  // Die gewählte Woche in die Mitte holen - nur wenn sich die Auswahl geändert hat
+  const centerKey = `${selectedSeason}:${selectedWeek}`;
+  const activeChip = strip.querySelector('.week-chip.is-selected');
+  if (activeChip && centerKey !== lastCenteredWeekKey) {
+    const firstTime = lastCenteredWeekKey === null;
+    lastCenteredWeekKey = centerKey;
+    const left = activeChip.offsetLeft - (strip.clientWidth - activeChip.offsetWidth) / 2;
+    strip.scrollTo({ left: Math.max(0, left), behavior: firstTime ? 'auto' : 'smooth' });
+  }
+}
+
+function renderWeekSummary() {
+  const el = document.getElementById('week-summary');
+  if (!el) return;
+
+  const { weeks, total } = computeWeekStats(selectedSeason);
+  const isSeason = !selectedWeek;
+  const stats = isSeason ? total : weeks.get(selectedWeek);
+  if (weeks.size === 0 || !stats) {
+    el.hidden = true;
+    return;
+  }
+
+  const progress = getWeekProgress(stats);
+  const kicker = isSeason
+    ? t('ws_season', { s: getSeasonDisplayName(selectedSeason) })
+    : getWeekDisplayName(selectedWeek);
+  const statusLabel = { done: t('ws_done'), live: t('ws_live'), open: t('ws_open') }[progress];
+  const hasResults = stats.finished > 0;
+  const hasFinishedTips = stats.finishedTips > 0;
+
+  el.className = `week-summary${isSeason ? ' is-season' : ` is-${progress}`}`;
+  el.innerHTML = `
+    <div class="week-summary-head">
+      <span class="week-summary-kicker">${escapeHtml(kicker)}</span>
+      ${isSeason ? '' : `<span class="week-summary-status is-${progress}">${statusLabel}</span>`}
+    </div>
+    <div class="week-summary-grid">
+      <div class="ws-cell ws-main">
+        <span class="ws-value" data-testid="week-summary-points">${hasResults ? stats.points : '–'}</span>
+        <span class="ws-label">${t('ws_points')}</span>
+      </div>
+      <div class="ws-cell">
+        <span class="ws-value" data-testid="week-summary-tips">${stats.tips}${isSeason ? '' : `<small>/${stats.games}</small>`}</span>
+        <span class="ws-label">${t('ws_tips')}</span>
+      </div>
+      <div class="ws-cell">
+        <span class="ws-value" data-testid="week-summary-hits">${hasFinishedTips ? `${stats.hits}<small>/${stats.finishedTips}</small>` : '–'}</span>
+        <span class="ws-label">${t('ws_hits')}</span>
+      </div>
+      <div class="ws-cell">
+        <span class="ws-value" data-testid="week-summary-exact">${hasFinishedTips ? stats.exact : '–'}</span>
+        <span class="ws-label">${t('ws_exact')}</span>
+      </div>
+    </div>
+  `;
+  el.hidden = false;
+}
+
+// Klick auf eine Kachel der Wochen-Leiste: über das (ausgeblendete) Wochen-Select gehen,
+// dessen change-Handler Auswahl speichern und neu rendern erledigt
+function handleWeekStripClick(event) {
+  const chip = event.target.closest('.week-chip');
+  if (!chip) return;
+  const select = document.getElementById('week-filter');
+  if (!select || select.value === chip.dataset.week) return;
+  select.value = chip.dataset.week;
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 // Render games list
 function renderGames() {
   const container = document.getElementById('games-container');
@@ -551,6 +733,10 @@ function renderGames() {
   // Super-Bowl-Filter (siehe celebration.js). Unabhängig vom gerenderten
   // Inhalt, deshalb gleich hier am Anfang für alle Pfade unten.
   updateSuperBowlPageEffect();
+
+  // Wochen-Leiste und Zusammenfassung (eigene Punkte) über der Liste
+  renderWeekNav();
+  renderWeekSummary();
 
   let filteredGames = gamesData;
   
