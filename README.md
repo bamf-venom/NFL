@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="icons/icon-192.png" alt="NFL POINTS" width="96" height="96">
+<img src="icons/logo-app.svg" alt="NFL POINTS" width="96" height="96">
 
 # NFL POINTS
 

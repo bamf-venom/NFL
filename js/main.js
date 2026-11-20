@@ -304,7 +304,8 @@ function renderNavbar() {
         <div class="navbar-content">
           <!-- Logo links -->
           <a href="games.html" class="navbar-logo" data-testid="logo-link">
-            NFL<span>POINTS</span>
+            <img class="navbar-logo-mark" src="../icons/logo-p.svg" alt="" width="28" height="30">
+            <div class="navbar-logo-text">NFL<span>POINTS</span></div>
           </a>
           
           <!-- Desktop Navigation -->
@@ -444,7 +445,7 @@ async function initPageWithLoader(pageInitFn) {
   const hasLoader = typeof FootballLoader !== 'undefined';
   if (hasLoader) {
     const iconPrefix = window.location.pathname.includes('/pages/') ? '../icons/' : 'icons/';
-    FootballLoader.show({ variant: 'nfl', logo: iconPrefix + 'icon-inverted.png', title: 'NFL POINTS' });
+    FootballLoader.show({ variant: 'nfl', logo: iconPrefix + 'logo-p.svg', title: 'NFL POINTS' });
   }
   try {
     if (typeof waitForFirebaseSDK === 'function') {

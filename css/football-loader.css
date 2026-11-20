@@ -9,7 +9,7 @@
 .fbl {
   --fbl-fg: var(--foreground, #fafafa);
   --fbl-muted: var(--muted-light, #a3a3a3);
-  --fbl-accent: var(--accent, #013369);
+  --fbl-accent: var(--accent, #033883);
   --fbl-gold: var(--gold, #ffd700);
   --fbl-red: var(--error, #ef4444);
   --fbl-grass: 34, 197, 94;
@@ -488,7 +488,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25em;
+  gap: 0.5em;
 }
 
 .fbl-nfl-brand-text {
@@ -501,10 +501,11 @@
   text-transform: uppercase;
 }
 
+/* Das Logo (P, SVG): so hoch, dass Streifen und Stern gut zu erkennen sind */
 .fbl-nfl-brand img {
   display: block;
-  max-width: 6rem;
-  max-height: 6rem;
+  max-width: 8rem;
+  max-height: 7.5rem;
 }
 
 /* ===== VOLLBILD-OVERLAY ===== */
