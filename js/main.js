@@ -11,7 +11,9 @@ Object.assign(TRANSLATIONS.de, {
   you: 'Du', pts_short: 'Pkt', stat_points: 'Punkte', stat_bets: 'Wetten', stat_correct: 'Richtig',
   btn_save: 'Speichern', btn_cancel: 'Abbrechen', week_n: 'Woche {n}', btn_delete: 'Löschen',
   label_group_name: 'Gruppenname', all_weeks: 'Alle Wochen',
-  show_password: 'Passwort anzeigen', hide_password: 'Passwort verbergen'
+  show_password: 'Passwort anzeigen', hide_password: 'Passwort verbergen',
+  link_settings_sub: 'Sprache, Benachrichtigungen, Zwischenspeicher',
+  link_stats_title: 'Saison-Statistik 2025/26', link_stats_sub: 'So haben die Teams letzte Saison gespielt'
 });
 Object.assign(TRANSLATIONS.en, {
   nav_games: 'Games', nav_groups: 'Groups', nav_leaderboard: 'Leaderboard',
@@ -24,7 +26,9 @@ Object.assign(TRANSLATIONS.en, {
   you: 'You', pts_short: 'pts', stat_points: 'Points', stat_bets: 'Bets', stat_correct: 'Correct',
   btn_save: 'Save', btn_cancel: 'Cancel', week_n: 'Week {n}', btn_delete: 'Delete',
   label_group_name: 'Group name', all_weeks: 'All weeks',
-  show_password: 'Show password', hide_password: 'Hide password'
+  show_password: 'Show password', hide_password: 'Hide password',
+  link_settings_sub: 'Language, notifications, cache',
+  link_stats_title: 'Season stats 2025/26', link_stats_sub: 'How the teams played last season'
 });
 
 // Escaped nutzerkontrollierten Text (Username, Gruppenname, ...) sicher in

@@ -1,0 +1,178 @@
+/* ==================== Saison-Statistik (PDF-Ansicht) ==================== */
+.stats-container {
+  max-width: 940px;
+}
+
+.stats-header {
+  margin-bottom: 18px;
+}
+
+/* Sprungleiste: klebt beim Scrollen oben am Bildschirmrand (die Kopfzeile der App scrollt weg),
+   damit man jederzeit zu einem Team springen kann */
+.stats-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin: 0 -20px 16px;
+  padding: 10px 20px 8px;
+  background: rgba(var(--background-rgb), 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-toolbar[hidden] {
+  display: none;
+}
+
+.stats-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stats-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.stats-chip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 52px;
+  padding: 7px 8px 6px;
+  border-radius: 12px;
+  background: rgba(var(--white-rgb), 0.04);
+  border: 1px solid var(--border);
+  color: var(--muted-light);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.stats-chip img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.stats-chip-text {
+  padding: 0 14px;
+  min-height: 52px;
+  font-size: 12px;
+}
+
+.stats-chip.active {
+  background: var(--accent);
+  border-color: rgba(var(--white-rgb), 0.25);
+  color: var(--white);
+}
+
+.stats-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.stats-page-indicator {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-download {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-light);
+  text-decoration: none;
+}
+
+.stats-download:hover {
+  color: var(--white);
+}
+
+/* Die Seiten selbst */
+.pdf-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pdf-page {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #161616;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  /* Beim Springen unter der klebenden Sprungleiste landen (Höhe setzt saison-stats.js) */
+  scroll-margin-top: calc(var(--stats-toolbar-h, 110px) + 10px);
+}
+
+.pdf-page canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Platzhalter, solange die Seite noch gezeichnet wird */
+.pdf-page:not(.is-rendered)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(var(--white-rgb), 0.05) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: pdf-shimmer 1.4s linear infinite;
+}
+
+@keyframes pdf-shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+
+.pdf-link {
+  position: absolute;
+  display: block;
+  border-radius: 3px;
+  -webkit-tap-highlight-color: rgba(var(--white-rgb), 0.15);
+}
+
+.pdf-link:hover {
+  background: rgba(var(--white-rgb), 0.1);
+  outline: 1px solid rgba(var(--white-rgb), 0.35);
+}
+
+@media (max-width: 768px) {
+  .stats-toolbar {
+    margin: 0 -14px 12px;
+    padding: 8px 14px 6px;
+  }
+
+  .pdf-page {
+    border-radius: 6px;
+  }
+
+  .pdf-pages {
+    gap: 10px;
+  }
+}

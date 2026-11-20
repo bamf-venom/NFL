@@ -41,6 +41,8 @@ Pro Spiel sind maximal 7 Punkte möglich.
 ## Funktionen
 
 - **Alle Spiele der Saison** nach Wochen sortiert, mit Playoffs und Super Bowl, Spielstand und Status (geplant, live, beendet)
+- **Wochen-Übersicht**: Wochenleiste mit deinen Punkten je abgeschlossener Woche und einer Zusammenfassung (Punkte, Tipps, Treffer, exakte Ergebnisse)
+- **Saison-Statistik**: Rückblick auf die letzte Saison, wie jedes Team gespielt hat
 - **Fairer Tipp-Schluss**: Kurz vor dem Anpfiff sind Tipps gesperrt, ein Countdown zeigt, wie lange du noch Zeit hast
 - **Gruppen** mit Einladungscode, eigener Rangliste und den Tipps deiner Mitspieler
 - **Globale Rangliste** mit Statistiken, z. B. richtige Gewinner und exakte Ergebnisse

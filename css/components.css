@@ -436,6 +436,145 @@ select.form-input option {
   box-shadow: 0 20px 50px rgba(var(--black-rgb), 0.4);
 }
 
+/* ==================== Link-Zeilen (Karte mit Sprungzielen, z.B. Profil) ==================== */
+.link-card {
+  padding: 6px;
+}
+
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.link-row + .link-row {
+  margin-top: 2px;
+}
+
+.link-row:hover,
+.link-row:active {
+  background: rgba(var(--white-rgb), 0.05);
+}
+
+.link-row-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  color: var(--white);
+  font-size: 16px;
+}
+
+.link-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.link-row-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.link-row-sub {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.link-row-chevron {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--muted);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.link-row:hover .link-row-chevron {
+  color: var(--white);
+  transform: translateX(2px);
+}
+
+/* ==================== Einklappbare Karte ==================== */
+.collapse-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.collapse-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.collapse-chevron {
+  flex: 0 0 auto;
+  font-size: 14px;
+  color: var(--muted);
+  transition: transform 0.3s ease, color 0.2s ease;
+}
+
+.collapse-head:hover .collapse-chevron {
+  color: var(--white);
+}
+
+.collapsible.is-collapsed .collapse-chevron {
+  transform: rotate(-90deg);
+}
+
+/* Zuklappen über die Höhe der Grid-Zeile (1fr -> 0fr): weich, ohne feste Höhen */
+.collapse-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  margin-top: 16px;
+  transition: grid-template-rows 0.3s ease, margin-top 0.3s ease;
+}
+
+.collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.collapsible.is-collapsed .collapse-body {
+  grid-template-rows: 0fr;
+  margin-top: 0;
+  visibility: hidden;
+  transition: grid-template-rows 0.3s ease, margin-top 0.3s ease, visibility 0s linear 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapse-body,
+  .collapsible.is-collapsed .collapse-body,
+  .collapse-chevron {
+    transition: none;
+  }
+}
+
 /* ==================== Badges ==================== */
 .badge {
   display: inline-flex;

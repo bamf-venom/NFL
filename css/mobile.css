@@ -31,9 +31,15 @@
   }
   
   /* ==================== Mobile Header Layout ==================== */
+  /* Der äußere Seitenrand (20px) kommt zum eigenen Innenrand dazu und ließ links/rechts zu wenig
+     Platz: bei längeren Benutzernamen stieß der Name an das Logo. Mobil entfällt er. */
+  .navbar .navbar-container {
+    padding: 0;
+  }
+
   .navbar-content {
     height: 56px;
-    padding: 0 12px;
+    padding: 0 16px;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;

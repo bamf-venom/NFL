@@ -266,6 +266,17 @@ function renderSettings() {
     </div>
     ` : ''}
 
+    <div class="card link-card animate-fade-in" style="margin-bottom: 16px; animation-delay: 0.09s;">
+      <a href="saison-stats.html" class="link-row" data-testid="settings-season-stats-link">
+        <span class="link-row-icon"><i class="fas fa-chart-column"></i></span>
+        <span class="link-row-text">
+          <span class="link-row-title">${t('link_stats_title')}</span>
+          <span class="link-row-sub">${t('link_stats_sub')}</span>
+        </span>
+        <i class="fas fa-chevron-right link-row-chevron"></i>
+      </a>
+    </div>
+
     <div class="card animate-fade-in" style="margin-bottom: 16px; animation-delay: 0.1s;">
       <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
         <i class="fas fa-broom"></i> ${t('section_cache')}

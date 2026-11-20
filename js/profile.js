@@ -508,6 +508,23 @@ async function saveUsername() {
   }
 }
 
+// Karte "Offene Wetten" ein-/ausklappen. Der Zustand liegt nur im Browser dieses Geräts
+// (reine Anzeige-Vorliebe); Standard: aufgeklappt.
+const OPEN_BETS_COLLAPSED_KEY = 'nflpoints_open_bets_collapsed';
+
+function readOpenBetsCollapsed() {
+  try { return localStorage.getItem(OPEN_BETS_COLLAPSED_KEY) === '1'; } catch (e) { return false; }
+}
+
+function toggleOpenBets() {
+  const card = document.getElementById('open-bets-card');
+  if (!card) return;
+  const collapsed = card.classList.toggle('is-collapsed');
+  const head = card.querySelector('.collapse-head');
+  if (head) head.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  try { localStorage.setItem(OPEN_BETS_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (e) {}
+}
+
 // Render profile
 function renderProfile() {
   const container = document.getElementById('profile-container');
@@ -526,6 +543,8 @@ function renderProfile() {
     return game && game.status !== 'finished';
   });
   
+  const openBetsCollapsed = readOpenBetsCollapsed();
+
   // Die E-Mail-Adresse kommt aus Firebase Authentication - im Nutzer-Dokument
   // wird sie nicht gespeichert (siehe firebaseRegister()).
   const userEmail = auth.currentUser?.email || '';
@@ -618,8 +637,28 @@ function renderProfile() {
       </div>
     </div>
     
+    <!-- Einstellungen und Saison-Statistik -->
+    <div class="card link-card${shouldAnimate ? ' animate-fade-in' : ''}" style="margin-top: 24px;${shouldAnimate ? ' animation-delay: 0.72s;' : ''}">
+      <a href="settings.html" class="link-row" data-testid="profile-settings-link">
+        <span class="link-row-icon"><i class="fas fa-cog"></i></span>
+        <span class="link-row-text">
+          <span class="link-row-title">${t('nav_settings')}</span>
+          <span class="link-row-sub">${t('link_settings_sub')}</span>
+        </span>
+        <i class="fas fa-chevron-right link-row-chevron"></i>
+      </a>
+      <a href="saison-stats.html" class="link-row" data-testid="profile-season-stats-link">
+        <span class="link-row-icon"><i class="fas fa-chart-column"></i></span>
+        <span class="link-row-text">
+          <span class="link-row-title">${t('link_stats_title')}</span>
+          <span class="link-row-sub">${t('link_stats_sub')}</span>
+        </span>
+        <i class="fas fa-chevron-right link-row-chevron"></i>
+      </a>
+    </div>
+
     <!-- User Groups -->
-    <div class="card${shouldAnimate ? ' animate-fade-in' : ''}" style="margin-top: 24px;${shouldAnimate ? ' animation-delay: 0.75s;' : ''}">
+    <div class="card${shouldAnimate ? ' animate-fade-in' : ''}" style="margin-top: 24px;${shouldAnimate ? ' animation-delay: 0.78s;' : ''}">
       <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">
         <i class="fas fa-users" style="margin-right: 8px; color: var(--accent);"></i>
         ${t('my_groups', { n: userGroups.length })}
@@ -661,48 +700,55 @@ function renderProfile() {
       `}
     </div>
     
-    <!-- Open Bets Only -->
-    <div class="card${shouldAnimate ? ' animate-fade-in' : ''}" style="margin-top: 24px;${shouldAnimate ? ' animation-delay: 0.85s;' : ''}">
-      <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">
-        <i class="fas fa-clock" style="margin-right: 8px; color: var(--warning);"></i>
-        ${t('open_bets', { n: openBets.length })}
-      </h3>
+    <!-- Open Bets Only (einklappbar, der Zustand bleibt auf dem Gerät gespeichert) -->
+    <div id="open-bets-card" class="card collapsible${openBetsCollapsed ? ' is-collapsed' : ''}${shouldAnimate ? ' animate-fade-in' : ''}" style="margin-top: 24px;${shouldAnimate ? ' animation-delay: 0.85s;' : ''}">
+      <button type="button" class="collapse-head" onclick="toggleOpenBets()" aria-expanded="${openBetsCollapsed ? 'false' : 'true'}" aria-controls="open-bets-body" data-testid="open-bets-toggle">
+        <span class="collapse-title">
+          <i class="fas fa-clock" style="color: var(--warning);"></i>
+          ${t('open_bets', { n: openBets.length })}
+        </span>
+        <i class="fas fa-chevron-down collapse-chevron"></i>
+      </button>
 
-      ${openBets.length === 0 ? `
-        <p style="text-align: center; color: var(--muted); padding: 32px 0;">
-          ${t('no_open_bets')}
-        </p>
-      ` : `
-        <div class="bets-list">
-          ${openBets.map(bet => {
-            const game = gamesData.find(g => g.id === bet.game_id);
-            
-            return `
-              <div class="bet-item" 
-                   onclick="window.location.href='games.html?game=${bet.game_id}'"
-                   style="cursor: pointer;"
-                   data-testid="my-bet-${bet.id}">
-                <div>
-                  <div style="font-weight: 500;">
-                    ${game ? `${game.away_team_abbr} vs ${game.home_team_abbr}` : t('game_fallback')}
-                  </div>
-                  <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-                    ${t('pick_label', { home: bet.home_score_prediction, away: bet.away_score_prediction })}
-                  </div>
-                  ${game ? `
-                    <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
-                      ${formatDate(game.game_date)}
+      <div id="open-bets-body" class="collapse-body">
+        <div class="collapse-inner">
+          ${openBets.length === 0 ? `
+            <p style="text-align: center; color: var(--muted); padding: 16px 0;">
+              ${t('no_open_bets')}
+            </p>
+          ` : `
+            <div class="bets-list">
+              ${openBets.map(bet => {
+                const game = gamesData.find(g => g.id === bet.game_id);
+
+                return `
+                  <div class="bet-item"
+                       onclick="window.location.href='games.html?game=${bet.game_id}'"
+                       style="cursor: pointer;"
+                       data-testid="my-bet-${bet.id}">
+                    <div>
+                      <div style="font-weight: 500;">
+                        ${game ? `${game.away_team_abbr} vs ${game.home_team_abbr}` : t('game_fallback')}
+                      </div>
+                      <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+                        ${t('pick_label', { home: bet.home_score_prediction, away: bet.away_score_prediction })}
+                      </div>
+                      ${game ? `
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+                          ${formatDate(game.game_date)}
+                        </div>
+                      ` : ''}
                     </div>
-                  ` : ''}
-                </div>
-                <div class="bet-earned" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);">
-                  ${game?.status === 'live' ? t('status_live_short') : t('status_open')}
-                </div>
-              </div>
-            `;
-          }).join('')}
+                    <div class="bet-earned" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);">
+                      ${game?.status === 'live' ? t('status_live_short') : t('status_open')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
         </div>
-      `}
+      </div>
     </div>
     
     <!-- Action Buttons -->

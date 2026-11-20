@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="de" class="fbl-lock">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="icon" href="../favicon.png">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <title>Saison-Statistik - NFL POINTS</title>
+
+  <link rel="preload" href="../css/colors.css" as="style">
+  <link rel="preload" href="../css/base.css" as="style">
+  <link rel="preload" href="../css/football-loader.css" as="style">
+
+  <link rel="stylesheet" href="../css/colors.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/football-loader.css">
+  <link rel="stylesheet" href="../css/animations.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="../css/games.css">
+  <link rel="stylesheet" href="../css/leaderboard-groups.css">
+  <link rel="stylesheet" href="../css/profile-admin.css">
+  <link rel="stylesheet" href="../css/utilities.css">
+  <link rel="stylesheet" href="../css/stats.css">
+  <link rel="stylesheet" href="../css/mobile.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Barlow+Condensed:ital,wght@1,900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <!-- Statischer Ladebildschirm (siehe die anderen Seiten) -->
+  <div class="fbl-overlay fbl-overlay--nfl" id="page-loader">
+    <div class="fbl fbl--line fbl--nfl">
+      <div class="fbl-nfl-brand"><img class="fbl-nfl-brand-logo" src="../icons/icon-inverted.png" alt="NFL POINTS"><div class="fbl-nfl-brand-text">NFL POINTS</div></div>
+      <svg class="fbl-nfl-icon" viewBox="-72 -72 144 144" aria-hidden="true" focusable="false">
+        <defs><clipPath id="page-loader-clip"><path d="M17.2 -37.8H31.8A6 6 0 0 1 37.8 -31.8V-17.2A55 55 0 0 1 -17.2 37.8H-31.8A6 6 0 0 1 -37.8 31.8V17.2A55 55 0 0 1 17.2 -37.8Z"/></clipPath></defs>
+        <g transform="rotate(-45)">
+          <path class="fbl-nfl-streak fbl-nfl-streak--1" d="M-61.5 -10.6H-85.5" pathLength="100"/>
+          <path class="fbl-nfl-streak fbl-nfl-streak--2" d="M-67.2 5.9H-89.8" pathLength="100"/>
+          <path class="fbl-nfl-streak fbl-nfl-streak--3" d="M-61.5 24.4H-72.3" pathLength="100"/>
+        </g>
+        <g clip-path="url(#page-loader-clip)"><g transform="rotate(-45)">
+          <g class="fbl-nfl-laces"><path d="M-24 0H24M-20.5 -6.9V6.9M-7.5 -6.9V6.9M7.5 -6.9V6.9M20.5 -6.9V6.9"/></g>
+        </g></g>
+        <path d="M17.2 -37.8H31.8A6 6 0 0 1 37.8 -31.8V-17.2A55 55 0 0 1 -17.2 37.8H-31.8A6 6 0 0 1 -37.8 31.8V17.2A55 55 0 0 1 17.2 -37.8Z"/>
+      </svg>
+    </div>
+  </div>
+  <div id="navbar-container"></div>
+
+  <main class="main-content">
+    <div class="container stats-container">
+      <a href="profile.html" class="back-link" data-testid="stats-back">
+        <i class="fas fa-arrow-left"></i>
+        <span data-i18n="back_to_profile">Zurück zum Profil</span>
+      </a>
+
+      <div class="page-header stats-header">
+        <h1 class="page-title" data-testid="stats-title" data-i18n="stats_title">Saison 2025/26</h1>
+        <p class="page-subtitle" data-i18n="stats_subtitle">Statistik der letzten Saison: wie die Teams gespielt haben</p>
+      </div>
+
+      <!-- Sprungleiste: wird nach dem Laden der PDF gefüllt -->
+      <div class="stats-toolbar" id="stats-toolbar" hidden>
+        <div class="stats-chips" id="stats-chips"></div>
+        <div class="stats-toolbar-row">
+          <span class="stats-page-indicator" id="stats-page-indicator" aria-live="polite"></span>
+          <a class="stats-download" id="stats-download" href="../data/stats/NFL_Saison_2025_Statistik.pdf" target="_blank" rel="noopener" data-testid="stats-download">
+            <i class="fas fa-arrow-up-right-from-square"></i> <span data-i18n="stats_open_pdf">PDF öffnen</span>
+          </a>
+        </div>
+      </div>
+
+      <div id="pdf-status" class="loading-container" data-testid="stats-status">
+        <div class="spinner spinner-lg"></div>
+      </div>
+      <div id="pdf-pages" class="pdf-pages" data-testid="stats-pages"></div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" async></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" async></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" async></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/football-loader.js"></script>
+  <script src="../js/main.js"></script>
+  <!-- ES-Modul: die PDF-Bibliothek (js/vendor/pdfjs) ist ein Modul -->
+  <script type="module" src="../js/saison-stats.js"></script>
+</body>
+</html>
