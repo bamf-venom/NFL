@@ -200,9 +200,22 @@ const BETTING_LOCK_MINUTES_BEFORE_KICKOFF = 3;
 // festen Datei kommen (data/seasons/<Saison>.json, erzeugt mit
 // automation/archive-season.js - Ablauf in der Obsidian-Notiz Saison-Archiv). Eine
 // Saison erst hier eintragen, NACHDEM ihre Datei im Repo liegt. Die Datei enthält nur
-// Spiele, keine Tipps; Tipps, Gruppen und Rangliste laufen weiter über Firestore.
+// Spiele; Tipps, Gruppen und Rangliste laufen weiter über Firestore (Tipps archivierter
+// Spiele siehe ARCHIVED_TIPS_SEASONS).
 // Ist die Datei nicht ladbar, fällt die App für diese Saison auf Firestore zurück.
 const ARCHIVED_SEASONS = ['2025'];
+
+// Laufende Saisons, deren bereits beendete Wochen aus der Datei kommen (dieselbe Datei
+// data/seasons/<Saison>.json, aber mit "partial": true und "archived_until"). Beendete Spiele
+// nach diesem Zeitpunkt, geplante und laufende Spiele kommen weiter aus Firestore. Mit der
+// Archivierung der kompletten Saison wandert der Eintrag nach ARCHIVED_SEASONS.
+const PARTIAL_ARCHIVED_SEASONS = ['2026'];
+
+// Saisons mit Tipp-Datei (data/seasons/<Saison>-tips.json): die Tipps der archivierten Spiele,
+// ohne Namen (nur Nutzer-ID, Tipp, Punkte). Die Gruppen-Tipps dieser Spiele kommen aus der Datei,
+// Namen und Profilbilder weiter live aus den Nutzer-Dokumenten. Die eigenen Tipps, die Rangliste
+// und die Gruppen-Rangliste laufen weiter über Firestore (dort bleiben alle Tipps erhalten).
+const ARCHIVED_TIPS_SEASONS = ['2026'];
 
 // Öffentlicher VAPID-Schlüssel für Web-Push-Benachrichtigungen (Wett-Erinnerung
 // 1h vor Anpfiff, siehe automation/send-bet-reminders.js). Unbedenklich im

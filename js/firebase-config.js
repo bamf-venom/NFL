@@ -834,7 +834,12 @@ const GAMES_COMBINED_TTL = 120000; // 2 Minuten (vorher 30s)
 // Seitenaufruf die komplette Historie (alte Saisons + Playoffs) neu zu laden.
 // Optional nach Saison gefiltert, damit ein Ladevorgang für "nur die aktuelle
 // Saison" nicht trotzdem alle anderen Saisons mitschleppt.
-async function getFinishedGamesCached(season = null) {
+async function getFinishedGamesCached(season = null, { fromFirestoreOnly = false } = {}) {
+  // Laufende Saison mit Teilarchiv (siehe SAISON-ARCHIV): die schon archivierten Wochen
+  // kommen aus der Datei, aus Firestore nur noch das, was danach beendet wurde
+  const partialArchive = season && !fromFirestoreOnly ? await loadPartialArchive(season) : null;
+  if (partialArchive) return getFinishedGamesWithArchive(season, partialArchive);
+
   const cacheKey = season || 'all';
   const cached = finishedGamesCache[cacheKey];
   if (cached && (Date.now() - cached.timestamp) < FINISHED_GAMES_TTL) {
@@ -862,6 +867,41 @@ async function getFinishedGamesCached(season = null) {
   finishedGamesCache[cacheKey] = entry;
   lsWrite(storageKey, entry);
   return games;
+}
+
+// Beendete Spiele einer Saison mit Teilarchiv: die archivierten Wochen aus der Datei, aus
+// Firestore nur die beendeten Spiele NACH dem Stichtag der Datei (Abfrage status + game_date,
+// derselbe Index wie bei getRecentlyFinishedFresh, deshalb ohne Saison-Filter in der Abfrage -
+// nach Saison wird im Client gefiltert). Gecacht wird nur der Firestore-Teil; die Datei wird
+// ohnehin vom Browser/Service Worker zwischengespeichert.
+async function getFinishedGamesWithArchive(season, archive) {
+  const cacheKey = `${season}_after`;
+  let fresh;
+  const cached = finishedGamesCache[cacheKey];
+  const persisted = (!cached && lsRead(`finishedGames_${cacheKey}`)) || null;
+  const valid = entry => entry && entry.until === archive.archivedUntil && (Date.now() - entry.timestamp) < FINISHED_GAMES_TTL;
+
+  if (valid(cached)) {
+    fresh = cached.data;
+  } else if (valid(persisted)) {
+    finishedGamesCache[cacheKey] = persisted;
+    fresh = persisted.data;
+  } else {
+    const cutoff = firebase.firestore.Timestamp.fromDate(new Date(archive.archivedUntil));
+    const snapshot = await collections.games()
+      .where('status', '==', 'finished')
+      .where('game_date', '>', cutoff)
+      .get();
+    fresh = snapshot.docs.map(mapGameDoc).filter(game => game.season === season);
+    const entry = { data: fresh, timestamp: Date.now(), until: archive.archivedUntil };
+    finishedGamesCache[cacheKey] = entry;
+    lsWrite(`finishedGames_${cacheKey}`, entry);
+  }
+
+  const gamesById = new Map();
+  archive.games.forEach(game => gamesById.set(game.id, { ...game }));
+  fresh.forEach(game => gamesById.set(game.id, game));
+  return [...gamesById.values()];
 }
 
 // Laufende/geplante Spiele können sich jederzeit ändern (Automatik setzt sie
@@ -911,11 +951,16 @@ function invalidateGamesCaches() {
 }
 
 // ==================== SAISON-ARCHIV ====================
-// Abgeschlossene Saisons (ARCHIVED_SEASONS in config.js) ändern sich nie mehr -
-// ihre Spiele kommen aus einer festen Datei (data/seasons/<Saison>.json, erzeugt
-// mit automation/archive-season.js) statt bei jedem Aufruf aus Firestore. Die
-// Firestore-Dokumente bleiben unverändert bestehen. Die Datei enthält nur
-// Spiele; Tipps, Gruppen und Rangliste laufen weiter über Firestore.
+// Beendete Spiele ändern sich nie mehr - sie kommen aus einer festen Datei
+// (data/seasons/<Saison>.json, erzeugt mit automation/archive-season.js) statt bei jedem
+// Aufruf aus Firestore. Die Firestore-Dokumente bleiben unverändert bestehen.
+//  - ARCHIVED_SEASONS (config.js): ganze, abgeschlossene Saisons, nur aus der Datei.
+//  - PARTIAL_ARCHIVED_SEASONS: laufende Saison, deren bereits beendete Wochen in der Datei
+//    stehen ("partial": true, "archived_until" = letzter archivierter Anstoß); beendete Spiele
+//    NACH diesem Zeitpunkt sowie geplante und laufende Spiele kommen weiter aus Firestore.
+//  - ARCHIVED_TIPS_SEASONS: die Tipps der archivierten Spiele stehen ohne Namen in
+//    data/seasons/<Saison>-tips.json (siehe "Tipp-Archiv" weiter unten).
+// Ist eine Datei nicht ladbar, fällt die App auf Firestore zurück.
 const ARCHIVE_BASE_URL = (document.currentScript && document.currentScript.src)
   ? new URL('../data/seasons/', document.currentScript.src).href
   : new URL(location.pathname.includes('/pages/') ? '../data/seasons/' : 'data/seasons/', location.href).href;
@@ -931,10 +976,14 @@ function isArchivedSeason(season) {
   return getArchivedSeasons().includes(String(season));
 }
 
-// Lädt die Spiele einer archivierten Saison. Liefert null (statt zu werfen), wenn die
-// Datei nicht ladbar oder unvollständig ist - der Aufrufer fällt dann auf Firestore
-// zurück, damit nie Spiele verschwinden, nur weil eine Datei fehlt.
-function loadArchivedSeason(season) {
+function isPartialArchivedSeason(season) {
+  return typeof PARTIAL_ARCHIVED_SEASONS !== 'undefined' && PARTIAL_ARCHIVED_SEASONS.map(String).includes(String(season));
+}
+
+// Lädt die Archivdatei einer Saison: { games, partial, weeks, archivedUntil }. Liefert null
+// (statt zu werfen), wenn die Datei nicht ladbar oder unvollständig ist - der Aufrufer fällt
+// dann auf Firestore zurück, damit nie Spiele verschwinden, nur weil eine Datei fehlt.
+function loadArchive(season) {
   season = String(season);
   if (!archivedSeasonPromises[season]) {
     archivedSeasonPromises[season] = fetch(`${ARCHIVE_BASE_URL}${season}.json`)
@@ -946,8 +995,17 @@ function loadArchivedSeason(season) {
         if (!data || String(data.season) !== season || !Array.isArray(data.games) || data.games.length === 0) {
           throw new Error('Archivdatei unvollständig');
         }
+        const partial = data.partial === true;
+        if (partial && (!Array.isArray(data.weeks) || data.weeks.length === 0 || !Number.isFinite(new Date(data.archived_until).getTime()))) {
+          throw new Error('Teilarchiv unvollständig');
+        }
         archivedGamesLoaded[season] = data.games;
-        return data.games;
+        return {
+          games: data.games,
+          partial,
+          weeks: partial ? data.weeks : null,
+          archivedUntil: partial ? data.archived_until : null
+        };
       })
       .catch(error => {
         console.warn(`Archiv der Saison ${season} nicht ladbar, nutze Firestore:`, error);
@@ -955,8 +1013,19 @@ function loadArchivedSeason(season) {
         return null;
       });
   }
-  // Kopien, damit niemand das gemeinsam genutzte Archiv versehentlich verändert
-  return archivedSeasonPromises[season].then(games => (games ? games.map(game => ({ ...game })) : null));
+  return archivedSeasonPromises[season];
+}
+
+// Spiele einer GANZEN archivierten Saison (Kopien, damit niemand das gemeinsam genutzte Archiv
+// versehentlich verändert). Ein Teilarchiv zählt hier nicht: dann null, der Aufrufer nimmt Firestore.
+function loadArchivedSeason(season) {
+  return loadArchive(season).then(archive => (archive && !archive.partial ? archive.games.map(game => ({ ...game })) : null));
+}
+
+// Das Teilarchiv einer laufenden Saison (null: keine Teilarchiv-Saison oder Datei nicht ladbar)
+function loadPartialArchive(season) {
+  if (!isPartialArchivedSeason(season)) return Promise.resolve(null);
+  return loadArchive(season).then(archive => (archive && archive.partial ? archive : null));
 }
 
 // Saisons, für die (noch) Spiele in Firestore liegen können: die laufende bzw.
@@ -1033,7 +1102,9 @@ async function getGamesAllSeasons(useCache = true) {
 // localStorage liegen bleiben)
 function cleanupObsoleteGameCaches() {
   try {
-    const flag = LS_PREFIX + 'archiveCleanup1';
+    // archiveCleanup2: seit dem Teilarchiv der Saison 2026 liegen die Spiele der ersten
+    // Wochen nicht mehr im Cache der beendeten Spiele (finishedGames_2026 war die komplette Liste)
+    const flag = LS_PREFIX + 'archiveCleanup2';
     if (localStorage.getItem(flag)) return;
     lsRemovePrefix('finishedGames_');
     lsRemovePrefix('gamesCombined_');
@@ -1061,6 +1132,14 @@ async function firebaseGetGames(filters = {}, useCache = true) {
       return await getGamesAllSeasons(useCache);
     }
 
+    // Einzelne bereits archivierte Woche einer laufenden Saison: aus der Datei
+    if (!fromFirestoreOnly && filters.week && filters.season) {
+      const partialArchive = await loadPartialArchive(filters.season);
+      if (partialArchive && partialArchive.weeks.includes(filters.week)) {
+        return partialArchive.games.filter(game => game.week === filters.week).map(game => ({ ...game }));
+      }
+    }
+
     // Einzelne Woche: sehr spezifische, kleine Abfrage - unverändert direkt
     if (filters.week) {
       let query = collections.games().where('week', '==', filters.week);
@@ -1079,7 +1158,8 @@ async function firebaseGetGames(filters = {}, useCache = true) {
     // beendete Spiele den Großteil der Datenmenge ausmachen und sich nie
     // mehr ändern. Kombi-Ergebnis zusätzlich kurz gecacht (30s) gegen
     // mehrfache Aufrufe kurz hintereinander.
-    const cacheKey = filters.season || 'all';
+    // Direkt aus Firestore (Admin) darf nicht mit dem Cache der archiv-gestützten Liste vermischt werden
+    const cacheKey = (filters.season || 'all') + (fromFirestoreOnly && isPartialArchivedSeason(filters.season) ? '_fs' : '');
     const storageKey = `gamesCombined_${cacheKey}`;
     if (useCache) {
       const cached = gamesCombinedCache[cacheKey];
@@ -1098,7 +1178,7 @@ async function firebaseGetGames(filters = {}, useCache = true) {
     }
 
     const [finishedGames, recentFinished, activeGames] = await Promise.all([
-      getFinishedGamesCached(filters.season),
+      getFinishedGamesCached(filters.season, { fromFirestoreOnly }),
       getRecentlyFinishedFresh(filters.season),
       getActiveGamesFresh(filters.season)
     ]);
@@ -1844,6 +1924,74 @@ async function withCurrentUsernames(groupId, bets) {
   return bets.map(bet => ({ ...bet, username: memberNames[bet.user_id] || bet.username || '?' }));
 }
 
+// ==================== TIPP-ARCHIV ====================
+// Die Tipps der archivierten Spiele (ARCHIVED_TIPS_SEASONS in config.js) stehen ohne Namen in
+// data/seasons/<Saison>-tips.json: je Spiel eine Liste [Nutzer-Nummer, Tipp Gast, Tipp Heim, Punkte],
+// die Nutzer-Nummer verweist auf die Liste "users" (Nutzer-IDs). Die Namen und Profilbilder
+// kommen wie sonst live aus den Nutzer-Dokumenten (siehe getGroupMembersForBets). Für diese
+// Spiele fragt firebaseGetGroupBets Firestore gar nicht mehr; ist die Datei nicht ladbar, geht
+// es wie bisher über Firestore.
+let archivedTipsIndexPromise = null; // Promise<Map<Spiel-ID, { users, rows }>>
+
+function loadArchivedTipsFile(season) {
+  return fetch(`${ARCHIVE_BASE_URL}${season}-tips.json`)
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      if (!data || String(data.season) !== String(season) || !Array.isArray(data.users) || !data.tips || typeof data.tips !== 'object') {
+        throw new Error('Tipp-Datei unvollständig');
+      }
+      return data;
+    })
+    .catch(error => {
+      console.warn(`Tipp-Archiv der Saison ${season} nicht ladbar, nutze Firestore:`, error);
+      return null;
+    });
+}
+
+function getArchivedTipsIndex() {
+  if (!archivedTipsIndexPromise) {
+    const seasons = typeof ARCHIVED_TIPS_SEASONS !== 'undefined' ? ARCHIVED_TIPS_SEASONS.map(String) : [];
+    archivedTipsIndexPromise = Promise.all(seasons.map(loadArchivedTipsFile)).then(files => {
+      const index = new Map();
+      files.forEach(file => {
+        if (!file) return;
+        Object.entries(file.tips).forEach(([gameId, rows]) => index.set(gameId, { users: file.users, rows }));
+      });
+      // Eine nicht ladbare Datei nicht dauerhaft merken: beim nächsten Aufruf erneut versuchen
+      if (files.some(file => !file)) archivedTipsIndexPromise = null;
+      return index;
+    });
+  }
+  return archivedTipsIndexPromise;
+}
+
+// Tipps eines archivierten Spiels für die Mitglieder einer Gruppe (null: Spiel nicht im Tipp-Archiv)
+async function getArchivedGroupBets(groupId, gameId) {
+  const archived = (await getArchivedTipsIndex()).get(gameId);
+  if (!archived) return null;
+
+  const { memberIds, memberPictures } = await getGroupMembersForBets(groupId);
+  const members = new Set(memberIds);
+  const bets = [];
+  archived.rows.forEach(([userNumber, away, home, points]) => {
+    const userId = archived.users[userNumber];
+    if (!members.has(userId)) return;
+    bets.push({
+      id: `${gameId}_${userId}`,
+      user_id: userId,
+      game_id: gameId,
+      away_score_prediction: away,
+      home_score_prediction: home,
+      points_earned: points,
+      profile_picture: memberPictures[userId] || null
+    });
+  });
+  return withCurrentUsernames(groupId, bets);
+}
+
 async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
   // Ohne gültige gameId würde Query.where('game_id', '==', gameId) mit
   // "Unsupported field value: undefined" abstürzen und damit die komplette
@@ -1852,6 +2000,10 @@ async function firebaseGetGroupBets(groupId, gameId, isGameFinished = false) {
     console.warn('firebaseGetGroupBets: ungültige groupId/gameId', groupId, gameId);
     return [];
   }
+
+  // Archiviertes Spiel: Tipps aus der Datei, kein Firestore-Zugriff für die Tipps
+  const archivedBets = await getArchivedGroupBets(groupId, gameId);
+  if (archivedBets) return archivedBets;
 
   const cacheKey = `${groupId}::${gameId}`;
   const cached = groupBetsCache[cacheKey];

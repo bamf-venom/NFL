@@ -143,6 +143,13 @@ async function initGamesPage() {
     // Update week filter based on selected season
     populateWeekFilter();
     saveFilterState();
+
+    // Ist eine Gruppe gewählt, brauchen die Spiele der neuen Saison deren Tipps (geladen werden
+    // nur die der gewählten Saison, siehe loadGroupBets)
+    if (selectedGroupId) {
+      groupBetsMap = {};
+      await loadGroupBets();
+    }
     renderGames();
   });
 
@@ -313,16 +320,19 @@ async function loadGroupBets() {
     return;
   }
   
-  // Merke aktuelle Gruppe für Race-Condition Check
+  // Merke aktuelle Gruppe und Saison für Race-Condition Check
   const loadingGroupId = selectedGroupId;
+  const loadingSeason = selectedSeason;
   
   try {
     const tempGroupBetsMap = {};
     
-    // Lade alle Wetten für jedes Spiel von der Gruppe parallel für bessere Performance
-    const promises = gamesData.filter(game => game && game.id).map(async (game) => {
+    // Lade alle Wetten für jedes Spiel von der Gruppe parallel für bessere Performance.
+    // Nur für die gewählte Saison: die Liste zeigt ohnehin nur sie, und jedes Spiel einer
+    // anderen Saison wäre eine eigene Datenbank-Abfrage (bei einem Saisonwechsel wird neu geladen)
+    const promises = gamesData.filter(game => game && game.id && (!loadingSeason || game.season === loadingSeason)).map(async (game) => {
       // Prüfe ob Gruppe noch die gleiche ist (früher Abbruch)
-      if (selectedGroupId !== loadingGroupId) return null;
+      if (selectedGroupId !== loadingGroupId || selectedSeason !== loadingSeason) return null;
 
       const bets = await firebaseGetGroupBets(loadingGroupId, game.id, game.status === 'finished');
       if (bets.length > 0) {
@@ -333,9 +343,9 @@ async function loadGroupBets() {
     
     const results = await Promise.all(promises);
     
-    // Prüfe nochmal ob Gruppe noch die gleiche ist nach dem Laden
-    if (selectedGroupId !== loadingGroupId) {
-      console.log('Group changed during load, discarding results');
+    // Prüfe nochmal ob Gruppe und Saison noch die gleichen sind nach dem Laden
+    if (selectedGroupId !== loadingGroupId || selectedSeason !== loadingSeason) {
+      console.log('Group or season changed during load, discarding results');
       return;
     }
     
