@@ -353,6 +353,24 @@ input[type='datetime-local']::-webkit-calendar-picker-indicator {
   color: var(--foreground);
 }
 
+/* Zeile mit Zusatzangabe rechts (data-meta, z.B. Punkte einer Woche): Text links, Angabe rechts */
+.custom-select-option.has-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.custom-select-option-meta {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.custom-select-option.selected .custom-select-option-meta {
+  color: var(--foreground);
+}
+
 .custom-select-option.selected::after {
   content: '\f00c';
   font-family: 'Font Awesome 6 Free';

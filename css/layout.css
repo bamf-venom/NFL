@@ -68,6 +68,29 @@
   background: rgba(var(--accent-rgb), 0.15);
 }
 
+.nav-link {
+  white-space: nowrap;
+}
+
+/* Schmale Computer-Fenster (Tablet quer): vier Einträge brauchen sonst mehr Platz als da ist */
+@media (min-width: 769px) and (max-width: 899px) {
+  .navbar-nav {
+    gap: 2px;
+  }
+
+  .nav-link {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+}
+
+/* Ganz schmal (kurz über dem Handy-Layout): nur die Texte, ohne Symbole */
+@media (min-width: 769px) and (max-width: 799px) {
+  .nav-link i {
+    display: none;
+  }
+}
+
 .navbar-user {
   position: relative;
 }

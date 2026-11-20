@@ -7,8 +7,24 @@
   margin-bottom: 18px;
 }
 
-/* Sprungleiste: klebt beim Scrollen oben am Bildschirmrand (die Kopfzeile der App scrollt weg),
-   damit man jederzeit zu einem Team springen kann */
+.stats-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* PDF-Link im Kopf: nur auf dem Computer (auf dem Handy steckt er in der Sprungleiste) */
+.stats-open-desktop {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+/* Sprungleiste (Handy und schmale Fenster): klebt beim Scrollen oben am Bildschirmrand (die
+   Kopfzeile der App scrollt weg), damit man jederzeit zu einem Team springen kann */
 .stats-toolbar {
   position: sticky;
   top: 0;
@@ -125,7 +141,8 @@
   background: #161616;
   border: 1px solid var(--border);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
-  /* Beim Springen unter der klebenden Sprungleiste landen (Höhe setzt saison-stats.js) */
+  /* Beim Springen unter der klebenden Sprungleiste landen (Höhe setzt saison-stats.js, auf dem
+     Computer ohne Leiste 0) */
   scroll-margin-top: calc(var(--stats-toolbar-h, 110px) + 10px);
 }
 
@@ -160,6 +177,163 @@
 .pdf-link:hover {
   background: rgba(var(--white-rgb), 0.1);
   outline: 1px solid rgba(var(--white-rgb), 0.35);
+}
+
+/* Seitenleiste (Computer): nur ab dieser Breite, dann statt der Sprungleiste */
+.stats-rail {
+  display: none;
+}
+
+@media (min-width: 1000px) {
+  .stats-container {
+    max-width: 1140px;
+  }
+
+  .stats-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 108px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .stats-open-desktop {
+    display: inline-flex;
+  }
+
+  .stats-toolbar {
+    display: none;
+  }
+
+  /* Klebt am Bildschirm und deckt dessen Höhe ab: alle Teams untereinander, gleich hoch, so dass
+     sie wie eine Art Scrollleiste die ganze PDF abbilden */
+  .stats-rail:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 16px;
+    height: calc(100vh - 32px);
+    max-height: 940px;
+    overflow: hidden;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+
+  .stats-rail-page {
+    flex: 0 0 auto;
+    padding: 9px 6px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .stats-rail-list {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 4px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .stats-rail-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stats-rail-list.is-scrubbing {
+    cursor: ns-resize;
+  }
+
+  .rail-item {
+    flex: 1 1 0;
+    min-height: 21px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 7px;
+    background: none;
+    color: var(--muted-light);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .rail-item img {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    max-height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+  }
+
+  .rail-item-text {
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+
+  .rail-item:hover {
+    background: rgba(var(--white-rgb), 0.07);
+    color: var(--white);
+  }
+
+  .rail-item.active {
+    background: var(--accent);
+    color: var(--white);
+  }
+
+  .rail-item:focus-visible {
+    outline: 2px solid rgba(var(--white-rgb), 0.6);
+    outline-offset: -2px;
+  }
+
+  /* Feine Linie: wie weit man in der PDF ist, läuft beim Scrollen stufenlos mit (wie der Schieber
+     einer Scrollleiste) */
+  .rail-thumb {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2px;
+    margin-top: -1px;
+    border-radius: 1px;
+    background: rgba(var(--white-rgb), 0.95);
+    box-shadow: 0 0 8px rgba(var(--white-rgb), 0.55);
+    pointer-events: none;
+    will-change: transform;
+  }
+}
+
+/* Niedrige Fenster (kleine Laptops): kompaktere Einträge, damit die Leiste ohne Scrollen passt */
+@media (min-width: 1000px) and (max-height: 760px) {
+  .rail-item {
+    min-height: 17px;
+    gap: 6px;
+    font-size: 10px;
+  }
+
+  .rail-item img {
+    width: 14px;
+    height: 14px;
+  }
+
+  .rail-item-text {
+    font-size: 9px;
+  }
 }
 
 @media (max-width: 768px) {

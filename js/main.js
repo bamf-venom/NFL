@@ -2,7 +2,7 @@
 
 Object.assign(TRANSLATIONS.de, {
   nav_games: 'Spiele', nav_groups: 'Gruppen', nav_leaderboard: 'Rangliste',
-  nav_profile: 'Profil', nav_settings: 'Einstellungen',
+  nav_profile: 'Profil', nav_settings: 'Einstellungen', nav_last_season: 'Letzte Saison',
   nav_my_profile: 'Mein Profil', nav_logout: 'Abmelden', nav_menu: 'Menü',
   nav_menu_close: 'Menü schließen', nav_menu_open: 'Menü öffnen',
   status_live: 'LIVE', status_finished: 'BEENDET', status_scheduled: 'GEPLANT',
@@ -17,7 +17,7 @@ Object.assign(TRANSLATIONS.de, {
 });
 Object.assign(TRANSLATIONS.en, {
   nav_games: 'Games', nav_groups: 'Groups', nav_leaderboard: 'Leaderboard',
-  nav_profile: 'Profile', nav_settings: 'Settings',
+  nav_profile: 'Profile', nav_settings: 'Settings', nav_last_season: 'Last Season',
   nav_my_profile: 'My Profile', nav_logout: 'Log out', nav_menu: 'Menu',
   nav_menu_close: 'Close menu', nav_menu_open: 'Open menu',
   status_live: 'LIVE', status_finished: 'FINISHED', status_scheduled: 'SCHEDULED',
@@ -257,7 +257,14 @@ function renderNavbar() {
     { href: 'leaderboard.html', id: 'leaderboard', label: t('nav_leaderboard'), icon: 'fa-trophy' },
   ];
 
-  const navLinksHTML = navItems.map(item => `
+  // Abkürzung zur Statistik der letzten Saison: im Desktop-Header und im Hamburger-Menü, bewusst
+  // nicht in der unteren Tableiste (die bleibt bei ihren fünf Reitern)
+  const headerItems = [
+    ...navItems,
+    { href: 'saison-stats.html', id: 'saison-stats', label: t('nav_last_season'), icon: 'fa-chart-column' }
+  ];
+
+  const navLinksHTML = headerItems.map(item => `
     <a href="${item.href}" class="nav-link ${currentPage === item.id ? 'active' : ''}" data-testid="nav-${item.id}">
       <i class="fas ${item.icon}"></i>
       ${item.label}
@@ -265,7 +272,7 @@ function renderNavbar() {
   `).join('');
 
   // Mobile menu links with larger touch targets
-  const mobileLinksHTML = navItems.map(item => `
+  const mobileLinksHTML = headerItems.map(item => `
     <a href="${item.href}" class="mobile-nav-link ${currentPage === item.id ? 'active' : ''}" onclick="closeMobileMenu()">
       <i class="fas ${item.icon}"></i>
       <span>${item.label}</span>

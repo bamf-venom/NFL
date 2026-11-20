@@ -56,31 +56,51 @@
 
   <main class="main-content">
     <div class="container stats-container">
-      <a href="profile.html" class="back-link" data-testid="stats-back">
-        <i class="fas fa-arrow-left"></i>
-        <span data-i18n="back_to_profile">Zurück zum Profil</span>
-      </a>
-
-      <div class="page-header stats-header">
-        <h1 class="page-title" data-testid="stats-title" data-i18n="stats_title">Saison 2025/26</h1>
-        <p class="page-subtitle" data-i18n="stats_subtitle">Statistik der letzten Saison: wie die Teams gespielt haben</p>
-      </div>
-
-      <!-- Sprungleiste: wird nach dem Laden der PDF gefüllt -->
-      <div class="stats-toolbar" id="stats-toolbar" hidden>
-        <div class="stats-chips" id="stats-chips"></div>
-        <div class="stats-toolbar-row">
-          <span class="stats-page-indicator" id="stats-page-indicator" aria-live="polite"></span>
-          <a class="stats-download" id="stats-download" href="../data/stats/NFL_Saison_2025_Statistik.pdf" target="_blank" rel="noopener" data-testid="stats-download">
-            <i class="fas fa-arrow-up-right-from-square"></i> <span data-i18n="stats_open_pdf">PDF öffnen</span>
+      <div class="stats-layout">
+        <div class="stats-main">
+          <!-- Zurück-Link: führt zum Profil oder zu den Einstellungen, je nachdem woher man kam; über das
+               Menü oder den Kopf der App entfällt er (siehe setupBackLink in saison-stats.js) -->
+          <a href="profile.html" class="back-link" data-testid="stats-back">
+            <i class="fas fa-arrow-left"></i>
+            <span data-i18n="back_to_profile">Zurück zum Profil</span>
           </a>
-        </div>
-      </div>
 
-      <div id="pdf-status" class="loading-container" data-testid="stats-status">
-        <div class="spinner spinner-lg"></div>
+          <div class="page-header stats-header">
+            <div class="stats-header-row">
+              <div>
+                <h1 class="page-title" data-testid="stats-title" data-i18n="stats_title">Saison 2025/26</h1>
+                <p class="page-subtitle" data-i18n="stats_subtitle">Statistik der letzten Saison: wie die Teams gespielt haben</p>
+              </div>
+              <!-- Computer: PDF-Link im Kopf (auf dem Handy steckt er in der Sprungleiste) -->
+              <a class="btn btn-secondary btn-sm stats-open-desktop" href="../data/stats/NFL_Saison_2025_Statistik.pdf" target="_blank" rel="noopener" data-testid="stats-download-desktop">
+                <i class="fas fa-arrow-up-right-from-square"></i> <span data-i18n="stats_open_pdf">PDF öffnen</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Handy: Sprungleiste, wird nach dem Laden der PDF gefüllt -->
+          <div class="stats-toolbar" id="stats-toolbar" hidden>
+            <div class="stats-chips" id="stats-chips"></div>
+            <div class="stats-toolbar-row">
+              <span class="stats-page-indicator" id="stats-page-indicator" aria-live="polite"></span>
+              <a class="stats-download" id="stats-download" href="../data/stats/NFL_Saison_2025_Statistik.pdf" target="_blank" rel="noopener" data-testid="stats-download">
+                <i class="fas fa-arrow-up-right-from-square"></i> <span data-i18n="stats_open_pdf">PDF öffnen</span>
+              </a>
+            </div>
+          </div>
+
+          <div id="pdf-status" class="loading-container" data-testid="stats-status">
+            <div class="spinner spinner-lg"></div>
+          </div>
+          <div id="pdf-pages" class="pdf-pages" data-testid="stats-pages"></div>
+        </div>
+
+        <!-- Computer: Seitenleiste mit allen Teams, klebt am Bildschirm; wird nach dem Laden gefüllt -->
+        <aside class="stats-rail" id="stats-rail" data-testid="stats-rail" hidden>
+          <div class="stats-rail-page" id="stats-rail-page"></div>
+          <div class="stats-rail-list" id="stats-rail-list"></div>
+        </aside>
       </div>
-      <div id="pdf-pages" class="pdf-pages" data-testid="stats-pages"></div>
     </div>
   </main>
 

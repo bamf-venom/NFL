@@ -136,6 +136,14 @@
       if (option.selected) optionEl.classList.add('selected');
       optionEl.setAttribute('data-value', option.value);
       optionEl.textContent = option.textContent;
+      // Optionale Zusatzangabe rechts in der Zeile (data-meta am <option>), z.B. die Punkte einer Woche
+      if (option.dataset.meta) {
+        const meta = document.createElement('span');
+        meta.className = 'custom-select-option-meta';
+        meta.textContent = option.dataset.meta;
+        optionEl.classList.add('has-meta');
+        optionEl.appendChild(meta);
+      }
       
       optionEl.addEventListener('click', function(e) {
         e.stopPropagation();

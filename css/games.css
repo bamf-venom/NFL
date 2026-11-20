@@ -1362,13 +1362,11 @@
   }
 }
 
-/* ==================== Wochen-Leiste und Zusammenfassung (Spiele-Seite) ==================== */
-/* Das Wochen-Dropdown wird durch die Leiste ersetzt; das Select bleibt als Zustandshalter im DOM */
-.games-header .filter-container .custom-select:has(#week-filter) {
-  display: none;
-}
-
+/* ==================== Wochen-Auswahl und Zusammenfassung (Spiele-Seite) ==================== */
+/* Computer: Wochen-Dropdown (Punkte je Woche in der Liste) mit Pfeilen zum Blättern. Die Wochen-Leiste
+   gibt es nur auf dem Handy; dort ist das Select ausgeblendet und dient nur als Zustandshalter. */
 .week-nav {
+  display: none;
   margin-bottom: 16px;
 }
 
@@ -1377,13 +1375,57 @@
   display: none;
 }
 
-/* Desktop: die Kacheln teilen sich die Breite (auch mit Playoff-Wochen eine Zeile) */
+/* Pfeile links/rechts vom Wochen-Dropdown */
+.week-step {
+  align-self: stretch;
+  flex: 0 0 auto;
+  width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted-light);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.week-step:hover:not(:disabled) {
+  border-color: var(--border-light);
+  background: var(--card-hover);
+  color: var(--white);
+}
+
+.week-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Die Pfeile gehören optisch zum Dropdown dazwischen */
+#week-prev {
+  margin-right: -4px;
+}
+
+#week-next {
+  margin-left: -4px;
+}
+
+/* Die Wochenliste ist lang (bis zu 22 Einträge): etwas höher als die anderen Dropdowns */
+.filter-container .custom-select:has(#week-filter) .custom-select-options {
+  max-height: min(440px, 60vh);
+}
+
+/* Wochen-Leiste (Handy): eine Zeile, scrollbar */
 .week-strip {
   position: relative;
   display: flex;
   gap: 6px;
+  padding: 2px 14px 4px;
   overflow-x: auto;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .week-strip::-webkit-scrollbar {
@@ -1392,10 +1434,9 @@
 
 .week-chip {
   position: relative;
-  flex: 1 1 0;
-  min-width: 44px;
-  max-width: 76px;
-  height: 56px;
+  flex: 0 0 auto;
+  min-width: 48px;
+  height: 54px;
   padding: 6px 8px 5px;
   display: flex;
   flex-direction: column;
@@ -1512,26 +1553,8 @@
   color: rgba(var(--white-rgb), 0.78);
 }
 
-.week-summary-status {
+.week-summary-head .badge {
   flex-shrink: 0;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: rgba(var(--white-rgb), 0.1);
-  color: var(--muted-light);
-}
-
-.week-summary-status.is-done {
-  background: rgba(var(--success-rgb), 0.18);
-  color: var(--success);
-}
-
-.week-summary-status.is-live {
-  background: rgba(var(--warning-rgb), 0.18);
-  color: var(--warning);
 }
 
 .week-summary-grid {
@@ -1579,42 +1602,57 @@
 }
 
 @media (max-width: 768px) {
-  /* Kopfzeile kompakt: Titel links, Saison-/Gruppenauswahl als schmale Pillen rechts; die
-     Unterzeile entfällt */
+  /* Kopfzeile kompakt: kein Titel und keine Unterzeile (der Reiter unten sagt, wo man ist), die
+     Saison- und Gruppenauswahl teilen sich als Pillen die ganze Breite. Der Titel bleibt für
+     Screenreader im Dokument. */
   .games-header {
     margin-bottom: 14px;
   }
 
-  .games-header .page-subtitle {
-    display: none;
+  .games-header .games-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 
   .games-header .page-header-row {
     flex-direction: row !important;
     align-items: center !important;
-    justify-content: space-between;
     flex-wrap: nowrap;
-    gap: 10px;
+    gap: 0;
   }
 
   .games-header .filter-container {
-    width: auto;
-    flex: 0 1 auto;
+    width: 100%;
+    flex: 1 1 100%;
     min-width: 0;
     flex-wrap: nowrap;
-    justify-content: flex-end;
     gap: 8px;
     padding: 0;
     background: none;
     border: 0;
   }
 
-  /* inline min-width (140px) aus dem Markup überstimmen - auch beim ausgeblendeten Select selbst,
-     sonst ragt es (absolut positioniert) über den rechten Bildschirmrand hinaus */
-  .games-header .filter-container .custom-select,
-  .games-header .filter-container select {
-    flex: 0 1 auto;
+  /* Auswahlfelder je gleich breit; die inline min-width (140px) aus dem Markup überstimmen - auch
+     beim ausgeblendeten Select selbst, sonst ragt es (absolut positioniert) über den rechten
+     Bildschirmrand hinaus */
+  .games-header .filter-container .custom-select {
+    flex: 1 1 0;
     min-width: 0 !important;
+  }
+
+  .games-header .filter-container select {
+    min-width: 0 !important;
+  }
+
+  /* Wochen-Dropdown und Pfeile gibt es nur auf dem Computer; hier übernimmt die Wochen-Leiste */
+  .games-header .filter-container .custom-select:has(#week-filter),
+  .week-step {
+    display: none;
   }
 
   .games-header .filter-container .custom-select-trigger {
@@ -1636,19 +1674,8 @@
 
   /* Leiste einzeilig, bis an den Bildschirmrand scrollbar */
   .week-nav {
+    display: block;
     margin: 0 -14px 12px;
-  }
-
-  .week-strip {
-    padding: 2px 14px 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .week-chip {
-    flex: 0 0 auto;
-    min-width: 48px;
-    max-width: none;
-    height: 54px;
   }
 
   .week-summary {
