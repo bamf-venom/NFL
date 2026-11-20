@@ -1,11 +1,13 @@
 name: Beendete Saison archivieren (manuell)
 
-# NUR manuell auslösbar. Schreibt die Spiele einer abgeschlossenen Saison in eine Datei
-# (data/seasons/<Saison>.json), die als Artefakt zum Download bereitsteht und dann ins
-# Repo übernommen wird. Ohne "write" gibt es nur einen Bericht im Log. Es werden nur
-# Spiele (öffentliche NFL-Daten) archiviert, keine Tipps oder Nutzerdaten - Artefakte und
-# Logs dieses öffentlichen Repos sind öffentlich. Firestore wird nur mit "delete_firestore"
-# verändert (Spiele-Dokumente der Saison löschen, nachdem die Datei im Repo liegt).
+# NUR manuell auslösbar. Schreibt die Spiele einer abgeschlossenen Saison - oder die bereits
+# beendeten Wochen einer laufenden Saison (weeks) - in eine Datei (data/seasons/<Saison>.json), die
+# als Artefakt zum Download bereitsteht und dann ins Repo übernommen wird. Ohne "write" gibt es nur
+# einen Bericht im Log. Archiviert werden Spiele (öffentliche NFL-Daten) und auf Wunsch (tips) die
+# Tipps dieser Spiele ohne Namen und E-Mail-Adressen (nur Nutzer-ID, Tipp, Punkte); Berichte und
+# Logs enthalten keine Namen. Artefakte und Logs dieses öffentlichen Repos sind öffentlich.
+# Firestore wird nur mit "delete_firestore" verändert (Spiele-Dokumente einer GANZEN Saison löschen,
+# nachdem die Datei im Repo liegt); Teilarchive (weeks) löschen nie etwas.
 on:
   workflow_dispatch:
     inputs:
@@ -14,8 +16,16 @@ on:
         type: string
         required: true
         default: '2025'
+      weeks:
+        description: 'Nur diese Wochen archivieren (laufende Saison), z.B. 1-10; leer = ganze Saison'
+        type: string
+        default: ''
       write:
         description: 'Datei erzeugen (aus = nur Bericht im Log)'
+        type: boolean
+        default: false
+      tips:
+        description: 'Mit "write": zusätzlich die Tipps dieser Spiele ohne Namen als Datei erzeugen'
         type: boolean
         default: false
       drop:
@@ -56,15 +66,19 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           ARCHIVE_SEASON: ${{ inputs.season }}
+          ARCHIVE_WEEKS: ${{ inputs.weeks }}
           ARCHIVE_WRITE: ${{ inputs.write }}
+          ARCHIVE_TIPS: ${{ inputs.tips }}
           ARCHIVE_DROP: ${{ inputs.drop }}
           ARCHIVE_BACKUP: ${{ inputs.backup }}
           ARCHIVE_DELETE: ${{ inputs.delete_firestore }}
           ARCHIVE_CONFIRM: ${{ inputs.confirm }}
         run: |
           ARGS="--season=$ARCHIVE_SEASON"
+          if [ -n "$ARCHIVE_WEEKS" ]; then ARGS="$ARGS --weeks=$ARCHIVE_WEEKS"; fi
           if [ -n "$ARCHIVE_DROP" ]; then ARGS="$ARGS --drop=$ARCHIVE_DROP"; fi
           if [ "$ARCHIVE_WRITE" = "true" ]; then ARGS="$ARGS --out=../data/seasons/$ARCHIVE_SEASON.json"; fi
+          if [ "$ARCHIVE_WRITE" = "true" ] && [ "$ARCHIVE_TIPS" = "true" ]; then ARGS="$ARGS --tips-out=../data/seasons/$ARCHIVE_SEASON-tips.json"; fi
           if [ "$ARCHIVE_BACKUP" = "true" ]; then ARGS="$ARGS --raw-out=../backup/games-$ARCHIVE_SEASON-raw.json"; fi
           if [ "$ARCHIVE_DELETE" = "true" ]; then ARGS="$ARGS --delete-firestore --confirm=$ARCHIVE_CONFIRM"; fi
           echo "node archive-season.js $ARGS"
@@ -76,6 +90,15 @@ jobs:
         with:
           name: saison-${{ inputs.season }}
           path: data/seasons/${{ inputs.season }}.json
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Tipp-Datei (ohne Namen) als Artefakt bereitstellen
+        if: ${{ inputs.write && inputs.tips }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: saison-${{ inputs.season }}-tipps
+          path: data/seasons/${{ inputs.season }}-tips.json
           retention-days: 7
           if-no-files-found: error
 
