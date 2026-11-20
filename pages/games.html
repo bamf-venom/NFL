@@ -64,34 +64,38 @@
   <div id="navbar-container"></div>
   <main class="main-content">
     <div class="container" id="games-list-view">
-      <!-- Page Header -->
-      <div class="page-header games-header">
-        <div class="page-header-row">
-          <div class="games-heading">
-            <h1 class="page-title" data-testid="games-title" data-i18n="games_title">Spiele</h1>
-            <p class="page-subtitle" data-i18n="games_subtitle">Wähle ein Spiel und platziere deine Wette</p>
-          </div>
-          <div class="filter-container">
-            <i class="fas fa-filter text-muted"></i>
-            <select id="season-filter" class="form-input" style="width: auto; min-width: 140px;" data-testid="season-filter">
-            </select>
-            <!-- Woche: Auf dem Computer Dropdown mit Pfeilen zum Blättern, auf dem Handy ist das Select
-                 ausgeblendet (Zustandshalter) und die Wochen-Leiste darunter ersetzt es; ihre Klicks
-                 lösen das change-Ereignis dieses Selects aus -->
-            <button type="button" class="week-step" id="week-prev" data-testid="week-prev"><i class="fas fa-chevron-left"></i></button>
-            <select id="week-filter" class="form-input" style="width: auto; min-width: 140px;" data-testid="week-filter">
-              <option value="">Alle Wochen</option>
-            </select>
-            <button type="button" class="week-step" id="week-next" data-testid="week-next"><i class="fas fa-chevron-right"></i></button>
+      <!-- Kopfbereich: Titel, Filter, Wochen-Leiste (Handy) und Zusammenfassung. Auf breiten
+           Bildschirmen (ab 1024 px) stehen Zusammenfassung und Filter nebeneinander unter dem Titel
+           (Raster, siehe .games-top in games.css), sonst untereinander -->
+      <div class="games-top">
+        <!-- Page Header -->
+        <div class="page-header games-header">
+          <div class="page-header-row">
+            <div class="games-heading">
+              <h1 class="page-title" data-testid="games-title" data-i18n="games_title">Spiele</h1>
+              <p class="page-subtitle" data-i18n="games_subtitle">Wähle ein Spiel und platziere deine Wette</p>
+            </div>
+            <div class="filter-container">
+              <select id="season-filter" class="form-input" style="width: auto; min-width: 140px;" data-testid="season-filter">
+              </select>
+              <!-- Woche: Auf dem Computer Dropdown mit Pfeilen zum Blättern, auf dem Handy ist das Select
+                   ausgeblendet (Zustandshalter) und die Wochen-Leiste darunter ersetzt es; ihre Klicks
+                   lösen das change-Ereignis dieses Selects aus -->
+              <button type="button" class="week-step" id="week-prev" data-testid="week-prev"><i class="fas fa-chevron-left"></i></button>
+              <select id="week-filter" class="form-input" style="width: auto; min-width: 140px;" data-testid="week-filter">
+                <option value="">Alle Wochen</option>
+              </select>
+              <button type="button" class="week-step" id="week-next" data-testid="week-next"><i class="fas fa-chevron-right"></i></button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Wochen-Leiste (mit den eigenen Punkten je abgeschlossener Woche) und Zusammenfassung -->
-      <div class="week-nav" id="week-nav" hidden>
-        <div class="week-strip" id="week-strip" data-testid="week-strip"></div>
+        <!-- Wochen-Leiste (mit den eigenen Punkten je abgeschlossener Woche) und Zusammenfassung -->
+        <div class="week-nav" id="week-nav" hidden>
+          <div class="week-strip" id="week-strip" data-testid="week-strip"></div>
+        </div>
+        <div class="week-summary" id="week-summary" data-testid="week-summary" hidden></div>
       </div>
-      <div class="week-summary" id="week-summary" data-testid="week-summary" hidden></div>
 
       <!-- Games List -->
       <div id="games-container">

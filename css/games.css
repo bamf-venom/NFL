@@ -1377,9 +1377,10 @@
 
 /* Pfeile links/rechts vom Wochen-Dropdown */
 .week-step {
-  align-self: stretch;
+  align-self: center;
   flex: 0 0 auto;
   width: 40px;
+  height: 47px; /* wie die Dropdown-Felder daneben */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1599,6 +1600,56 @@
   font-weight: 900;
   font-size: 46px;
   line-height: 0.9;
+}
+
+/* Breite Bildschirme (ab 1024 px): Zusammenfassung der Woche links, die Filter rechts daneben, beide
+   gleich hoch; der Titel steht darüber. Raster über .games-top; Kopf und Kopfzeile lösen sich dafür
+   in ihre Kinder auf (display: contents). Darunter (769-1023 px) bleibt es bei Titel + Filter in einer
+   Zeile und der Zusammenfassung in voller Breite darunter. */
+@media (min-width: 1024px) {
+  .games-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "heading heading"
+      "summary filters";
+    column-gap: 20px;
+    align-items: stretch;
+    margin-bottom: 36px;
+  }
+
+  .games-header,
+  .games-header .page-header-row {
+    display: contents;
+  }
+
+  .games-heading {
+    grid-area: heading;
+    margin-bottom: 22px;
+  }
+
+  .games-header .filter-container {
+    grid-area: filters;
+    align-self: stretch;
+    padding: 0 20px;
+    border-radius: 16px;
+  }
+
+  /* Zusammenfassung etwas kompakter, sie teilt sich die Zeile mit den Filtern */
+  .week-summary {
+    grid-area: summary;
+    margin-bottom: 0;
+    align-self: stretch;
+    padding: 12px 18px 14px;
+  }
+
+  .week-summary-head {
+    margin-bottom: 8px;
+  }
+
+  .ws-main .ws-value {
+    font-size: 40px;
+  }
 }
 
 @media (max-width: 768px) {
