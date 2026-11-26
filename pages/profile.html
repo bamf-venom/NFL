@@ -103,6 +103,27 @@
     </div>
   </div>
 
+  <!-- Avatar-Auswahl (Bibliothek aus js/avatars.js) oder eigenes Foto -->
+  <div id="avatar-modal" class="modal">
+    <div class="modal-backdrop" onclick="closeAvatarModal()"></div>
+    <div class="modal-content animate-scale-in avatar-modal-content" role="dialog" aria-modal="true" aria-labelledby="avatar-modal-title">
+      <h2 class="modal-title" id="avatar-modal-title" data-i18n="avatar_title">Profilbild</h2>
+      <p class="avatar-modal-sub" data-i18n="avatar_subtitle">Wähle einen Avatar oder lade ein eigenes Foto hoch</p>
+
+      <div class="avatar-grid" id="avatar-grid" data-testid="avatar-grid"></div>
+
+      <div class="avatar-modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="chooseOwnPhoto()" data-testid="avatar-upload">
+          <i class="fas fa-camera"></i> <span data-i18n="avatar_upload">Eigenes Foto hochladen</span>
+        </button>
+        <button type="button" class="btn btn-secondary" id="avatar-remove-btn" onclick="removeProfilePicture()" data-testid="avatar-remove" hidden>
+          <i class="fas fa-trash"></i> <span data-i18n="avatar_remove">Bild entfernen</span>
+        </button>
+        <button type="button" class="btn btn-primary" onclick="closeAvatarModal()" data-testid="avatar-close" data-i18n="avatar_close">Schließen</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Delete Account Modal -->
   <div id="delete-modal" class="modal">
     <div class="modal-backdrop" onclick="closeDeleteModal()"></div>
@@ -210,6 +231,7 @@
   <script src="../js/auth.js"></script>
   <script src="../js/football-loader.js"></script>
   <script src="../js/main.js"></script>
+  <script src="../js/avatars.js"></script>
   <script src="../js/profile.js"></script>
 </body>
 </html>

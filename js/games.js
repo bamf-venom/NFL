@@ -1019,7 +1019,7 @@ function renderGames() {
                     <div class="group-bet-item ${bet.user_id === currentUser?.id ? 'own' : ''}" data-testid="group-bet-${bet.id}">
                       <div class="group-bet-user">
                         <div class="group-bet-avatar">
-                          ${bet.profile_picture ? `<img src="${bet.profile_picture}" alt="${escapeHtml(bet.username)}" class="group-bet-avatar-img" data-fallback-letter="${escapeHtml(bet.username.charAt(0).toUpperCase())}" onerror="this.style.display='none'; this.parentElement.textContent=this.dataset.fallbackLetter;">` : escapeHtml(bet.username.charAt(0).toUpperCase())}
+                          ${safePictureSrc(bet.profile_picture) ? `<img src="${escapeHtml(safePictureSrc(bet.profile_picture))}" alt="${escapeHtml(bet.username)}" class="group-bet-avatar-img" data-fallback-letter="${escapeHtml(bet.username.charAt(0).toUpperCase())}" onerror="this.style.display='none'; this.parentElement.textContent=this.dataset.fallbackLetter;">` : escapeHtml(bet.username.charAt(0).toUpperCase())}
                         </div>
                         <span class="group-bet-username">${bet.user_id === currentUser?.id ? t('you') : escapeHtml(bet.username)}</span>
                       </div>

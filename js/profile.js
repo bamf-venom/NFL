@@ -2,6 +2,9 @@
 
 Object.assign(TRANSLATIONS.de, {
   crop_title: 'Bild anpassen', crop_subtitle: 'Verschiebe und zoome das Bild',
+  avatar_title: 'Profilbild', avatar_subtitle: 'Wähle einen Avatar oder lade ein eigenes Foto hoch',
+  avatar_upload: 'Eigenes Foto hochladen', avatar_remove: 'Bild entfernen', avatar_change: 'Profilbild ändern',
+  avatar_close: 'Schließen',
   error_choose_image: 'Bitte wähle ein Bild aus (JPG, PNG, etc.)',
   error_image_too_large: 'Das Bild ist zu groß. Maximale Größe: 10MB',
   error_uploading_image: 'Fehler beim Hochladen des Bildes: {msg}',
@@ -31,6 +34,9 @@ Object.assign(TRANSLATIONS.de, {
 });
 Object.assign(TRANSLATIONS.en, {
   crop_title: 'Adjust image', crop_subtitle: 'Move and zoom the image',
+  avatar_title: 'Profile picture', avatar_subtitle: 'Choose an avatar or upload your own photo',
+  avatar_upload: 'Upload your own photo', avatar_remove: 'Remove picture', avatar_change: 'Change profile picture',
+  avatar_close: 'Close',
   error_choose_image: 'Please choose an image (JPG, PNG, etc.)',
   error_image_too_large: 'The image is too large. Maximum size: 10MB',
   error_uploading_image: 'Error uploading the image: {msg}',
@@ -412,6 +418,7 @@ async function applyCrop() {
 // Remove profile picture
 async function removeProfilePicture() {
   if (!confirm(t('confirm_remove_picture'))) return;
+  closeAvatarModal();
   
   // Show loading state
   const avatarEl = document.querySelector('.profile-avatar');
@@ -438,12 +445,105 @@ async function removeProfilePicture() {
   }
 }
 
+// ==================== AVATAR-AUSWAHL ====================
+// Auswahlfenster mit der Avatar-Bibliothek (js/avatars.js) und der Möglichkeit, ein eigenes Foto
+// hochzuladen. Ein Avatar wird als "avatar:<id>" am Nutzer gespeichert (siehe safePictureSrc in main.js).
+let avatarSaving = false;
+
+function currentAvatarId() {
+  const value = currentUser && currentUser.profile_picture;
+  return typeof value === 'string' && value.startsWith(AVATAR_PREFIX) ? value.slice(AVATAR_PREFIX.length) : null;
+}
+
+function renderAvatarGrid() {
+  const grid = document.getElementById('avatar-grid');
+  if (!grid) return;
+  const lang = getCurrentLanguage();
+  const selected = currentAvatarId();
+  grid.innerHTML = AVATAR_LIBRARY.map(avatar => {
+    const label = escapeHtml(avatar[lang] || avatar.en);
+    const isSelected = avatar.id === selected;
+    return `
+      <button type="button" class="avatar-option${isSelected ? ' is-selected' : ''}" data-avatar="${avatar.id}"
+              onclick="selectAvatar('${avatar.id}')" aria-pressed="${isSelected}" aria-label="${label}" title="${label}"
+              data-testid="avatar-${avatar.id}">
+        <img src="${escapeHtml(avatarFileURL(avatar.id))}" alt="" draggable="false">
+        <span class="avatar-check"><i class="fas fa-check"></i></span>
+        <span class="avatar-saving"><i class="fas fa-spinner fa-spin"></i></span>
+      </button>`;
+  }).join('');
+  const removeBtn = document.getElementById('avatar-remove-btn');
+  if (removeBtn) removeBtn.hidden = !safePictureSrc(currentUser && currentUser.profile_picture);
+}
+
+let avatarModalOpener = null;
+
+function openAvatarModal() {
+  renderAvatarGrid();
+  avatarModalOpener = document.activeElement;
+  document.getElementById('avatar-modal').classList.add('active');
+  // Tastatur: Fokus auf den gewählten Avatar (sonst auf den ersten), damit Tab/Enter sofort funktionieren
+  const start = document.querySelector('.avatar-option.is-selected') || document.querySelector('.avatar-option');
+  if (start) start.focus({ preventScroll: true });
+  if (start && start.classList.contains('is-selected')) start.scrollIntoView({ block: 'nearest' });
+}
+
+function closeAvatarModal() {
+  const modal = document.getElementById('avatar-modal');
+  if (!modal || !modal.classList.contains('active')) return;
+  modal.classList.remove('active');
+  // Fokus zurück an die Stelle, von der das Fenster geöffnet wurde (falls es sie noch gibt)
+  if (avatarModalOpener && avatarModalOpener.isConnected && typeof avatarModalOpener.focus === 'function') {
+    avatarModalOpener.focus({ preventScroll: true });
+  }
+  avatarModalOpener = null;
+}
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeAvatarModal();
+});
+
+async function selectAvatar(id) {
+  if (avatarSaving || !AVATAR_LIBRARY.some(avatar => avatar.id === id)) return;
+  if (currentAvatarId() === id) { closeAvatarModal(); return; }
+  avatarSaving = true;
+  const option = document.querySelector('.avatar-option[data-avatar="' + id + '"]');
+  if (option) option.classList.add('is-saving');
+  try {
+    const value = AVATAR_PREFIX + id;
+    await firebaseUpdateProfilePicture(value);
+
+    currentUser.profile_picture = value;
+    localStorage.setItem('user', JSON.stringify(currentUser));
+    invalidateCache('currentUser');
+
+    closeAvatarModal();
+    renderProfile();
+    updateNavbarAvatar();
+  } catch (error) {
+    console.error('Error saving avatar:', error);
+    alert(t('error_uploading_image', { msg: error.message }));
+    if (option) option.classList.remove('is-saving');
+  } finally {
+    avatarSaving = false;
+  }
+}
+
+// "Eigenes Foto hochladen": Fenster schließen, die Dateiauswahl öffnen (danach der bekannte Zuschnitt)
+function chooseOwnPhoto() {
+  closeAvatarModal();
+  const input = document.getElementById('profile-picture-input');
+  if (input) input.click();
+}
+
 // Update navbar avatar after picture change
 function updateNavbarAvatar() {
-  const navbarAvatars = document.querySelectorAll('.user-avatar');
+  // Desktop-Menü (.user-avatar) und Kopfzeile am Handy (.mobile-profile-avatar)
+  const navbarAvatars = document.querySelectorAll('.user-avatar, .mobile-profile-avatar');
+  const avatarSrc = safePictureSrc(currentUser.profile_picture);
   navbarAvatars.forEach(avatar => {
-    if (currentUser.profile_picture) {
-      avatar.innerHTML = `<img src="${currentUser.profile_picture}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+    if (avatarSrc) {
+      avatar.innerHTML = `<img src="${escapeHtml(avatarSrc)}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
     } else {
       avatar.innerHTML = '<i class="fas fa-user"></i>';
     }
@@ -550,9 +650,10 @@ function renderProfile() {
   const userEmail = auth.currentUser?.email || '';
 
   // Profile picture HTML
-  const hasProfilePicture = user.profile_picture;
-  const avatarContent = hasProfilePicture 
-    ? `<img src="${user.profile_picture}" alt="Profilbild" class="profile-avatar-img">`
+  const avatarSrc = safePictureSrc(user.profile_picture);
+  const hasProfilePicture = !!avatarSrc;
+  const avatarContent = hasProfilePicture
+    ? `<img src="${escapeHtml(avatarSrc)}" alt="Profilbild" class="profile-avatar-img">`
     : '<i class="fas fa-user fa-2x"></i>';
   
   let html = `
@@ -562,7 +663,7 @@ function renderProfile() {
         <div class="profile-avatar" data-testid="profile-avatar">
           ${avatarContent}
         </div>
-        <div class="profile-avatar-overlay" onclick="document.getElementById('profile-picture-input').click()" data-testid="change-avatar-btn">
+        <div class="profile-avatar-overlay" onclick="openAvatarModal()" data-testid="change-avatar-btn">
           <i class="fas fa-camera"></i>
         </div>
         <input 
@@ -579,7 +680,11 @@ function renderProfile() {
           </button>
         ` : ''}
       </div>
-      
+
+      <button type="button" class="profile-avatar-change" onclick="openAvatarModal()" data-testid="change-avatar-link">
+        <i class="fas fa-image"></i> ${t('avatar_change')}
+      </button>
+
       ${isEditingUsername ? `
         <!-- Username Edit Mode -->
         <div class="username-edit-container" data-testid="username-edit-container">

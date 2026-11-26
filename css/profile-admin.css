@@ -662,3 +662,197 @@
 .crop-actions .btn {
   flex: 1;
 }
+
+/* ==================== Avatar-Auswahl ==================== */
+/* Sichtbarer Knopf unter dem Profilbild (die Kamera auf dem Bild selbst gibt es nur per Hover,
+   auf dem Handy also gar nicht) */
+.profile-avatar-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px auto 16px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--muted-light);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.profile-avatar-change:hover {
+  color: var(--foreground);
+  border-color: var(--muted);
+  background: rgba(var(--white-rgb), 0.04);
+}
+
+.profile-avatar-change:focus-visible {
+  outline: 2px solid var(--white);
+  outline-offset: 2px;
+}
+
+/* Fenster: Titel und Knöpfe bleiben stehen, nur das Raster scrollt */
+.modal-content.avatar-modal-content {
+  max-width: 600px;
+  padding: 28px 24px 24px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.avatar-modal-content .modal-title {
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.avatar-modal-sub {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 14px;
+  flex-shrink: 0;
+}
+
+/* Innenabstand: Platz für den Auswahlring und das Vergrößern beim Darüberfahren */
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 14px;
+  padding: 10px 10px 14px;
+  margin-bottom: 8px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.avatar-option {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--card-hover);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.avatar-option img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.avatar-option:hover {
+  transform: scale(1.07);
+  box-shadow: 0 0 0 3px rgba(var(--white-rgb), 0.22);
+}
+
+.avatar-option:active {
+  transform: scale(0.97);
+}
+
+.avatar-option:focus-visible {
+  outline: 2px solid var(--white);
+  outline-offset: 4px;
+}
+
+/* Gewählter Avatar: weißer Ring mit Abstand zum Hintergrund + Haken */
+.avatar-option.is-selected,
+.avatar-option.is-selected:hover {
+  box-shadow: 0 0 0 3px var(--card), 0 0 0 6px var(--white);
+}
+
+.avatar-check {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--card);
+  background: var(--white);
+  color: var(--black);
+  font-size: 11px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-option.is-selected .avatar-check {
+  display: flex;
+}
+
+.avatar-saving {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(var(--black-rgb), 0.6);
+  color: var(--white);
+  font-size: 20px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-option.is-saving .avatar-saving {
+  display: flex;
+}
+
+.avatar-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.avatar-modal-actions .btn {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.avatar-modal-actions .btn-primary {
+  flex-basis: 100%;
+}
+
+/* .btn setzt display selbst - das hidden-Attribut würde sonst nicht wirken */
+.avatar-modal-actions [hidden] {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  /* Über der unteren Navigationsleiste (z-index 80), sonst ragt sie in das Fenster und
+     der Hintergrund wäre unten nicht abgedunkelt */
+  #avatar-modal {
+    z-index: 85;
+  }
+
+  .modal-content.avatar-modal-content {
+    padding: 20px 14px 16px;
+    max-height: 88vh;
+    max-height: 88dvh;
+    overflow: hidden;
+  }
+
+  .avatar-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 8px 8px 12px;
+  }
+
+  .avatar-modal-sub {
+    font-size: 13px;
+  }
+}

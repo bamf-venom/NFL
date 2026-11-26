@@ -49,7 +49,7 @@ Pro Spiel sind maximal 7 Punkte möglich.
 - **Spiel-Details** mit der Bilanz der Teams und Kennzeichnung der International-Series-Spiele außerhalb der USA
 - **Erinnerungen** (optional): eine Benachrichtigung kurz vor einem Spiel, auf das du noch nicht getippt hast
 - **Frühere Saisons** jederzeit ansehen
-- **Profil** mit eigenem Profilbild
+- **Profil** mit Profilbild: wähle einen von 28 Football-Avataren (Spieler, Helme, Trikots, Bälle, Pokal und mehr) oder lade ein eigenes Foto hoch
 - **Deutsch und Englisch**
 - **Fürs Handy gemacht**: dunkles Design, für Smartphone und Computer optimiert und wie eine App auf dem Startbildschirm installierbar
 - Zum Super Bowl gibt es Konfetti in den Farben der Teams

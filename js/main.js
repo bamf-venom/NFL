@@ -55,6 +55,27 @@ function jsAttrSafe(str) {
   return encodeURIComponent(str === null || str === undefined ? '' : String(str));
 }
 
+// ==================== PROFILBILDER ====================
+// Das Profilbild (users/{uid}.profile_picture) ist entweder ein hochgeladenes Foto (Data-URL, JPEG)
+// oder ein Avatar aus der Bibliothek ("avatar:<id>", Datei avatars/<id>.svg, Liste in js/avatars.js).
+// Der Wert ist vom Nutzer frei änderbar und wird bei allen anderen Spielern angezeigt - deshalb nie
+// ungeprüft in HTML einsetzen: safePictureSrc() liefert nur eine geprüfte Adresse, sonst '' (= kein Bild).
+const AVATAR_PREFIX = 'avatar:';
+
+function avatarFileURL(id) {
+  const base = window.location.pathname.includes('/pages/') ? '../' : '';
+  return base + 'avatars/' + id + '.svg';
+}
+
+function safePictureSrc(value) {
+  if (typeof value !== 'string' || !value) return '';
+  if (value.startsWith(AVATAR_PREFIX)) {
+    const id = value.slice(AVATAR_PREFIX.length);
+    return /^[a-z0-9-]{1,40}$/.test(id) ? avatarFileURL(id) : '';
+  }
+  return /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(value) ? value : '';
+}
+
 // Augen-Icon in Passwort-Feldern (Login/Registrieren, E-Mail ändern, ...) -
 // schaltet zwischen verdecktem und Klartext-Passwort um. Geteilt statt pro
 // Formular einzeln, da das gleiche .password-toggle-btn-Markup an mehreren
@@ -294,8 +315,9 @@ function renderNavbar() {
   `).join('');
   
   // Avatar content - use profile picture if available
-  const avatarContent = user.profile_picture 
-    ? `<img src="${user.profile_picture}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+  const avatarSrc = safePictureSrc(user.profile_picture);
+  const avatarContent = avatarSrc
+    ? `<img src="${escapeHtml(avatarSrc)}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
     : '<i class="fas fa-user"></i>';
   
   return `

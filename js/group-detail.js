@@ -379,8 +379,9 @@ function renderTabContent() {
       const isMemberAdmin = member.user_id === group.admin_id;
       
       // Profile picture or initial
-      const avatarContent = member.profile_picture
-        ? `<img src="${member.profile_picture}" alt="${escapeHtml(member.username)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+      const memberPictureSrc = safePictureSrc(member.profile_picture);
+      const avatarContent = memberPictureSrc
+        ? `<img src="${escapeHtml(memberPictureSrc)}" alt="${escapeHtml(member.username)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
         : escapeHtml(member.username.charAt(0).toUpperCase());
       
       html += `
