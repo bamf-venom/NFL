@@ -143,6 +143,12 @@
   font-weight: 600;
 }
 
+/* Mit Bild im Rahmen: Rahmenhintergrund weglassen, sonst scheint seine Farbe am Bildrand als feiner
+   Ring durch (die Kantenglättung von Rahmen und Bild addiert sich) */
+.user-avatar:has(> img) {
+  background: transparent;
+}
+
 .user-menu {
   position: absolute;
   top: calc(100% + 10px);

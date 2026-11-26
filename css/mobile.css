@@ -81,6 +81,10 @@
     font-size: 11px;
     overflow: hidden;
   }
+
+  .mobile-profile-avatar:has(> img) {
+    background: transparent;
+  }
   
   .mobile-profile-name {
     font-size: 14px;

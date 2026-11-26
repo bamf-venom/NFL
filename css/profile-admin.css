@@ -32,6 +32,10 @@
   border-radius: 50%;
 }
 
+.profile-avatar:has(> img) {
+  background: transparent;
+}
+
 .profile-avatar-overlay {
   position: absolute;
   inset: 0;
@@ -696,7 +700,7 @@
 
 /* Fenster: Titel und Knöpfe bleiben stehen, nur das Raster scrollt */
 .modal-content.avatar-modal-content {
-  max-width: 600px;
+  max-width: 680px;
   padding: 28px 24px 24px;
   max-height: 90vh;
   max-height: 90dvh;
@@ -721,7 +725,7 @@
 /* Innenabstand: Platz für den Auswahlring und das Vergrößern beim Darüberfahren */
 .avatar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 14px;
   padding: 10px 10px 14px;
   margin-bottom: 8px;
@@ -738,7 +742,7 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--card-hover);
+  background: transparent;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   -webkit-tap-highlight-color: transparent;

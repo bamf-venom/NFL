@@ -1098,6 +1098,11 @@
   display: block;
 }
 
+.group-bet-avatar:has(> img),
+.group-bet-item.own .group-bet-avatar:has(> img) {
+  background: transparent;
+}
+
 .group-bet-item.own .group-bet-avatar {
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
   border-color: var(--accent);

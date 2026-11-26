@@ -264,6 +264,10 @@
   font-weight: 700;
 }
 
+.member-avatar:has(> img) {
+  background: transparent;
+}
+
 .member-name {
   font-weight: 600;
   display: flex;
